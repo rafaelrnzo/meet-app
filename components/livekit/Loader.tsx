@@ -1,7 +1,17 @@
-export function Loader() {
+// components/livekit/Loader.tsx
+export function Loader({ text = "Loading..." }: { text?: string }) {
   return (
-    <div className="flex items-center justify-center h-screen text-white text-lg">
-      🔄 Connecting to meeting...
+    <div
+      style={{
+        height: "100vh",
+        background: "#0b0b0b",
+        color: "#fff",
+        display: "grid",
+        placeItems: "center",
+        fontSize: 14,
+      }}
+    >
+      {text}
     </div>
   );
 }

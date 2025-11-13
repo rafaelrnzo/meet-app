@@ -1,8 +1,9 @@
+// lib/api.ts
 type TokenResponse = {
   token: string;
   room: string;
   identity: string;
-  host: string;
+  host: string; 
 };
 
 const BASE =
@@ -38,6 +39,12 @@ export async function fetchToken(room: string, identity: string): Promise<{
   }
 
   const data = (await res.json()) as TokenResponse;
+
+  if (!data.host || !data.host.trim()) {
+    throw new Error(
+      "Backend mengembalikan host kosong. Set LIVEKIT_SERVER_URL di backend (contoh: http://192.168.100.130:7880)."
+    );
+  }
 
   return {
     token: data.token,

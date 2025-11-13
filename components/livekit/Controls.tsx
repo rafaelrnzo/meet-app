@@ -1,6 +1,7 @@
 "use client";
 
 import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
+import Link from "next/link";
 import { useState } from "react";
 
 export function Controls() {
@@ -89,13 +90,18 @@ export function Controls() {
         🖥️ {isScreenShareEnabled ? "Stop Share" : "Share Screen"}
       </button>
 
-      <button
-        onClick={leaveRoom}
-        className="px-4 py-2 bg-red-600 rounded text-white"
-        aria-label="Leave room"
-      >
-        🚪 Leave
-      </button>
+      <Link href="/">
+
+        <button
+          // onClick={() => { href = "/" }}
+          className="px-4 py-2 bg-red-600 rounded text-white"
+          aria-label="Leave room"
+        >
+          🚪 Leave
+        </button>
+      </Link>
     </div>
   );
 }
+
+export default Controls;
