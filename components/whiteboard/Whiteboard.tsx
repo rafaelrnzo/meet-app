@@ -6,7 +6,7 @@ import {
   RoomEvent,
   type RemoteParticipant,
   type LocalParticipant,
-  type DataPacket_Kind, // type only
+  type DataPacket_Kind,
 } from "livekit-client";
 
 type Pt = { x: number; y: number };
@@ -61,12 +61,10 @@ export default function Whiteboard({
   const currentIdRef = useRef<string | null>(null);
   const drawingRef = useRef(false);
 
-  // ========= helpers =========
   const send = async (msg: WbMsg) => {
     try {
       if (!room) return;
       const payload = new TextEncoder().encode(JSON.stringify(msg));
-      // Paling kompatibel: tanpa topic; set reliable = true.
       await room.localParticipant.publishData(payload, { reliable: true });
       if (process.env.NODE_ENV !== "production") {
         console.log("[WB] sent:", msg);
@@ -112,7 +110,6 @@ export default function Whiteboard({
     repaint();
   }, [strokes]);
 
-  // ========= receive data =========
   useEffect(() => {
     if (!room) return;
 
@@ -175,14 +172,11 @@ export default function Whiteboard({
     };
 
     const onParticipantConnected = () => {
-      // peserta baru join → minta snapshot dari yang lain
       void send({ type: "wb:request_sync" });
     };
 
     room.on(RoomEvent.DataReceived, onData);
     room.on(RoomEvent.ParticipantConnected, onParticipantConnected);
-
-    // minta snapshot saat mount
     void send({ type: "wb:request_sync" });
 
     return () => {
@@ -191,7 +185,6 @@ export default function Whiteboard({
     };
   }, [room]);
 
-  // ========= drawing (aktif hanya saat active) =========
   const getPos = (e: React.PointerEvent<HTMLCanvasElement>): Pt => {
     const rect = (e.target as HTMLCanvasElement).getBoundingClientRect();
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
@@ -247,7 +240,10 @@ export default function Whiteboard({
   const onUp = () => endStroke();
   const onLeave = () => endStroke();
 
-  const clearBoard = () => { setStrokes([]); void send({ type: "wb:clear" }); };
+  const clearBoard = () => {
+    setStrokes([]);
+    void send({ type: "wb:clear" });
+  };
 
   const undoLast = () => {
     for (let i = strokesRef.current.length - 1; i >= 0; i--) {
@@ -268,38 +264,54 @@ export default function Whiteboard({
         pointerEvents: active ? "auto" : "none",
         opacity: active ? 1 : 0,
         transition: "opacity 120ms ease",
-        background: active ? "rgba(20,20,20,0.06)" : "transparent",
-        backdropFilter: active ? "saturate(1.1)" : "none",
+        background: active ? "rgba(5,5,5,0.7)" : "transparent",
+        backdropFilter: active ? "blur(6px)" : "none",
       }}
     >
       {active && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 flex gap-2 items-center bg-black/60 border border-white/10 rounded-xl px-3 py-2">
-          <input
-            type="color"
-            value={color}
-            onChange={(e) => setColor(e.target.value)}
-            title="Pick color"
-            className="w-8 h-8 p-0 border-0 bg-transparent"
-          />
-          <input
-            type="range"
-            min={1}
-            max={16}
-            value={width}
-            onChange={(e) => setWidth(parseInt(e.target.value))}
-            title="Brush size"
-          />
-          <button onClick={undoLast} className="px-3 py-1 rounded bg-gray-800 hover:bg-gray-700">
-            ↶ Undo
-          </button>
-          <button onClick={clearBoard} className="px-3 py-1 rounded bg-gray-800 hover:bg-gray-700">
-            🧹 Clear
-          </button>
-          {onClose && (
-            <button onClick={onClose} className="px-3 py-1 rounded bg-red-600 text-white">
-              ✕ Close
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-3 bg-neutral-950/90 border border-neutral-800 rounded-full px-3 sm:px-4 py-1.5 shadow-lg shadow-black/40">
+          <div className="flex items-center gap-2">
+            <div className="w-7 h-7 rounded-full overflow-hidden border border-neutral-700 bg-neutral-900">
+              <input
+                type="color"
+                value={color}
+                onChange={(e) => setColor(e.target.value)}
+                title="Pick color"
+                className="w-full h-full cursor-pointer border-0 p-0 bg-transparent"
+              />
+            </div>
+            <input
+              type="range"
+              min={1}
+              max={16}
+              value={width}
+              onChange={(e) => setWidth(parseInt(e.target.value))}
+              title="Brush size"
+              className="w-24 sm:w-32 accent-teal-500 bg-transparent"
+            />
+          </div>
+          <div className="flex items-center gap-1 sm:gap-2 pl-2 border-l border-neutral-800">
+            <button
+              onClick={undoLast}
+              className="px-2.5 py-1 rounded-full bg-neutral-900 text-xs text-neutral-100 hover:bg-neutral-800 border border-neutral-700"
+            >
+              Undo
             </button>
-          )}
+            <button
+              onClick={clearBoard}
+              className="px-2.5 py-1 rounded-full bg-neutral-900 text-xs text-red-300 hover:bg-red-600/80 hover:text-white border border-red-500/70"
+            >
+              Clear
+            </button>
+            {onClose && (
+              <button
+                onClick={onClose}
+                className="px-2.5 py-1 rounded-full bg-red-600 text-xs text-white hover:bg-red-500 border border-red-500"
+              >
+                Close
+              </button>
+            )}
+          </div>
         </div>
       )}
       <canvas
