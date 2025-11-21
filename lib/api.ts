@@ -1,49 +1,73 @@
 // lib/api.ts
+
 type TokenResponse = {
-  token: string;
-  room: string;
-  identity: string;
-  host: string; 
-};
+  token: string
+  room: string
+  identity: string
+  host: string
+}
 
 const BASE =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") || "http://localhost:8080";
+  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
+  "http://localhost:8080"
 
 export function normalizeServerUrl(hostFromBackend: string): string {
   try {
-    const url = new URL(hostFromBackend);
-    if (url.protocol === "http:") url.protocol = "ws:";
-    if (url.protocol === "https:") url.protocol = "wss:";
-    return url.toString().replace(/\/+$/, "");
+    const url = new URL(hostFromBackend)
+    if (url.protocol === "http:") url.protocol = "ws:"
+    if (url.protocol === "https:") url.protocol = "wss:"
+    return url.toString().replace(/\/+$/, "")
   } catch {
-    return hostFromBackend;
+    return hostFromBackend
   }
 }
 
-export async function fetchToken(room: string, identity: string): Promise<{
-  token: string;
-  serverUrl: string;
-  room: string;
-  identity: string;
-}> {
-  const res = await fetch(`${BASE}/token`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    cache: "no-store",
-    body: JSON.stringify({ room, identity }),
-  });
-
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Failed to fetch token: ${res.status} ${text}`);
+function getAuthToken(): string {
+  if (typeof window === "undefined") {
+    throw new Error("Token hanya bisa diambil di client")
   }
 
-  const data = (await res.json()) as TokenResponse;
+  const token = localStorage.getItem("vc_token")
+  if (!token) {
+    throw new Error("Not authenticated: JWT token tidak ditemukan")
+  }
+
+  return token
+}
+
+// fetch token LiveKit dari backend baru (dengan JWT)
+export async function fetchToken(
+  room: string,
+  _identity?: string
+): Promise<{
+  token: string
+  serverUrl: string
+  room: string
+  identity: string
+}> {
+  const jwt = getAuthToken()
+
+  const res = await fetch(`${BASE}/api/livekit/token`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${jwt}`,
+    },
+    cache: "no-store",
+    body: JSON.stringify({ room }), // identity diambil dari JWT di backend
+  })
+
+  if (!res.ok) {
+    const text = await res.text().catch(() => "")
+    throw new Error(`Failed to fetch LiveKit token: ${res.status} ${text}`)
+  }
+
+  const data = (await res.json()) as TokenResponse
 
   if (!data.host || !data.host.trim()) {
     throw new Error(
-      "Backend mengembalikan host kosong. Set LIVEKIT_SERVER_URL di backend (contoh: http://192.168.100.130:7880)."
-    );
+      "Backend mengembalikan host kosong. Pastikan LIVEKIT_SERVER_URL di backend sudah diset (contoh: http://10.70.0.45:7880)."
+    )
   }
 
   return {
@@ -51,5 +75,5 @@ export async function fetchToken(room: string, identity: string): Promise<{
     serverUrl: normalizeServerUrl(data.host),
     room: data.room,
     identity: data.identity,
-  };
+  }
 }

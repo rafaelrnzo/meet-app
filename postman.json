@@ -1,0 +1,209 @@
+{
+  "info": {
+    "name": "Video Conference API",
+    "_postman_id": "ff4a71d1-8231-4d6d-a3dd-331bdbe91720",
+    "description": "API Collection for Video Conference App (Auth + LiveKit + Admin)",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+
+    {
+      "name": "🟩 Register",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"user1\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/register",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["register"]
+        }
+      }
+    },
+
+    {
+      "name": "🟩 Login (Get JWT Token)",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"user1\",\n  \"password\": \"123456\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/login",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["login"]
+        }
+      }
+    },
+
+    {
+      "name": "⬜ Public Endpoint",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8080/public",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["public"]
+        }
+      }
+    },
+
+    {
+      "name": "🔐 Protected (JWT Required)",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/api/protected",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "protected"]
+        }
+      }
+    },
+
+    {
+      "name": "🎥 LiveKit - Generate User Token",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"room\": \"room1\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/api/livekit/token",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["api", "livekit", "token"]
+        }
+      }
+    },
+
+    {
+      "name": "🛠 Admin - Create Room",
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"name\": \"room1\",\n  \"maxParticipants\": 20,\n  \"metadata\": \"testing room\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8080/admin/livekit/rooms",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["admin", "livekit", "rooms"]
+        }
+      }
+    },
+
+    {
+      "name": "🛠 Admin - List Rooms",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/admin/livekit/rooms",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["admin", "livekit", "rooms"]
+        }
+      }
+    },
+
+    {
+      "name": "🛠 Admin - Delete Room",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/admin/livekit/rooms/{{roomName}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["admin", "livekit", "rooms", "{{roomName}}"]
+        }
+      }
+    },
+
+    {
+      "name": "🛠 Admin - List Participants",
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/admin/livekit/participants?room={{roomName}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["admin", "livekit", "participants"],
+          "query": [
+            { "key": "room", "value": "{{roomName}}" }
+          ]
+        }
+      }
+    },
+
+    {
+      "name": "🛠 Admin - Kick Participant",
+      "request": {
+        "method": "DELETE",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
+        ],
+        "url": {
+          "raw": "http://localhost:8080/admin/livekit/participants?room={{roomName}}&identity={{identity}}",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "8080",
+          "path": ["admin", "livekit", "participants"],
+          "query": [
+            { "key": "room", "value": "{{roomName}}" },
+            { "key": "identity", "value": "{{identity}}" }
+          ]
+        }
+      }
+    }
+
+  ],
+  "variable": [
+    { "key": "token", "value": "" },
+    { "key": "admin_token", "value": "" },
+    { "key": "roomName", "value": "room1" },
+    { "key": "identity", "value": "user1" }
+  ]
+}
