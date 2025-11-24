@@ -37,10 +37,7 @@ export function LoginForm({
       const res = await fetch(`${API_BASE}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username, // backend boleh anggap ini username atau email
-          password,
-        }),
+        body: JSON.stringify({ username, password }),
       })
 
       if (!res.ok) {
@@ -60,9 +57,13 @@ export function LoginForm({
 
       if (typeof window !== "undefined") {
         localStorage.setItem("vc_token", token)
-        if (data.user) {
-          localStorage.setItem("vc_user", JSON.stringify(data.user))
-        }
+        localStorage.setItem(
+          "vc_user",
+          JSON.stringify({
+            username,
+            role: data.role || "user",
+          }),
+        )
       }
 
       router.push("/")
@@ -82,23 +83,28 @@ export function LoginForm({
     >
       <FieldGroup>
         <div className="flex flex-col items-center gap-1 text-center">
-          <h1 className="text-2xl font-bold">Login to your account</h1>
-          <p className="text-muted-foreground text-sm text-balance">
-            Enter your username or email to login to your account
+          <h1 className="text-2xl font-semibold tracking-tight">
+            Login to your account
+          </h1>
+          <p className="text-xs text-muted-foreground">
+            Enter your username and password to continue.
           </p>
         </div>
 
         {error && (
-          <p className="text-sm text-red-500 text-center">{error}</p>
+          <p className="text-xs text-destructive bg-destructive/10 border border-destructive/40 px-3 py-2 rounded-lg text-center">
+            {error}
+          </p>
         )}
 
         <Field>
-          <FieldLabel htmlFor="username">Username / Email</FieldLabel>
+          <FieldLabel htmlFor="username">Username</FieldLabel>
           <Input
             id="username"
             type="text"
-            placeholder="superadmin atau email@domain.com"
             autoComplete="username"
+            placeholder="superadmin"
+            className="bg-background border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-ring"
             required
             value={username}
             onChange={(e) => setUsername(e.target.value)}
@@ -110,7 +116,7 @@ export function LoginForm({
             <FieldLabel htmlFor="password">Password</FieldLabel>
             <a
               href="#"
-              className="ml-auto text-sm underline-offset-4 hover:underline"
+              className="ml-auto text-xs text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
             >
               Forgot your password?
             </a>
@@ -119,6 +125,7 @@ export function LoginForm({
             id="password"
             type="password"
             autoComplete="current-password"
+            className="bg-background border-input text-foreground placeholder:text-muted-foreground focus-visible:ring-ring"
             required
             value={password}
             onChange={(e) => setPassword(e.target.value)}
@@ -126,30 +133,53 @@ export function LoginForm({
         </Field>
 
         <Field>
-          <Button type="submit" disabled={loading}>
+          <Button
+            type="submit"
+            disabled={loading}
+            className="w-full"
+          >
             {loading ? "Logging in..." : "Login"}
           </Button>
         </Field>
 
-        <FieldSeparator>Or continue with</FieldSeparator>
+        {/* <FieldSeparator>Or continue with</FieldSeparator>
 
         <Field>
-          <Button variant="outline" type="button" disabled={loading}>
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+          <Button
+            variant="outline"
+            type="button"
+            disabled={loading}
+            className="w-full border-border bg-background text-foreground hover:bg-muted"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              viewBox="0 0 24 24"
+              className="mr-2 h-4 w-4"
+            >
               <path
-                d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
+                d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 
+                  0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61
+                  C4.422 18.07 3.633 17.7 3.633 17.7c-1.087-.744.084-.729.084-.729
+                  1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 
+                  3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 
+                  0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 
+                  0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 
+                  2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 
+                  1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 
+                  0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 
+                  24 17.592 24 12.297c0-6.627-5.373-12-12-12"
                 fill="currentColor"
               />
             </svg>
             Login with GitHub
           </Button>
-          <FieldDescription className="text-center">
+          <FieldDescription className="text-center text-xs text-muted-foreground">
             Don&apos;t have an account?{" "}
             <a href="#" className="underline underline-offset-4">
               Sign up
             </a>
           </FieldDescription>
-        </Field>
+        </Field> */}
       </FieldGroup>
     </form>
   )

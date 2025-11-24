@@ -1,28 +1,29 @@
-// D:\proj\meet-FE\meet-fe-custom\hooks\use-auth.ts
-
 "use client"
 
-import * as React from "react"
+import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { getToken, getUser, clearAuth } from "@/lib/auth-client"
 
 export function useAuth(options?: { requireAdmin?: boolean }) {
   const router = useRouter()
   const pathname = usePathname()
-  const [loading, setLoading] = React.useState(true)
-  const [isAuthenticated, setIsAuthenticated] = React.useState(false)
-  const [isAdmin, setIsAdmin] = React.useState(false)
 
-  React.useEffect(() => {
+  const [loading, setLoading] = useState(true)
+  const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+
+  useEffect(() => {
     const token = getToken()
     const user = getUser()
+
+    const isAuthPage = pathname === "/login"
 
     if (!token) {
       setIsAuthenticated(false)
       setIsAdmin(false)
       setLoading(false)
-      // kalau path bukan login/register, redirect ke login
-      if (!pathname?.startsWith("/(auth)") && pathname !== "/login") {
+
+      if (!isAuthPage) {
         router.replace("/login")
       }
       return
@@ -32,7 +33,6 @@ export function useAuth(options?: { requireAdmin?: boolean }) {
     const admin = user?.role === "admin"
     setIsAdmin(admin)
 
-    // kalau butuh admin tapi bukan admin → bisa redirect
     if (options?.requireAdmin && !admin) {
       router.replace("/not-authorized")
     }
@@ -40,15 +40,10 @@ export function useAuth(options?: { requireAdmin?: boolean }) {
     setLoading(false)
   }, [router, pathname, options?.requireAdmin])
 
-  const logout = React.useCallback(() => {
+  const logout = () => {
     clearAuth()
     router.replace("/login")
-  }, [router])
-
-  return {
-    loading,
-    isAuthenticated,
-    isAdmin,
-    logout,
   }
+
+  return { loading, isAuthenticated, isAdmin, logout }
 }
