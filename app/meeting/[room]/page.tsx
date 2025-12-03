@@ -1,5 +1,5 @@
 // app/meeting/[room]/page.tsx
-import MeetingClient from "@/components/meeting/MeetingClient";
+import MeetingClient from "@/components/features/meeting/MeetingClient";
 
 export default async function MeetingPage({
   params,

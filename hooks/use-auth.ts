@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { getToken, getUser, clearAuth } from "@/lib/auth-client"
+import { getToken, getUser, clearAuth } from "@/lib/api/auth-client"
 
 export function useAuth(options?: { requireAdmin?: boolean }) {
   const router = useRouter()

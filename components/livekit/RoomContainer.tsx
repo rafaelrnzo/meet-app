@@ -296,123 +296,129 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
   );
 }
 
-function ScreenRecorderControls() {
+// ============================
+// Server-side recording controls (UPDATED)
+// ============================
+function ServerRecordingControls({ roomName }: { roomName: string }) {
   const [isRecording, setIsRecording] = React.useState(false);
-  const [isSupported, setIsSupported] = React.useState(true);
+  const [loading, setLoading] = React.useState(false);
+  const [lastError, setLastError] = React.useState<string | null>(null);
 
-  const mediaRecorderRef = React.useRef<MediaRecorder | null>(null);
-  const recordedChunksRef = React.useRef<BlobPart[]>([]);
-  const streamRef = React.useRef<MediaStream | null>(null);
+  const API_BASE =
+    process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
+    "http://localhost:8080";
 
-  React.useEffect(() => {
-    if (
-      typeof window === "undefined" ||
-      !navigator.mediaDevices ||
-      !navigator.mediaDevices.getDisplayMedia
-    ) {
-      setIsSupported(false);
-    }
-  }, []);
+  const getJwt = () => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("vc_token") || "";
+  };
 
   const startRecording = async () => {
+    if (loading) return;
+    setLoading(true);
+    setLastError(null);
+
     try {
-      if (!navigator.mediaDevices?.getDisplayMedia) {
-        alert("Screen recording tidak didukung di browser ini.");
+      const res = await fetch(`${API_BASE}/admin/livekit/recordings/start`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getJwt()}`,
+        },
+        body: JSON.stringify({
+          room_name: roomName,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json().catch(() => ({} as any));
+      console.log("[Recording START response]", data);
+
+      // anggap saja "recording on" begitu backend menerima request
+      setIsRecording(true);
+    } catch (err: any) {
+      console.error("[Recording] gagal start:", err);
+      setLastError(err?.message || "Gagal mulai recording");
+      alert(`Gagal mulai recording: ${err?.message || "Unknown error"}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const stopRecording = async () => {
+    if (loading) return;
+    setLoading(true);
+    setLastError(null);
+
+    try {
+      const res = await fetch(`${API_BASE}/admin/livekit/recordings/stop`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getJwt()}`,
+        },
+        body: JSON.stringify({ room_name: roomName }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      const data = await res.json().catch(() => ({} as any));
+      console.log("[Recording STOP response]", data);
+
+      // status dari backend (EGRESS_ACTIVE / EGRESS_ABORTED / EGRESS_COMPLETE / dll)
+      const status: string = data.status || "";
+
+      // kalau sudah ABORTED / COMPLETE / FAILED → anggap saja "sudah berhenti", jangan di-alert-in
+      if (
+        status === "EGRESS_ABORTED" ||
+        status === "EGRESS_COMPLETE" ||
+        status === "EGRESS_FAILED"
+      ) {
+        setIsRecording(false);
         return;
       }
 
-      const displayStream = await navigator.mediaDevices.getDisplayMedia({
-        video: true,
-        audio: true,
-      });
-
-      streamRef.current = displayStream;
-
-      let options: MediaRecorderOptions = {};
-      if (typeof MediaRecorder !== "undefined") {
-        if (MediaRecorder.isTypeSupported("video/webm;codecs=vp8")) {
-          options = { mimeType: "video/webm;codecs=vp8" };
-        } else if (MediaRecorder.isTypeSupported("video/webm")) {
-          options = { mimeType: "video/webm" };
-        }
-      }
-
-      const mediaRecorder = new MediaRecorder(displayStream, options);
-      mediaRecorderRef.current = mediaRecorder;
-      recordedChunksRef.current = [];
-
-      mediaRecorder.ondataavailable = (event: BlobEvent) => {
-        if (event.data && event.data.size > 0) {
-          recordedChunksRef.current.push(event.data);
-        }
-      };
-
-      mediaRecorder.onstop = () => {
-        const blob = new Blob(recordedChunksRef.current, {
-          type: "video/webm",
-        });
-
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.style.display = "none";
-        a.href = url;
-        a.download = `meet-record-${new Date().toISOString()}.webm`;
-        document.body.appendChild(a);
-        a.click();
-        setTimeout(() => {
-          document.body.removeChild(a);
-          URL.revokeObjectURL(url);
-        }, 100);
-
-        streamRef.current?.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-        mediaRecorderRef.current = null;
-        setIsRecording(false);
-      };
-
-      mediaRecorder.start(200);
-      setIsRecording(true);
-    } catch (err: any) {
-      console.error("[Recorder] gagal start:", err?.name, err?.message);
-      alert(`Tidak bisa mulai recording: ${err?.name || "Error"}`);
-    }
-  };
-
-  const stopRecording = () => {
-    if (
-      mediaRecorderRef.current &&
-      mediaRecorderRef.current.state !== "inactive"
-    ) {
-      mediaRecorderRef.current.stop();
-    } else {
-      streamRef.current?.getTracks().forEach((t) => t.stop());
-      streamRef.current = null;
+      // fallback: tetap set false (recording off)
       setIsRecording(false);
+    } catch (err: any) {
+      console.error("[Recording] gagal stop:", err);
+      setLastError(err?.message || "Gagal stop recording");
+      alert(`Gagal stop recording: ${err?.message || "Unknown error"}`);
+    } finally {
+      setLoading(false);
     }
   };
-
-  if (!isSupported) {
-    return (
-      <button
-        disabled
-        className="px-3 py-1 rounded-full bg-neutral-800/70 border border-neutral-700/80 text-[11px] text-neutral-500 cursor-not-allowed"
-      >
-        Record
-      </button>
-    );
-  }
 
   return (
-    <button
-      onClick={isRecording ? stopRecording : startRecording}
-      className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border ${
-        isRecording
-          ? "bg-red-600 border-red-500 text-white hover:bg-red-500"
-          : "bg-neutral-900/80 border-neutral-700 text-neutral-100 hover:bg-neutral-800"
-      }`}
-    >
-      {isRecording ? "Stop Recording" : "Record"}
-    </button>
+    <div className="flex items-center gap-2">
+      <button
+        onClick={isRecording ? stopRecording : startRecording}
+        disabled={loading}
+        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border flex items-center gap-1 ${
+          isRecording
+            ? "bg-red-600 border-red-500 text-white hover:bg-red-500"
+            : "bg-neutral-900/80 border-neutral-700 text-neutral-100 hover:bg-neutral-800"
+        } ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+      >
+        {loading
+          ? "Processing..."
+          : isRecording
+          ? "Stop Recording"
+          : "Record (Server)"}
+      </button>
+      {lastError && (
+        <span className="text-[11px] text-red-400 max-w-[200px] truncate">
+          {lastError}
+        </span>
+      )}
+    </div>
   );
 }
 
@@ -459,6 +465,7 @@ export default function RoomContainer({
     >
       <RoomAudioRenderer />
       <StartAudio label="Klik untuk mengaktifkan audio" />
+
       <div className="px-4 py-2 border-b border-neutral-800 bg-gradient-to-r from-black via-neutral-950 to-black flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
@@ -504,7 +511,7 @@ export default function RoomContainer({
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <ScreenRecorderControls />
+          <ServerRecordingControls roomName={roomName} />
           <button
             onClick={() => setShowWb((v) => !v)}
             className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
@@ -517,11 +524,14 @@ export default function RoomContainer({
           </button>
         </div>
       </div>
+
       <DebugTracks />
+
       <div className="flex-1 min-h-0 relative bg-gradient-to-br from-neutral-950 via-black to-neutral-950">
         <VideoGrid layoutMode={layoutMode} />
         <Whiteboard active={showWb} onClose={() => setShowWb(false)} />
       </div>
+
       <div className="border-t border-neutral-800 bg-black/60">
         <Controls />
       </div>

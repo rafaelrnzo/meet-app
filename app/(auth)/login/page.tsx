@@ -6,9 +6,7 @@ import { LoginForm } from "@/components/login-form"
 export default function LoginPage() {
   return (
     <div className="min-h-svh grid lg:grid-cols-2 bg-background text-foreground">
-      {/* Left side: logo + form */}
       <div className="flex flex-col gap-6 p-6 md:p-10">
-        {/* Logo */}
         <div className="flex justify-center gap-2 md:justify-start">
           <div className="flex items-center gap-2 font-medium">
             <div className="flex size-8 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-lg">
@@ -20,7 +18,6 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Form */}
         <div className="flex flex-1 items-center justify-center">
           <div className="w-full max-w-sm rounded-2xl border border-border bg-card text-card-foreground px-6 py-8 shadow-xl backdrop-blur">
             <LoginForm />
@@ -28,9 +25,8 @@ export default function LoginPage() {
         </div>
       </div>
 
-      {/* Right side: hero / illustration */}
       <div className="relative hidden lg:block">
-        <div className="absolute inset-0 bg-gradient-to-br from-muted via-background to-muted" />
+        <div className="absolute inset-0 from-muted via-background to-muted" />
         <img
           src="/placeholder.svg"
           alt="Image"

@@ -35,7 +35,6 @@ function getAuthToken(): string {
   return token
 }
 
-// fetch token LiveKit dari backend baru (dengan JWT)
 export async function fetchToken(
   room: string,
   _identity?: string
@@ -54,7 +53,7 @@ export async function fetchToken(
       Authorization: `Bearer ${jwt}`,
     },
     cache: "no-store",
-    body: JSON.stringify({ room }), // identity diambil dari JWT di backend
+    body: JSON.stringify({ room }),
   })
 
   if (!res.ok) {
@@ -66,7 +65,7 @@ export async function fetchToken(
 
   if (!data.host || !data.host.trim()) {
     throw new Error(
-      "Backend mengembalikan host kosong. Pastikan LIVEKIT_SERVER_URL di backend sudah diset (contoh: http://10.70.0.45:7880)."
+      "Backend mengembalikan host kosong. Pastikan LIVEKIT_SERVER_URL di backend sudah diset (contoh: http://livekit.10.70.0.45:7880)."
     )
   }
 

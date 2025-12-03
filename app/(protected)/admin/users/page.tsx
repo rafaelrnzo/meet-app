@@ -11,8 +11,8 @@ import {
   fetchUsers,
   updateUserRole,
   type User,
-} from "@/lib/admin-api"
-import { useAuth } from "@/app/hooks/use-auth"
+} from "@/lib/api/admin-api"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function AdminUsersPage() {
   const router = useRouter()

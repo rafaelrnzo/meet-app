@@ -10,8 +10,8 @@ import {
   deleteRoom,
   fetchRooms,
   type Room,
-} from "@/lib/admin-api"
-import { useAuth } from "@/app/hooks/use-auth"
+} from "@/lib/api/admin-api"
+import { useAuth } from "@/hooks/use-auth"
 
 export default function AdminRoomsPage() {
   const router = useRouter()
@@ -27,7 +27,6 @@ export default function AdminRoomsPage() {
   useEffect(() => {
     if (!isAuthenticated || !isAdmin) return
     loadRooms()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isAdmin])
 
   const loadRooms = async () => {
@@ -98,7 +97,6 @@ export default function AdminRoomsPage() {
   return (
     <div className="min-h-screen bg-background text-foreground px-4 py-6">
       <div className="mx-auto max-w-5xl space-y-6">
-        {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-xl font-semibold flex items-center gap-2">
@@ -118,7 +116,6 @@ export default function AdminRoomsPage() {
           </Button>
         </div>
 
-        {/* Create room form */}
         <div className="rounded-2xl border border-border bg-card text-card-foreground p-4 space-y-3">
           <h2 className="text-sm font-semibold flex items-center gap-2">
             <Plus className="h-4 w-4" />
@@ -153,7 +150,6 @@ export default function AdminRoomsPage() {
           </p>
         </div>
 
-        {/* List rooms */}
         <div className="rounded-2xl border border-border bg-card text-card-foreground p-4">
           <div className="flex items-center justify-between mb-3">
             <h2 className="text-sm font-semibold">Existing rooms</h2>

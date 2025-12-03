@@ -171,7 +171,7 @@ export function LoginForm({
                 fill="currentColor"
               />
             </svg>
-            Login with GitHub
+              Login with GitHub
           </Button>
           <FieldDescription className="text-center text-xs text-muted-foreground">
             Don&apos;t have an account?{" "}

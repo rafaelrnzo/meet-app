@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { useAuth } from "../hooks/use-auth"
+import { useAuth } from "../../hooks/use-auth"
 
 export default function ProtectedLayout({
   children,

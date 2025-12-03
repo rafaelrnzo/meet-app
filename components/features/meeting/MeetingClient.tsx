@@ -3,7 +3,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { fetchToken } from "@/lib/api";
+import { fetchToken } from "@/lib/api/api";
 import { Loader } from "@/components/livekit/Loader";
 import RoomContainer from "@/components/livekit/RoomContainer";
 

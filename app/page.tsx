@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { getUser } from "@/lib/auth-client"
+import { getUser } from "@/lib/api/auth-client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import {
@@ -15,32 +15,44 @@ import {
   RefreshCcw,
   Trash2,
   Shield,
+  PlayCircle,
+  Link2,
+  Pencil,
+  LayoutGrid,
+  CalendarClock
 } from "lucide-react"
 import {
-  createRoom,
-  deleteRoom,
-  fetchRooms,
-  type Room,
+  createDbRoom,
+  deleteDbRoom,
+  fetchDbRooms,
+  fetchActiveRooms,
+  type DbRoom,
+  type ActiveRoom,
   createUser,
   deleteUser,
   fetchUsers,
   updateUserRole,
   type User as UserDto,
-} from "@/lib/admin-api"
+  fetchRecordings,
+  updateRecordingName,
+  deleteRecording,
+  type Recording as RecordingDto,
+} from "@/lib/api/admin-api"
 import { cn } from "@/lib/utils"
-import { useAuth } from "./hooks/use-auth"
+import { useAuth } from "../hooks/use-auth"
 
 type StoredUser = {
   username?: string
   role?: string
 }
 
-type ActiveTab = "home" | "rooms" | "users" | "settings"
+type ActiveTab = "home" | "rooms" | "users" | "recordings" | "settings"
 
 const sidebarItems = [
   { id: "home" as const, icon: Home, label: "Home" },
-  { id: "rooms" as const, icon: Video, label: "Rooms" },
+  { id: "rooms" as const, icon: Video, label: "Rooms Management" },
   { id: "users" as const, icon: Users, label: "Users" },
+  { id: "recordings" as const, icon: PlayCircle, label: "Recordings" },
   { id: "settings" as const, icon: Settings, label: "Settings" },
 ]
 
@@ -49,7 +61,7 @@ export default function DashboardPage() {
   const { loading, isAuthenticated, isAdmin, logout } = useAuth()
   const [user, setUser] = useState<StoredUser | null>(null)
   const [active, setActive] = useState<ActiveTab>("home")
-  const [roomName, setRoomName] = useState("default-room")
+  const [roomName, setRoomName] = useState("")
 
   useEffect(() => {
     setUser(getUser())
@@ -68,13 +80,14 @@ export default function DashboardPage() {
   const username = user?.username || "Unknown"
   const role = user?.role || (isAdmin ? "admin" : "user")
 
-  const handleJoin = () => {
-    if (!roomName.trim()) return
-    router.push(`/meeting/${encodeURIComponent(roomName)}`)
+  const handleJoin = (name?: string) => {
+    const targetRoom = typeof name === "string" ? name : roomName
+    if (!targetRoom.trim()) return
+    router.push(`/meeting/${encodeURIComponent(targetRoom)}`)
   }
 
   const handleSidebarClick = (id: ActiveTab) => {
-    if (!isAdmin && (id === "rooms" || id === "users")) return
+    if (!isAdmin && (id === "rooms" || id === "users" || id === "recordings")) return
     setActive(id)
   }
 
@@ -91,7 +104,7 @@ export default function DashboardPage() {
             const Icon = item.icon
             const isActive = active === item.id
             const disabled =
-              !isAdmin && (item.id === "rooms" || item.id === "users")
+              !isAdmin && (item.id === "rooms" || item.id === "users" || item.id === "recordings")
 
             return (
               <button
@@ -124,22 +137,20 @@ export default function DashboardPage() {
         </button>
       </aside>
 
-      {/* MAIN */}
-      <main className="flex-1 flex flex-col">
+      <main className="flex-1 flex flex-col overflow-hidden">
         {/* TOP BAR */}
-        <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-background/80 backdrop-blur">
+        <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-background/80 backdrop-blur shrink-0">
           <div className="flex flex-col">
             <span className="text-xs text-muted-foreground uppercase tracking-wide">
               Dashboard
             </span>
             <span className="text-sm">
-              Welcome back,{" "}
-              <span className="font-semibold">{username}</span>
+              Welcome back, <span className="font-semibold">{username}</span>
             </span>
           </div>
 
           <div className="flex items-center gap-3">
-            <div className="text-right">
+            <div className="text-right hidden sm:block">
               <p className="text-sm font-medium">{username}</p>
               <p className="text-xs text-muted-foreground">
                 {role === "admin" ? "Administrator" : "User"}
@@ -152,7 +163,7 @@ export default function DashboardPage() {
         </header>
 
         {/* CONTENT AREA */}
-        <div className="flex-1 p-6 bg-gradient-to-br from-background via-background to-muted/30">
+        <div className="flex-1 p-6 bg-gradient-to-br from-background via-background to-muted/30 overflow-y-auto">
           {active === "home" && (
             <HomeSection
               roomName={roomName}
@@ -162,24 +173,22 @@ export default function DashboardPage() {
             />
           )}
 
-          {active === "rooms" && (
-            <RoomsSection isAdmin={isAdmin} />
-          )}
+          {active === "rooms" && <RoomsSection isAdmin={isAdmin} />}
 
-          {active === "users" && (
-            <UsersSection isAdmin={isAdmin} />
-          )}
+          {active === "users" && <UsersSection isAdmin={isAdmin} />}
 
-          {active === "settings" && (
-            <SettingsSection />
-          )}
+          {active === "recordings" && <RecordingsSection isAdmin={isAdmin} />}
+
+          {active === "settings" && <SettingsSection />}
         </div>
       </main>
     </div>
   )
 }
 
-/* HOME SECTION */
+/* ======================
+ * HOME SECTION
+ * ====================== */
 
 function HomeSection({
   roomName,
@@ -189,22 +198,66 @@ function HomeSection({
 }: {
   roomName: string
   setRoomName: (v: string) => void
-  onJoin: () => void
+  onJoin: (name?: string) => void
   role: string
 }) {
+  const [dbRooms, setDbRooms] = useState<DbRoom[]>([])
+  const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
+  const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    loadData()
+  }, [])
+
+  const loadData = async () => {
+    setLoading(true)
+    try {
+      // 1. Ambil list room statis dari DB
+      const dbData = await fetchDbRooms()
+      if (Array.isArray(dbData)) {
+        setDbRooms(dbData)
+      }
+
+      // 2. Ambil status aktif dari LiveKit (optional, untuk badge 'Live')
+      try {
+        const liveData = await fetchActiveRooms()
+        if (Array.isArray(liveData)) {
+          setActiveRooms(liveData)
+        }
+      } catch (e) {
+        // Jika gagal fetch active rooms, abaikan saja
+        console.warn("Failed to fetch active stats", e)
+      }
+
+    } catch (e) {
+      console.error("Failed to load rooms", e)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Merge Data: Room DB + Info Participants jika aktif
+  const displayedRooms = dbRooms.map(room => {
+    const activeInfo = activeRooms.find(ar => ar.name === room.name)
+    return {
+      ...room,
+      isLive: !!activeInfo,
+      currentParticipants: activeInfo?.num_participants || 0
+    }
+  })
+
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 items-stretch">
-        {/* Quick join */}
-        <div className="md:col-span-2 rounded-2xl border border-border bg-card text-card-foreground p-5 shadow">
+      <div className="grid grid-cols-1 gap-4 items-stretch">
+        <div className="md:col-span-2 rounded-2xl border border-border bg-card text-card-foreground p-5 shadow-sm">
           <div className="flex items-center justify-between gap-4 mb-4">
             <div>
               <h2 className="text-lg font-semibold flex items-center gap-2">
                 <Video className="h-5 w-5 text-primary" />
-                Quick Meeting
+                Quick Join
               </h2>
               <p className="text-xs text-muted-foreground mt-1">
-                Masukkan nama room untuk join / membuat meeting baru.
+                Masukkan nama room yang terdaftar di sistem.
               </p>
             </div>
           </div>
@@ -212,80 +265,140 @@ function HomeSection({
           <div className="flex flex-col sm:flex-row gap-3 items-center">
             <Input
               className="flex-1"
-              placeholder="Nama room (contoh: daily-standup)"
+              placeholder="Cari atau ketik nama room..."
               value={roomName}
               onChange={(e) => setRoomName(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && onJoin()}
             />
             <Button
-              onClick={onJoin}
+              onClick={() => onJoin()}
               className="w-full sm:w-auto flex items-center gap-2"
             >
               <Plus className="h-4 w-4" />
               Join Meeting
             </Button>
           </div>
+        </div>
+      </div>
 
-          <p className="mt-3 text-[11px] text-muted-foreground">
-            Room reusable, bisa dipakai berkali-kali. LiveKit akan menggunakan nama ini
-            untuk membuat atau reuse room sesuai konfigurasi server.
-          </p>
+      <div className="h-px bg-border/60 w-full my-2" />
+
+      {/* Available Rooms List */}
+      <div>
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="text-md font-semibold flex items-center gap-2">
+            <LayoutGrid className="h-4 w-4" />
+            Available Rooms
+          </h3>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={loadData}
+            className="h-8 text-xs text-muted-foreground"
+          >
+            <RefreshCcw className="h-3 w-3 mr-1" /> Refresh
+          </Button>
         </div>
 
-        {/* Info */}
-        <div className="rounded-2xl border border-border bg-card text-card-foreground p-5 flex flex-col justify-between">
-          <div>
-            <p className="text-xs text-muted-foreground mb-1">Status akun</p>
-            <p className="text-sm font-medium">
-              {role === "admin"
-                ? "Anda memiliki akses admin (room & user management)"
-                : "Akun user standar (join meeting)"}
-            </p>
+        {loading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="h-32 rounded-xl bg-muted/50 animate-pulse" />
+            ))}
           </div>
-          <div className="mt-4 text-xs text-muted-foreground">
-            Setelah ini kamu bisa:
-            <ul className="list-disc list-inside mt-1 space-y-0.5">
-              <li>Kelola room LiveKit (tab Rooms)</li>
-              <li>Kelola user & role (tab Users)</li>
-            </ul>
+        ) : displayedRooms.length === 0 ? (
+          <div className="text-center py-10 border border-dashed rounded-xl bg-muted/20">
+            <CalendarClock className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
+            <p className="text-sm text-muted-foreground">Belum ada room yang dibuat oleh Admin.</p>
           </div>
-        </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {displayedRooms.map((room) => {
+              const isMax = room.currentParticipants >= room.max_participants
+
+              return (
+                <div
+                  key={room.id}
+                  className="group relative flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200"
+                >
+                  <div>
+                    <div className="flex items-start justify-between mb-2">
+                      <h4 className="font-semibold text-sm truncate pr-2" title={room.name}>
+                        {room.name}
+                      </h4>
+                      {room.isLive && (
+                         <span className="flex h-2 w-2 rounded-full shrink-0 mt-1.5 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="Live Now" />
+                      )}
+                    </div>
+                    
+                    <p className="text-xs text-muted-foreground line-clamp-2 h-8 mb-3">
+                        {room.description || "Tidak ada deskripsi."}
+                    </p>
+
+                    <div className="flex items-center gap-3">
+                      <div className={cn(
+                          "flex items-center text-xs px-2 py-1 rounded-md",
+                          room.isLive ? "bg-primary/10 text-primary font-medium" : "bg-muted text-muted-foreground"
+                      )}>
+                        <Users className="h-3 w-3 mr-1.5" />
+                        <span>{room.currentParticipants} / {room.max_participants}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="mt-4">
+                    <Button 
+                      className="w-full h-8 text-xs group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
+                      variant={room.isLive ? "default" : "secondary"}
+                      disabled={isMax}
+                      onClick={() => onJoin(room.name)}
+                    >
+                      {isMax ? "Full" : room.isLive ? "Join Now" : "Start Meeting"}
+                    </Button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )
 }
 
-/* ROOMS SECTION */
+/* ======================
+ * ROOMS SECTION (ADMIN CRUD)
+ * ====================== */
+
 function RoomsSection({ isAdmin }: { isAdmin: boolean }) {
-  const [rooms, setRooms] = useState<Room[] | null>(null)
+  const [rooms, setRooms] = useState<DbRoom[]>([])
   const [fetching, setFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [name, setName] = useState("")
-  const [maxParticipants, setMaxParticipants] = useState<number>(10)
+  const [description, setDescription] = useState("")
+  const [maxParticipants, setMaxParticipants] = useState<number>(20)
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
     if (!isAdmin) return
     loadRooms()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAdmin])
 
   const loadRooms = async () => {
     setError(null)
     setFetching(true)
     try {
-      const data = await fetchRooms()
-      // ⬇️ pastikan SELALU array
+      const data = await fetchDbRooms()
       if (Array.isArray(data)) {
         setRooms(data)
       } else {
-        console.warn("fetchRooms returned non-array:", data)
         setRooms([])
       }
     } catch (err: any) {
       console.error(err)
       setError(err.message || "Failed to fetch rooms")
-      setRooms([]) // fallback agar tidak null
+      setRooms([])
     } finally {
       setFetching(false)
     }
@@ -297,11 +410,13 @@ function RoomsSection({ isAdmin }: { isAdmin: boolean }) {
     setCreating(true)
     setError(null)
     try {
-      await createRoom({
+      await createDbRoom({
         name: name.trim(),
-        maxParticipants: maxParticipants || 10,
+        description: description.trim(),
+        maxParticipants: maxParticipants || 20,
       })
       setName("")
+      setDescription("")
       await loadRooms()
     } catch (err: any) {
       console.error(err)
@@ -311,22 +426,16 @@ function RoomsSection({ isAdmin }: { isAdmin: boolean }) {
     }
   }
 
-  const handleDelete = async (roomName: string) => {
-    if (!confirm(`Delete room "${roomName}" ?`)) return
+  const handleDelete = async (id: number, roomName: string) => {
+    if (!confirm(`Delete room "${roomName}" (Database)?`)) return
     try {
-      await deleteRoom(roomName)
-      setRooms((prev) =>
-        Array.isArray(prev) ? prev.filter((r) => r.name !== roomName) : prev,
-      )
+      await deleteDbRoom(id)
+      setRooms((prev) => prev.filter((r) => r.id !== id))
     } catch (err: any) {
       console.error(err)
       alert(err.message || "Failed to delete room")
     }
   }
-
-  // ⬇️ helper biar aman
-  const safeRooms: Room[] = Array.isArray(rooms) ? rooms : []
-  const hasRooms = safeRooms.length > 0
 
   if (!isAdmin) {
     return (
@@ -344,41 +453,50 @@ function RoomsSection({ isAdmin }: { isAdmin: boolean }) {
       <div className="rounded-2xl border border-border bg-card text-card-foreground p-4 space-y-3">
         <h2 className="text-sm font-semibold flex items-center gap-2">
           <Plus className="h-4 w-4" />
-          Create new room
+          Create new static room
         </h2>
         <form
           onSubmit={handleCreateRoom}
-          className="flex flex-col gap-3 sm:flex-row sm:items-center"
+          className="grid gap-3 md:grid-cols-4"
         >
-          <Input
-            placeholder="Room name (e.g. daily-standup)"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-          />
-          <Input
-            type="number"
-            min={1}
-            max={50}
-            value={maxParticipants}
-            onChange={(e) => setMaxParticipants(Number(e.target.value))}
-            className="w-full sm:w-32"
-            placeholder="Max"
-          />
-          <Button type="submit" disabled={creating}>
-            {creating ? "Creating..." : "Create room"}
-          </Button>
+          <div className="md:col-span-1">
+            <Input
+                placeholder="Room Name (Unique)"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+          <div className="md:col-span-2">
+            <Input
+                placeholder="Description"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <div className="flex gap-2 md:col-span-1">
+             <Input
+                type="number"
+                min={1}
+                max={50}
+                value={maxParticipants}
+                onChange={(e) => setMaxParticipants(Number(e.target.value))}
+                className="w-20"
+                placeholder="Max"
+            />
+            <Button type="submit" disabled={creating} className="flex-1">
+                {creating ? "..." : "Create"}
+            </Button>
+          </div>
         </form>
         <p className="text-[11px] text-muted-foreground">
-          Backend akan membatasi maksimal peserta ke 20. Jika diisi &gt; 20, otomatis
-          di-clamp menjadi 20 dan status room akan menjadi <code>max</code> bila
-          jumlah peserta mencapai batas.
+          Room ini akan tersimpan di database. User hanya bisa join jika room ada di list ini.
         </p>
       </div>
 
       {/* List rooms */}
       <div className="rounded-2xl border border-border bg-card text-card-foreground p-4">
         <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold">Existing rooms</h2>
+          <h2 className="text-sm font-semibold">Existing Database Rooms</h2>
           <Button
             variant="outline"
             size="icon"
@@ -390,13 +508,11 @@ function RoomsSection({ isAdmin }: { isAdmin: boolean }) {
           </Button>
         </div>
 
-        {error && (
-          <p className="text-xs text-destructive mb-3">{error}</p>
-        )}
+        {error && <p className="text-xs text-destructive mb-3">{error}</p>}
 
-        {fetching && !hasRooms ? (
+        {fetching && rooms.length === 0 ? (
           <p className="text-xs text-muted-foreground">Loading rooms...</p>
-        ) : !hasRooms ? (
+        ) : rooms.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             No rooms found. Create one above.
           </p>
@@ -405,64 +521,35 @@ function RoomsSection({ isAdmin }: { isAdmin: boolean }) {
             <table className="w-full text-xs border-separate border-spacing-y-1">
               <thead className="text-[11px] uppercase text-muted-foreground">
                 <tr>
+                  <th className="text-left px-2 py-1">ID</th>
                   <th className="text-left px-2 py-1">Name</th>
-                  <th className="text-left px-2 py-1">Participants</th>
+                  <th className="text-left px-2 py-1">Description</th>
                   <th className="text-left px-2 py-1">Max</th>
-                  <th className="text-left px-2 py-1">Status</th>
-                  <th className="text-left px-2 py-1">Created</th>
                   <th className="text-right px-2 py-1">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {safeRooms.map((room) => {
-                  const status =
-                    room.status ||
-                    ((room.num_participants ?? 0) >= 20 ? "max" : "open")
-
-                  return (
-                    <tr
-                      key={room.sid || room.name}
-                      className="rounded-xl bg-background/40"
-                    >
-                      <td className="px-2 py-2 font-medium">
-                        {room.name}
-                      </td>
-                      <td className="px-2 py-2">
-                        {room.num_participants ?? 0}
-                      </td>
-                      <td className="px-2 py-2">
-                        {room.max_participants ?? "-"}
-                      </td>
-                      <td className="px-2 py-2">
-                        <span
-                          className={cn(
-                            "inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-medium",
-                            status === "max"
-                              ? "bg-destructive/10 text-destructive"
-                              : "bg-emerald-500/10 text-emerald-400",
-                          )}
-                        >
-                          {status === "max" ? "Max / Locked" : "Open"}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2 text-muted-foreground">
-                        {room.creation_time
-                          ? new Date(room.creation_time * 1000).toLocaleString()
-                          : "-"}
-                      </td>
-                      <td className="px-2 py-2 text-right">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7 text-destructive border-destructive/40"
-                          onClick={() => handleDelete(room.name)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </td>
-                    </tr>
-                  )
-                })}
+                {rooms.map((room) => (
+                  <tr
+                    key={room.id}
+                    className="rounded-xl bg-background/40"
+                  >
+                    <td className="px-2 py-2 text-muted-foreground">{room.id}</td>
+                    <td className="px-2 py-2 font-medium">{room.name}</td>
+                    <td className="px-2 py-2 text-muted-foreground truncate max-w-[200px]">{room.description}</td>
+                    <td className="px-2 py-2">{room.max_participants}</td>
+                    <td className="px-2 py-2 text-right">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        className="h-7 w-7 text-destructive border-destructive/40"
+                        onClick={() => handleDelete(room.id, room.name)}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
@@ -472,7 +559,10 @@ function RoomsSection({ isAdmin }: { isAdmin: boolean }) {
   )
 }
 
-/* USERS SECTION */
+/* ======================
+ * USERS SECTION
+ * ====================== */
+// ... (UserSection code remains mostly the same, included above in full block if needed, but context suggests focus on Rooms)
 
 function UsersSection({ isAdmin }: { isAdmin: boolean }) {
   const [users, setUsers] = useState<UserDto[]>([])
@@ -605,9 +695,6 @@ function UsersSection({ isAdmin }: { isAdmin: boolean }) {
             {creating ? "Creating..." : "Create"}
           </Button>
         </form>
-        <p className="text-[11px] text-muted-foreground">
-          Password akan di-hash di backend sebelum disimpan ke database.
-        </p>
       </div>
 
       {/* List users */}
@@ -625,15 +712,13 @@ function UsersSection({ isAdmin }: { isAdmin: boolean }) {
           </Button>
         </div>
 
-        {error && (
-          <p className="text-xs text-destructive mb-3">{error}</p>
-        )}
+        {error && <p className="text-xs text-destructive mb-3">{error}</p>}
 
         {fetching && users.length === 0 ? (
           <p className="text-xs text-muted-foreground">Loading users...</p>
         ) : users.length === 0 ? (
           <p className="text-xs text-muted-foreground">
-            No users found. Create one above.
+            No users found.
           </p>
         ) : (
           <div className="overflow-x-auto">
@@ -648,21 +733,14 @@ function UsersSection({ isAdmin }: { isAdmin: boolean }) {
               </thead>
               <tbody>
                 {users.map((u) => (
-                  <tr
-                    key={u.id}
-                    className="rounded-xl bg-background/40"
-                  >
+                  <tr key={u.id} className="rounded-xl bg-background/40">
                     <td className="px-2 py-2">{u.id}</td>
-                    <td className="px-2 py-2 font-medium">
-                      {u.username}
-                    </td>
+                    <td className="px-2 py-2 font-medium">{u.username}</td>
                     <td className="px-2 py-2">
                       <select
                         value={u.role}
                         disabled={updatingId === u.id}
-                        onChange={(e) =>
-                          handleRoleChange(u.id, e.target.value)
-                        }
+                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
                         className="bg-background border border-input rounded-md px-2 py-1 text-xs"
                       >
                         <option value="user">User</option>
@@ -690,7 +768,265 @@ function UsersSection({ isAdmin }: { isAdmin: boolean }) {
   )
 }
 
-/* SETTINGS SECTION */
+/* ======================
+ * RECORDINGS SECTION
+ * ====================== */
+// ... (RecordingsSection stays exactly the same as previous)
+
+function RecordingsSection({ isAdmin }: { isAdmin: boolean }) {
+  const [recordings, setRecordings] = useState<RecordingDto[]>([])
+  const [fetching, setFetching] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const [filterRoomId, setFilterRoomId] = useState("")
+  const [renamingId, setRenamingId] = useState<number | null>(null)
+  const [renameValue, setRenameValue] = useState("")
+
+  useEffect(() => {
+    if (!isAdmin) return
+    loadRecordings()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin])
+
+  const loadRecordings = async (roomID?: string) => {
+    setError(null)
+    setFetching(true)
+    try {
+      const data = await fetchRecordings(roomID)
+      setRecordings(Array.isArray(data) ? data : [])
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || "Failed to fetch recordings")
+      setRecordings([])
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  const handleFilter = (e: React.FormEvent) => {
+    e.preventDefault()
+    const roomID = filterRoomId.trim() || undefined
+    loadRecordings(roomID)
+  }
+
+  const handleStartRename = (rec: RecordingDto) => {
+    setRenamingId(rec.id)
+    setRenameValue(rec.name)
+  }
+
+  const handleSaveRename = async (rec: RecordingDto) => {
+    if (!renameValue.trim()) return
+    try {
+      const updated = await updateRecordingName(rec.id, renameValue.trim())
+      setRecordings((prev) =>
+        prev.map((r) => (r.id === rec.id ? updated : r)),
+      )
+      setRenamingId(null)
+      setRenameValue("")
+    } catch (err: any) {
+      console.error(err)
+      alert(err.message || "Failed to update recording name")
+    }
+  }
+
+  const handleDelete = async (rec: RecordingDto) => {
+    if (!confirm(`Delete recording "${rec.name}" ?`)) return
+    try {
+      await deleteRecording(rec.id)
+      setRecordings((prev) => prev.filter((r) => r.id !== rec.id))
+    } catch (err: any) {
+      console.error(err)
+      alert(err.message || "Failed to delete recording")
+    }
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="max-w-5xl mx-auto rounded-2xl border border-border bg-card text-card-foreground p-5">
+        <p className="text-sm text-muted-foreground">
+          Hanya admin yang dapat mengakses Recording Management.
+        </p>
+      </div>
+    )
+  }
+
+  const hasRecordings = recordings.length > 0
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Filter */}
+      <div className="rounded-2xl border border-border bg-card text-card-foreground p-4 space-y-3">
+        <h2 className="text-sm font-semibold flex items-center gap-2">
+          <PlayCircle className="h-4 w-4" />
+          Recordings
+        </h2>
+        <form
+          onSubmit={handleFilter}
+          className="flex flex-col gap-3 sm:flex-row sm:items-center"
+        >
+          <Input
+            placeholder="Filter by Room ID (opsional)"
+            value={filterRoomId}
+            onChange={(e) => setFilterRoomId(e.target.value)}
+          />
+          <Button type="submit" disabled={fetching}>
+            {fetching ? "Loading..." : "Apply filter"}
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            size="icon"
+            className="h-9 w-9"
+            onClick={() => {
+              setFilterRoomId("")
+              loadRecordings()
+            }}
+            disabled={fetching}
+          >
+            <RefreshCcw className="h-4 w-4" />
+          </Button>
+        </form>
+      </div>
+
+      {/* List recordings */}
+      <div className="rounded-2xl border border-border bg-card text-card-foreground p-4">
+        {error && <p className="text-xs text-destructive mb-3">{error}</p>}
+
+        {fetching && !hasRecordings ? (
+          <p className="text-xs text-muted-foreground">Loading recordings...</p>
+        ) : !hasRecordings ? (
+          <p className="text-xs text-muted-foreground">
+            Belum ada recording yang tersimpan di database.
+          </p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs border-separate border-spacing-y-1">
+              <thead className="text-[11px] uppercase text-muted-foreground">
+                <tr>
+                  <th className="text-left px-2 py-1">ID</th>
+                  <th className="text-left px-2 py-1">Title / Name</th>
+                  <th className="text-left px-2 py-1">Room ID</th>
+                  <th className="text-left px-2 py-1">Egress ID</th>
+                  <th className="text-left px-2 py-1">Created</th>
+                  <th className="text-right px-2 py-1">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recordings.map((rec) => {
+                  const created =
+                    rec.created_at &&
+                    !Number.isNaN(Date.parse(rec.created_at))
+                      ? new Date(rec.created_at).toLocaleString()
+                      : rec.created_at
+
+                  const isRenaming = renamingId === rec.id
+
+                  return (
+                    <tr
+                      key={rec.id}
+                      className="rounded-xl bg-background/40"
+                    >
+                      <td className="px-2 py-2">{rec.id}</td>
+                      <td className="px-2 py-2">
+                        {isRenaming ? (
+                          <div className="flex items-center gap-2">
+                            <Input
+                              className="h-7 text-xs"
+                              value={renameValue}
+                              onChange={(e) => setRenameValue(e.target.value)}
+                              autoFocus
+                            />
+                            <Button
+                              size="icon"
+                              className="h-7 w-7"
+                              onClick={() => handleSaveRename(rec)}
+                            >
+                              ✓
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              className="h-7 w-7"
+                              onClick={() => {
+                                setRenamingId(null)
+                                setRenameValue("")
+                              }}
+                            >
+                              ✕
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <span className="font-medium truncate max-w-[220px]">
+                              {rec.name}
+                            </span>
+                            <button
+                              type="button"
+                              className="ml-1 text-muted-foreground hover:text-foreground"
+                              onClick={() => handleStartRename(rec)}
+                              title="Rename"
+                            >
+                              <Pencil className="h-3 w-3" />
+                            </button>
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-2 py-2">
+                        <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded">
+                          {rec.room_id}
+                        </code>
+                      </td>
+                      <td className="px-2 py-2">
+                        <span className="text-[11px] text-muted-foreground truncate max-w-[160px] inline-block">
+                          {rec.egress_id}
+                        </span>
+                      </td>
+                      <td className="px-2 py-2 text-muted-foreground">
+                        {created || "-"}
+                      </td>
+                      <td className="px-2 py-2 text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7"
+                            asChild
+                          >
+                            <a
+                              href={rec.link}
+                              target="_blank"
+                              rel="noreferrer"
+                              title="Open recording"
+                            >
+                              <Link2 className="h-3 w-3" />
+                            </a>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7 text-destructive border-destructive/40"
+                            onClick={() => handleDelete(rec)}
+                            title="Delete record (DB)"
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+/* ======================
+ * SETTINGS SECTION
+ * ====================== */
 
 function SettingsSection() {
   return (
