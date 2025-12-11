@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import React, { createContext, useContext, useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { getUser } from "@/lib/api/auth-client"
 import { Button } from "@/components/ui/button"
@@ -14,16 +14,21 @@ import {
   Plus,
   RefreshCcw,
   Trash2,
-  Shield,
   PlayCircle,
   Link2,
   Pencil,
   LayoutGrid,
-  CalendarClock
+  Copy,
+  Calendar,
+  Briefcase,
+  X,
+  Moon,
+  Sun,
 } from "lucide-react"
 import {
   createDbRoom,
   deleteDbRoom,
+  updateDbRoom,
   fetchDbRooms,
   fetchActiveRooms,
   type DbRoom,
@@ -37,31 +42,80 @@ import {
   updateRecordingName,
   deleteRecording,
   type Recording as RecordingDto,
+  fetchGroups,
+  createGroup,
+  deleteGroup,
+  addGroupMember,
+  removeGroupMember,
+  type Group as GroupDto,
+  fetchUserDbRooms,
 } from "@/lib/api/admin-api"
 import { cn } from "@/lib/utils"
 import { useAuth } from "../hooks/use-auth"
 
-type StoredUser = {
-  username?: string
-  role?: string
+// --- THEME CONTEXT ---
+type Theme = "dark" | "light"
+const ThemeContext = createContext<{ theme: Theme; toggleTheme: () => void } | undefined>(undefined)
+
+function ThemeProvider({ children }: { children: React.ReactNode }) {
+  const [theme, setTheme] = useState<Theme>("dark")
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("app-theme") as Theme
+    if (savedTheme) {
+      setTheme(savedTheme)
+      document.documentElement.classList.toggle("dark", savedTheme === "dark")
+    } else {
+      document.documentElement.classList.add("dark")
+      setTheme("dark")
+    }
+  }, [])
+
+  const toggleTheme = () => {
+    const newTheme = theme === "light" ? "dark" : "light"
+    setTheme(newTheme)
+    localStorage.setItem("app-theme", newTheme)
+    document.documentElement.classList.toggle("dark", newTheme === "dark")
+  }
+
+  return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>
 }
 
-type ActiveTab = "home" | "rooms" | "users" | "recordings" | "settings"
+function useTheme() {
+  const context = useContext(ThemeContext)
+  if (!context) throw new Error("useTheme must be used within ThemeProvider")
+  return context
+}
+
+// --- MAIN PAGE COMPONENT ---
+
+type StoredUser = { username?: string; role?: string }
+type ActiveTab = "home" | "rooms" | "groups" | "users" | "recordings" | "settings"
 
 const sidebarItems = [
   { id: "home" as const, icon: Home, label: "Home" },
-  { id: "rooms" as const, icon: Video, label: "Rooms Management" },
+  { id: "rooms" as const, icon: Video, label: "Rooms" },
+  { id: "groups" as const, icon: Briefcase, label: "Groups" },
   { id: "users" as const, icon: Users, label: "Users" },
   { id: "recordings" as const, icon: PlayCircle, label: "Recordings" },
   { id: "settings" as const, icon: Settings, label: "Settings" },
 ]
 
 export default function DashboardPage() {
+  return (
+    <ThemeProvider>
+      <DashboardContent />
+    </ThemeProvider>
+  )
+}
+
+function DashboardContent() {
   const router = useRouter()
   const { loading, isAuthenticated, isAdmin, logout } = useAuth()
+  const { theme, toggleTheme } = useTheme()
   const [user, setUser] = useState<StoredUser | null>(null)
   const [active, setActive] = useState<ActiveTab>("home")
-  const [roomName, setRoomName] = useState("")
+  const [roomCodeInput, setRoomCodeInput] = useState("")
 
   useEffect(() => {
     setUser(getUser())
@@ -70,7 +124,7 @@ export default function DashboardPage() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background text-foreground">
-        <p className="text-sm text-muted-foreground">Checking authentication...</p>
+        <div className="h-6 w-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
@@ -80,282 +134,248 @@ export default function DashboardPage() {
   const username = user?.username || "Unknown"
   const role = user?.role || (isAdmin ? "admin" : "user")
 
-  const handleJoin = (name?: string) => {
-    const targetRoom = typeof name === "string" ? name : roomName
-    if (!targetRoom.trim()) return
-    router.push(`/meeting/${encodeURIComponent(targetRoom)}`)
-  }
-
-  const handleSidebarClick = (id: ActiveTab) => {
-    if (!isAdmin && (id === "rooms" || id === "users" || id === "recordings")) return
-    setActive(id)
+  const handleJoin = (code?: string) => {
+    const targetCode = typeof code === "string" ? code : roomCodeInput
+    if (!targetCode.trim()) return
+    router.push(`/meeting/${encodeURIComponent(targetCode)}`)
   }
 
   return (
-    <div className="flex min-h-screen bg-background text-foreground">
-      {/* SIDEBAR ICON-ONLY */}
-      <aside className="w-16 border-r border-sidebar-border flex flex-col items-center py-4 gap-4 bg-sidebar text-sidebar-foreground">
-        <div className="h-9 w-9 rounded-xl bg-sidebar-primary flex items-center justify-center text-sidebar-primary-foreground text-xs font-bold">
-          M
+    <div className="flex min-h-screen bg-background text-foreground font-sans transition-colors duration-200">
+      {/* SIDEBAR */}
+      <aside className="w-16 bg-card border-r border-border flex flex-col items-center py-6 fixed h-full z-20 shadow-sm">
+        {/* Logo */}
+        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shadow-sm mb-8">
+          V
         </div>
 
-        <div className="flex-1 flex flex-col items-center gap-3 mt-4">
+        <div className="flex-1 flex flex-col items-center gap-3 w-full px-2">
           {sidebarItems.map((item) => {
             const Icon = item.icon
             const isActive = active === item.id
-            const disabled =
-              !isAdmin && (item.id === "rooms" || item.id === "users" || item.id === "recordings")
+            const disabled = !isAdmin && ["rooms", "groups", "users", "recordings"].includes(item.id)
 
             return (
               <button
                 key={item.id}
-                type="button"
                 disabled={disabled}
-                onClick={() => handleSidebarClick(item.id)}
+                onClick={() => setActive(item.id)}
                 className={cn(
-                  "flex h-10 w-10 items-center justify-center rounded-xl transition-colors",
-                  disabled
-                    ? "text-muted-foreground/40"
-                    : "text-muted-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground",
-                  isActive && !disabled && "bg-sidebar-primary text-sidebar-primary-foreground",
+                  "flex h-9 w-9 items-center justify-center rounded-md transition-all duration-200 group relative",
+                  disabled && "opacity-30 cursor-not-allowed",
+                  !disabled && !isActive && "text-muted-foreground hover:bg-muted hover:text-foreground",
+                  isActive && "bg-primary/10 text-primary"
                 )}
                 title={item.label}
               >
-                <Icon className="h-5 w-5" />
+                <Icon className="h-4 w-4" />
               </button>
             )
           })}
         </div>
 
-        <button
-          type="button"
-          onClick={logout}
-          className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-          title="Logout"
-        >
-          <LogOut className="h-5 w-5" />
-        </button>
+        <div className="flex flex-col gap-3 mb-2">
+          <button
+            onClick={toggleTheme}
+            className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:bg-muted transition-all"
+            title="Toggle Theme"
+          >
+            {theme === "light" ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+          </button>
+
+          <button
+            onClick={logout}
+            className="h-9 w-9 flex items-center justify-center rounded-md text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-all"
+            title="Logout"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
+        </div>
       </aside>
 
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {/* TOP BAR */}
-        <header className="h-16 border-b border-border flex items-center justify-between px-6 bg-background/80 backdrop-blur shrink-0">
-          <div className="flex flex-col">
-            <span className="text-xs text-muted-foreground uppercase tracking-wide">
-              Dashboard
-            </span>
-            <span className="text-sm">
-              Welcome back, <span className="font-semibold">{username}</span>
-            </span>
+      {/* MAIN CONTENT */}
+      <main className="flex-1 flex flex-col ml-16 min-w-0">
+        <header className="h-14 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 sticky top-0 z-10">
+          <div>
+            <h1 className="text-sm font-semibold">Dashboard</h1>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="text-right hidden sm:block">
-              <p className="text-sm font-medium">{username}</p>
-              <p className="text-xs text-muted-foreground">
-                {role === "admin" ? "Administrator" : "User"}
-              </p>
-            </div>
-            <div className="h-9 w-9 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-xs font-bold">
-              {username.charAt(0).toUpperCase()}
+          <div className="flex items-center gap-4">
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-medium px-2 py-0.5 bg-muted border border-border rounded uppercase text-muted-foreground">
+                {role}
+              </span>
+              <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold ring-2 ring-background">
+                {username.charAt(0).toUpperCase()}
+              </div>
             </div>
           </div>
         </header>
 
-        {/* CONTENT AREA */}
-        <div className="flex-1 p-6 bg-gradient-to-br from-background via-background to-muted/30 overflow-y-auto">
-          {active === "home" && (
-            <HomeSection
-              roomName={roomName}
-              setRoomName={setRoomName}
-              onJoin={handleJoin}
-              role={role}
-            />
-          )}
-
-          {active === "rooms" && <RoomsSection isAdmin={isAdmin} />}
-
-          {active === "users" && <UsersSection isAdmin={isAdmin} />}
-
-          {active === "recordings" && <RecordingsSection isAdmin={isAdmin} />}
-
-          {active === "settings" && <SettingsSection />}
+        <div className="flex-1 p-6 overflow-y-auto">
+          <div className="max-w-7xl mx-auto animate-in fade-in duration-500">
+            {active === "home" && (
+              <HomeSection
+                roomCodeInput={roomCodeInput}
+                setRoomCodeInput={setRoomCodeInput}
+                onJoin={handleJoin}
+                isAdmin={isAdmin}
+              />
+            )}
+            {active === "rooms" && <RoomsSection isAdmin={isAdmin} />}
+            {active === "groups" && <GroupsSection isAdmin={isAdmin} />}
+            {active === "users" && <UsersSection isAdmin={isAdmin} />}
+            {active === "recordings" && <RecordingsSection isAdmin={isAdmin} />}
+            {active === "settings" && <SettingsSection />}
+          </div>
         </div>
       </main>
     </div>
   )
 }
 
-/* ======================
- * HOME SECTION
- * ====================== */
+/* --- HOME SECTION --- */
 
-function HomeSection({
-  roomName,
-  setRoomName,
-  onJoin,
-  role,
-}: {
-  roomName: string
-  setRoomName: (v: string) => void
-  onJoin: (name?: string) => void
-  role: string
-}) {
+function HomeSection({ roomCodeInput, setRoomCodeInput, onJoin, isAdmin }: any) {
   const [dbRooms, setDbRooms] = useState<DbRoom[]>([])
+  const [dbUserRooms, setUserDbRooms] = useState<DbRoom[]>([])
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
     loadData()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const loadData = async () => {
     setLoading(true)
     try {
-      // 1. Ambil list room statis dari DB
-      const dbData = await fetchDbRooms()
-      if (Array.isArray(dbData)) {
-        setDbRooms(dbData)
+      if (!isAdmin) {
+        const [dbData, liveData] = await Promise.allSettled([fetchUserDbRooms(), fetchActiveRooms()])
+        if (dbData.status === "fulfilled") setUserDbRooms(dbData.value || [])
+        if (liveData.status === "fulfilled") setActiveRooms(liveData.value || [])
+      } else {
+        const [dbData, liveData] = await Promise.allSettled([fetchDbRooms(), fetchActiveRooms()])
+        if (dbData.status === "fulfilled") setDbRooms(dbData.value || [])
+        if (liveData.status === "fulfilled") setActiveRooms(liveData.value || [])
       }
-
-      // 2. Ambil status aktif dari LiveKit (optional, untuk badge 'Live')
-      try {
-        const liveData = await fetchActiveRooms()
-        if (Array.isArray(liveData)) {
-          setActiveRooms(liveData)
-        }
-      } catch (e) {
-        // Jika gagal fetch active rooms, abaikan saja
-        console.warn("Failed to fetch active stats", e)
-      }
-
-    } catch (e) {
-      console.error("Failed to load rooms", e)
     } finally {
       setLoading(false)
     }
   }
 
-  // Merge Data: Room DB + Info Participants jika aktif
-  const displayedRooms = dbRooms.map(room => {
-    const activeInfo = activeRooms.find(ar => ar.name === room.name)
-    return {
-      ...room,
-      isLive: !!activeInfo,
-      currentParticipants: activeInfo?.num_participants || 0
-    }
-  })
+  const displayedRooms = (isAdmin ? dbRooms : dbUserRooms).map((room) => ({
+    ...room,
+    isLive: !!activeRooms.find((ar) => ar.name === room.room_code),
+    currentParticipants: activeRooms.find((ar) => ar.name === room.room_code)?.num_participants || 0,
+  }))
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="grid grid-cols-1 gap-4 items-stretch">
-        <div className="md:col-span-2 rounded-2xl border border-border bg-card text-card-foreground p-5 shadow-sm">
-          <div className="flex items-center justify-between gap-4 mb-4">
-            <div>
-              <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Video className="h-5 w-5 text-primary" />
-                Quick Join
-              </h2>
-              <p className="text-xs text-muted-foreground mt-1">
-                Masukkan nama room yang terdaftar di sistem.
-              </p>
-            </div>
-          </div>
-
-          <div className="flex flex-col sm:flex-row gap-3 items-center">
-            <Input
-              className="flex-1"
-              placeholder="Cari atau ketik nama room..."
-              value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && onJoin()}
-            />
-            <Button
-              onClick={() => onJoin()}
-              className="w-full sm:w-auto flex items-center gap-2"
-            >
-              <Plus className="h-4 w-4" />
-              Join Meeting
-            </Button>
-          </div>
+    <div className="space-y-6">
+      {/* Quick Join */}
+      <div className="bg-card rounded-lg border border-border p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm">
+        <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+          <Video className="h-5 w-5 text-primary" />
+        </div>
+        <div className="flex-1 text-center md:text-left">
+          <h2 className="text-base font-semibold">Quick Join</h2>
+          <p className="text-xs text-muted-foreground mt-1">Join an existing meeting instantly with a code.</p>
+        </div>
+        <div className="flex gap-2 w-full md:w-auto">
+          <Input
+            className="h-9 font-mono text-sm"
+            placeholder="Enter room code..."
+            value={roomCodeInput}
+            onChange={(e) => setRoomCodeInput(e.target.value)}
+          />
+          <Button onClick={() => onJoin()} className="h-9">
+            Join
+          </Button>
         </div>
       </div>
 
-      <div className="h-px bg-border/60 w-full my-2" />
-
-      {/* Available Rooms List */}
+      {/* Available Rooms */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-md font-semibold flex items-center gap-2">
-            <LayoutGrid className="h-4 w-4" />
-            Available Rooms
+          <h3 className="text-sm font-semibold flex items-center gap-2">
+            <LayoutGrid className="h-4 w-4 text-muted-foreground" /> Available Rooms
           </h3>
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={loadData}
-            className="h-8 text-xs text-muted-foreground"
-          >
-            <RefreshCcw className="h-3 w-3 mr-1" /> Refresh
+          <Button variant="outline" size="sm" onClick={loadData} className="h-8 text-xs">
+            <RefreshCcw className="h-3 w-3 mr-2" /> Refresh
           </Button>
         </div>
 
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="h-32 rounded-xl bg-muted/50 animate-pulse" />
-            ))}
-          </div>
+          <div className="py-12 text-center text-muted-foreground text-sm">Loading rooms...</div>
         ) : displayedRooms.length === 0 ? (
-          <div className="text-center py-10 border border-dashed rounded-xl bg-muted/20">
-            <CalendarClock className="h-8 w-8 mx-auto text-muted-foreground/40 mb-2" />
-            <p className="text-sm text-muted-foreground">Belum ada room yang dibuat oleh Admin.</p>
+          <div className="py-12 text-center border border-dashed border-border rounded-lg bg-muted/30">
+            <p className="text-sm text-muted-foreground">No rooms available at the moment.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {displayedRooms.map((room) => {
-              const isMax = room.currentParticipants >= room.max_participants
+              const now = new Date()
+              const start = new Date(room.start_date)
+              const end = new Date(room.end_date)
+              const status = now < start ? "upcoming" : now > end ? "ended" : "open"
+              const isFull = room.currentParticipants >= room.max_participants
 
               return (
                 <div
                   key={room.id}
-                  className="group relative flex flex-col justify-between rounded-xl border border-border bg-card p-4 shadow-sm hover:shadow-md hover:border-primary/50 transition-all duration-200"
+                  className="group bg-card border border-border rounded-lg p-4 hover:border-primary/50 transition-all relative"
                 >
-                  <div>
-                    <div className="flex items-start justify-between mb-2">
-                      <h4 className="font-semibold text-sm truncate pr-2" title={room.name}>
-                        {room.name}
-                      </h4>
-                      {room.isLive && (
-                         <span className="flex h-2 w-2 rounded-full shrink-0 mt-1.5 bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]" title="Live Now" />
-                      )}
-                    </div>
-                    
-                    <p className="text-xs text-muted-foreground line-clamp-2 h-8 mb-3">
-                        {room.description || "Tidak ada deskripsi."}
+                  {room.isLive && (
+                    <span
+                      className="absolute top-4 right-4 h-2 w-2 rounded-full bg-red-500 animate-pulse"
+                      title="Live"
+                    />
+                  )}
+
+                  <div className="mb-3">
+                    <h4 className="text-sm font-semibold truncate pr-6">{room.name}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                      {room.description || "No description"}
                     </p>
+                  </div>
 
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                          "flex items-center text-xs px-2 py-1 rounded-md",
-                          room.isLive ? "bg-primary/10 text-primary font-medium" : "bg-muted text-muted-foreground"
-                      )}>
-                        <Users className="h-3 w-3 mr-1.5" />
-                        <span>{room.currentParticipants} / {room.max_participants}</span>
-                      </div>
+                  <div className="flex items-center justify-between bg-muted rounded px-3 py-2 border border-border mb-3">
+                    <code className="text-xs font-mono text-primary font-medium">{room.room_code}</code>
+                    <button
+                      onClick={() => navigator.clipboard.writeText(room.room_code)}
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <Copy className="h-3 w-3" />
+                    </button>
+                  </div>
+
+                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-4">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-3 w-3" /> {start.toLocaleDateString()}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Users className="h-3 w-3" /> {room.currentParticipants}/{room.max_participants}
                     </div>
                   </div>
 
-                  <div className="mt-4">
-                    <Button 
-                      className="w-full h-8 text-xs group-hover:bg-primary group-hover:text-primary-foreground transition-colors"
-                      variant={room.isLive ? "default" : "secondary"}
-                      disabled={isMax}
-                      onClick={() => onJoin(room.name)}
-                    >
-                      {isMax ? "Full" : room.isLive ? "Join Now" : "Start Meeting"}
-                    </Button>
-                  </div>
+                  <Button
+                    className={cn(
+                      "w-full h-8 text-xs font-medium",
+                      status === "open" && !isFull
+                        ? "bg-primary text-primary-foreground hover:bg-primary/90"
+                        : "bg-muted text-muted-foreground cursor-not-allowed hover:bg-muted"
+                    )}
+                    disabled={status !== "open" || isFull}
+                    onClick={() => onJoin(room.room_code)}
+                  >
+                    {status === "ended"
+                      ? "Ended"
+                      : status === "upcoming"
+                      ? "Scheduled"
+                      : isFull
+                      ? "Full"
+                      : "Enter Room"}
+                  </Button>
                 </div>
               )
             })}
@@ -366,675 +386,721 @@ function HomeSection({
   )
 }
 
-/* ======================
- * ROOMS SECTION (ADMIN CRUD)
- * ====================== */
+/* --- ROOMS SECTION (ADMIN) --- */
 
 function RoomsSection({ isAdmin }: { isAdmin: boolean }) {
   const [rooms, setRooms] = useState<DbRoom[]>([])
-  const [fetching, setFetching] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const [name, setName] = useState("")
-  const [description, setDescription] = useState("")
-  const [maxParticipants, setMaxParticipants] = useState<number>(20)
-  const [creating, setCreating] = useState(false)
+  const [groups, setGroups] = useState<GroupDto[]>([])
+  const [isOpen, setIsOpen] = useState(false)
+  const [editingRoom, setEditingRoom] = useState<DbRoom | null>(null)
+  const [formData, setFormData] = useState({
+    name: "",
+    description: "",
+    maxParticipants: 20,
+    assignedToInput: "",
+    startDate: "",
+    endDate: "",
+    groupId: "",
+  })
 
   useEffect(() => {
-    if (!isAdmin) return
-    loadRooms()
+    if (isAdmin) loadData()
   }, [isAdmin])
 
-  const loadRooms = async () => {
-    setError(null)
-    setFetching(true)
-    try {
-      const data = await fetchDbRooms()
-      if (Array.isArray(data)) {
-        setRooms(data)
-      } else {
-        setRooms([])
-      }
-    } catch (err: any) {
-      console.error(err)
-      setError(err.message || "Failed to fetch rooms")
-      setRooms([])
-    } finally {
-      setFetching(false)
-    }
+  const loadData = async () => {
+    const [r, g] = await Promise.all([fetchDbRooms(), fetchGroups()])
+    setRooms(r || [])
+    setGroups(g || [])
   }
 
-  const handleCreateRoom = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!name.trim()) return
-    setCreating(true)
-    setError(null)
-    try {
-      await createDbRoom({
-        name: name.trim(),
-        description: description.trim(),
-        maxParticipants: maxParticipants || 20,
-      })
-      setName("")
-      setDescription("")
-      await loadRooms()
-    } catch (err: any) {
-      console.error(err)
-      setError(err.message || "Failed to create room")
-    } finally {
-      setCreating(false)
-    }
-  }
+  const formatDateForInput = (iso?: string) =>
+    iso
+      ? new Date(new Date(iso).getTime() - new Date(iso).getTimezoneOffset() * 60000)
+          .toISOString()
+          .slice(0, 16)
+      : ""
 
-  const handleDelete = async (id: number, roomName: string) => {
-    if (!confirm(`Delete room "${roomName}" (Database)?`)) return
-    try {
-      await deleteDbRoom(id)
-      setRooms((prev) => prev.filter((r) => r.id !== id))
-    } catch (err: any) {
-      console.error(err)
-      alert(err.message || "Failed to delete room")
-    }
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="max-w-5xl mx-auto rounded-2xl border border-border bg-card text-card-foreground p-5">
-        <p className="text-sm text-muted-foreground">
-          Hanya admin yang dapat mengakses Room Management.
-        </p>
-      </div>
+  const openModal = (room?: DbRoom) => {
+    setEditingRoom(room || null)
+    setFormData(
+      room
+        ? {
+            name: room.name,
+            description: room.description,
+            maxParticipants: room.max_participants,
+            assignedToInput: room.assigned_to?.join(", ") || "",
+            startDate: formatDateForInput(room.start_date),
+            endDate: formatDateForInput(room.end_date),
+            groupId: room.group_id ? String(room.group_id) : "",
+          }
+        : {
+            name: "",
+            description: "",
+            maxParticipants: 20,
+            assignedToInput: "",
+            startDate: "",
+            endDate: "",
+            groupId: "",
+          }
     )
+    setIsOpen(true)
   }
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!formData.name || !formData.startDate || !formData.endDate) return
+
+    const payload = {
+      name: formData.name,
+      description: formData.description,
+      maxParticipants: formData.maxParticipants,
+      assignedTo: formData.assignedToInput
+        .split(",")
+        .map((s) => s.trim())
+        .filter(Boolean),
+      groupId: formData.groupId,
+      startDate: formData.startDate,
+      endDate: formData.endDate,
+    }
+
+    if (editingRoom) {
+      await updateDbRoom(editingRoom.id, payload)
+    } else {
+      await createDbRoom(payload)
+    }
+    setIsOpen(false)
+    loadData()
+  }
+
+  const handleDelete = async (id: number) => {
+    if (confirm("Delete this room?")) {
+      await deleteDbRoom(id)
+      loadData()
+    }
+  }
+
+  if (!isAdmin) return null
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Create room */}
-      <div className="rounded-2xl border border-border bg-card text-card-foreground p-4 space-y-3">
-        <h2 className="text-sm font-semibold flex items-center gap-2">
-          <Plus className="h-4 w-4" />
-          Create new static room
-        </h2>
-        <form
-          onSubmit={handleCreateRoom}
-          className="grid gap-3 md:grid-cols-4"
-        >
-          <div className="md:col-span-1">
-            <Input
-                placeholder="Room Name (Unique)"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <Input
-                placeholder="Description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-            />
-          </div>
-          <div className="flex gap-2 md:col-span-1">
-             <Input
-                type="number"
-                min={1}
-                max={50}
-                value={maxParticipants}
-                onChange={(e) => setMaxParticipants(Number(e.target.value))}
-                className="w-20"
-                placeholder="Max"
-            />
-            <Button type="submit" disabled={creating} className="flex-1">
-                {creating ? "..." : "Create"}
-            </Button>
-          </div>
-        </form>
-        <p className="text-[11px] text-muted-foreground">
-          Room ini akan tersimpan di database. User hanya bisa join jika room ada di list ini.
-        </p>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-base font-semibold">Rooms</h2>
+        <Button onClick={() => openModal()} size="sm" className="h-8">
+          <Plus className="h-3 w-3 mr-1.5" /> New Room
+        </Button>
       </div>
 
-      {/* List rooms */}
-      <div className="rounded-2xl border border-border bg-card text-card-foreground p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold">Existing Database Rooms</h2>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={loadRooms}
-            disabled={fetching}
-            className="h-8 w-8"
-          >
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {error && <p className="text-xs text-destructive mb-3">{error}</p>}
-
-        {fetching && rooms.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Loading rooms...</p>
-        ) : rooms.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            No rooms found. Create one above.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-separate border-spacing-y-1">
-              <thead className="text-[11px] uppercase text-muted-foreground">
-                <tr>
-                  <th className="text-left px-2 py-1">ID</th>
-                  <th className="text-left px-2 py-1">Name</th>
-                  <th className="text-left px-2 py-1">Description</th>
-                  <th className="text-left px-2 py-1">Max</th>
-                  <th className="text-right px-2 py-1">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rooms.map((room) => (
-                  <tr
-                    key={room.id}
-                    className="rounded-xl bg-background/40"
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card rounded-lg shadow-2xl w-full max-w-xl border border-border animate-in zoom-in-95">
+            <div className="flex justify-between items-center px-5 py-4 border-b border-border">
+              <h3 className="font-semibold text-sm">{editingRoom ? "Update Room" : "Create Room"}</h3>
+              <button
+                onClick={() => setIsOpen(false)}
+                className="text-muted-foreground hover:text-foreground"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-5 space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="col-span-2 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Name</label>
+                  <Input
+                    className="h-9"
+                    value={formData.name}
+                    onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                    autoFocus
+                  />
+                </div>
+                <div className="col-span-2 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Description</label>
+                  <Input
+                    className="h-9"
+                    value={formData.description}
+                    onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  />
+                </div>
+                {/* Assigned To input */}
+                <div className="col-span-2 space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">
+                    Assigned To (usernames, comma separated, optional)
+                  </label>
+                  <Input
+                    className="h-9"
+                    placeholder="contoh: rafael, budi, siti"
+                    value={formData.assignedToInput}
+                    onChange={(e) =>
+                      setFormData({ ...formData, assignedToInput: e.target.value })
+                    }
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+                  <Input
+                    type="datetime-local"
+                    className="h-9"
+                    value={formData.startDate}
+                    onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">End Date</label>
+                  <Input
+                    type="datetime-local"
+                    className="h-9"
+                    value={formData.endDate}
+                    onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Group</label>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                    value={formData.groupId}
+                    onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
                   >
-                    <td className="px-2 py-2 text-muted-foreground">{room.id}</td>
-                    <td className="px-2 py-2 font-medium">{room.name}</td>
-                    <td className="px-2 py-2 text-muted-foreground truncate max-w-[200px]">{room.description}</td>
-                    <td className="px-2 py-2">{room.max_participants}</td>
-                    <td className="px-2 py-2 text-right">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7 text-destructive border-destructive/40"
-                        onClick={() => handleDelete(room.id, room.name)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                    <option value="">Public / Individual</option>
+                    {groups.map((g) => (
+                      <option key={g.id} value={g.id}>
+                        {g.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs font-medium text-muted-foreground">Max Participants</label>
+                  <Input
+                    type="number"
+                    className="h-9"
+                    value={formData.maxParticipants}
+                    onChange={(e) =>
+                      setFormData({ ...formData, maxParticipants: Number(e.target.value) })
+                    }
+                  />
+                </div>
+              </div>
+              <div className="flex justify-end gap-2 pt-4 border-t border-border">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsOpen(false)}
+                  className="text-muted-foreground"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm" className="bg-primary text-primary-foreground">
+                  Save
+                </Button>
+              </div>
+            </form>
           </div>
-        )}
+        </div>
+      )}
+
+      <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-muted border-b border-border text-xs uppercase text-muted-foreground font-medium">
+            <tr>
+              <th className="px-5 py-3">Room</th>
+              <th className="px-5 py-3">Access</th>
+              <th className="px-5 py-3">Schedule</th>
+              <th className="px-5 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/70">
+            {rooms.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">
+                  No rooms found
+                </td>
+              </tr>
+            ) : (
+              rooms.map((room) => (
+                <tr key={room.id} className="hover:bg-muted/50 transition-colors">
+                  <td className="px-5 py-3.5">
+                    <div className="font-medium">{room.name}</div>
+                    <div className="text-xs text-muted-foreground font-mono mt-0.5">
+                      {room.room_code}
+                    </div>
+                  </td>
+                  <td className="px-5 py-3.5">
+                    {room.group ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground border border-border">
+                        GROUP: {room.group.name}
+                      </span>
+                    ) : room.assigned_to?.length ? (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/60">
+                        PRIVATE
+                      </span>
+                    ) : (
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
+                        PUBLIC
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3.5 text-xs text-muted-foreground">
+                    <div>{new Date(room.start_date).toLocaleString()}</div>
+                  </td>
+                  <td className="px-5 py-3.5 text-right">
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openModal(room)}
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDelete(room.id)}
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   )
 }
 
-/* ======================
- * USERS SECTION
- * ====================== */
-// ... (UserSection code remains mostly the same, included above in full block if needed, but context suggests focus on Rooms)
+/* --- GROUPS SECTION (ADMIN) --- */
+
+function GroupsSection({ isAdmin }: { isAdmin: boolean }) {
+  const [groups, setGroups] = useState<GroupDto[]>([])
+  const [users, setUsers] = useState<UserDto[]>([])
+  const [isOpen, setIsOpen] = useState(false)
+  const [name, setName] = useState("")
+  const [desc, setDesc] = useState("")
+  const [manageGroupId, setManageGroupId] = useState<number | null>(null)
+  const [selectedUserId, setSelectedUserId] = useState("")
+
+  useEffect(() => {
+    if (isAdmin) loadData()
+  }, [isAdmin])
+
+  const loadData = async () => {
+    const [g, u] = await Promise.all([fetchGroups(), fetchUsers()])
+    setGroups(g || [])
+    setUsers(u || [])
+  }
+
+  const handleCreate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    await createGroup({ name, description: desc })
+    setIsOpen(false)
+    setName("")
+    setDesc("")
+    loadData()
+  }
+
+  const handleAdd = async () => {
+    if (manageGroupId && selectedUserId) {
+      await addGroupMember(manageGroupId, Number(selectedUserId))
+      loadData()
+      setSelectedUserId("")
+    }
+  }
+
+  if (!isAdmin) return null
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-base font-semibold">Groups</h2>
+        <Button onClick={() => setIsOpen(true)} size="sm" className="h-8">
+          <Plus className="h-3 w-3 mr-1.5" /> New Group
+        </Button>
+      </div>
+
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card p-5 rounded-lg border border-border shadow-xl w-full max-w-sm">
+            <h3 className="font-semibold text-sm mb-4">Create Group</h3>
+            <form onSubmit={handleCreate} className="space-y-3">
+              <Input
+                className="h-9"
+                placeholder="Group Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+              />
+              <Input
+                className="h-9"
+                placeholder="Description"
+                value={desc}
+                onChange={(e) => setDesc(e.target.value)}
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsOpen(false)}
+                  className="text-muted-foreground"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm">
+                  Create
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {groups.map((g) => (
+          <div key={g.id} className="bg-card border border-border rounded-lg p-4 shadow-sm">
+            <div className="flex justify-between items-start mb-3">
+              <div>
+                <h3 className="text-sm font-semibold">{g.name}</h3>
+                <p className="text-xs text-muted-foreground">{g.description}</p>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={async () => {
+                  if (confirm("Delete?")) {
+                    await deleteGroup(g.id)
+                    loadData()
+                  }
+                }}
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <Trash2 className="h-3 w-3" />
+              </Button>
+            </div>
+
+            <div className="bg-muted border border-border rounded p-3">
+              <div className="flex gap-2 mb-2">
+                <select
+                  className="flex-1 h-7 text-xs rounded border border-border bg-background px-2 focus:outline-none focus:ring-2 focus:ring-primary"
+                  value={manageGroupId === g.id ? selectedUserId : ""}
+                  onChange={(e) => {
+                    setManageGroupId(g.id)
+                    setSelectedUserId(e.target.value)
+                  }}
+                >
+                  <option value="">Add member...</option>
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.username}
+                    </option>
+                  ))}
+                </select>
+                <Button
+                  size="sm"
+                  onClick={handleAdd}
+                  disabled={!selectedUserId || manageGroupId !== g.id}
+                  className="h-7 w-7 p-0"
+                  variant="outline"
+                >
+                  <Plus className="h-3 w-3" />
+                </Button>
+              </div>
+
+              <div className="space-y-1 max-h-32 overflow-y-auto">
+                {g.members?.length === 0 && (
+                  <p className="text-[10px] text-muted-foreground italic text-center py-2">
+                    No members
+                  </p>
+                )}
+                {g.members?.map((m) => (
+                  <div
+                    key={m.id}
+                    className="flex justify-between items-center text-xs bg-background px-2 py-1.5 rounded border border-border"
+                  >
+                    <span>{m.username}</span>
+                    <button
+                      onClick={async () => {
+                        await removeGroupMember(g.id, m.id)
+                        loadData()
+                      }}
+                      className="text-muted-foreground hover:text-destructive"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+/* --- USERS SECTION (ADMIN) --- */
 
 function UsersSection({ isAdmin }: { isAdmin: boolean }) {
   const [users, setUsers] = useState<UserDto[]>([])
-  const [fetching, setFetching] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const [newUsername, setNewUsername] = useState("")
-  const [newPassword, setNewPassword] = useState("")
-  const [newRole, setNewRole] = useState("user")
-  const [creating, setCreating] = useState(false)
-
-  const [updatingId, setUpdatingId] = useState<number | null>(null)
+  const [isOpen, setIsOpen] = useState(false)
+  const [formData, setFormData] = useState({ username: "", password: "", role: "user" })
 
   useEffect(() => {
-    if (!isAdmin) return
-    loadUsers()
+    if (isAdmin) loadData()
   }, [isAdmin])
 
-  const loadUsers = async () => {
-    setError(null)
-    setFetching(true)
-    try {
-      const data = await fetchUsers()
-      setUsers(data)
-    } catch (err: any) {
-      console.error(err)
-      setError(err.message || "Failed to fetch users")
-    } finally {
-      setFetching(false)
-    }
+  const loadData = async () => {
+    const d = await fetchUsers()
+    setUsers(d || [])
   }
 
-  const handleCreateUser = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!newUsername.trim() || !newPassword.trim()) return
-    setCreating(true)
-    setError(null)
-    try {
-      const user = await createUser({
-        username: newUsername.trim(),
-        password: newPassword,
-        role: newRole,
-      })
-      setUsers((prev) => [...prev, user])
-      setNewUsername("")
-      setNewPassword("")
-      setNewRole("user")
-    } catch (err: any) {
-      console.error(err)
-      setError(err.message || "Failed to create user")
-    } finally {
-      setCreating(false)
-    }
+    await createUser(formData)
+    setIsOpen(false)
+    setFormData({ username: "", password: "", role: "user" })
+    loadData()
   }
 
-  const handleRoleChange = async (id: number, role: string) => {
-    setUpdatingId(id)
-    try {
-      const updated = await updateUserRole(id, role)
-      setUsers((prev) =>
-        prev.map((u) => (u.id === id ? { ...u, role: updated.role } : u)),
-      )
-    } catch (err: any) {
-      console.error(err)
-      alert(err.message || "Failed to update role")
-    } finally {
-      setUpdatingId(null)
-    }
-  }
-
-  const handleDelete = async (id: number, username: string) => {
-    if (!confirm(`Delete user "${username}" ?`)) return
-    try {
-      await deleteUser(id)
-      setUsers((prev) => prev.filter((u) => u.id !== id))
-    } catch (err: any) {
-      console.error(err)
-      alert(err.message || "Failed to delete user")
-    }
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="max-w-5xl mx-auto rounded-2xl border border-border bg-card text-card-foreground p-5">
-        <p className="text-sm text-muted-foreground">
-          Hanya admin yang dapat mengakses User Management.
-        </p>
-      </div>
-    )
-  }
+  if (!isAdmin) return null
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Create user */}
-      <div className="rounded-2xl border border-border bg-card text-card-foreground p-4 space-y-3">
-        <h2 className="text-sm font-semibold flex items-center gap-2">
-          <Shield className="h-4 w-4" />
-          Create new user
-        </h2>
-        <form
-          onSubmit={handleCreateUser}
-          className="grid gap-3 md:grid-cols-4"
-        >
-          <Input
-            placeholder="Username"
-            value={newUsername}
-            onChange={(e) => setNewUsername(e.target.value)}
-            className="md:col-span-1"
-          />
-          <Input
-            type="password"
-            placeholder="Password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            className="md:col-span-1"
-          />
-          <select
-            value={newRole}
-            onChange={(e) => setNewRole(e.target.value)}
-            className="bg-background border border-input rounded-md px-3 py-2 text-sm text-foreground md:col-span-1"
-          >
-            <option value="user">User</option>
-            <option value="admin">Admin</option>
-          </select>
-          <Button
-            type="submit"
-            disabled={creating}
-            className="w-full md:col-span-1"
-          >
-            {creating ? "Creating..." : "Create"}
-          </Button>
-        </form>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-base font-semibold">Users</h2>
+        <Button onClick={() => setIsOpen(true)} size="sm" className="h-8">
+          <Plus className="h-3 w-3 mr-1.5" /> New User
+        </Button>
       </div>
 
-      {/* List users */}
-      <div className="rounded-2xl border border-border bg-card text-card-foreground p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-semibold">Existing users</h2>
-          <Button
-            variant="outline"
-            size="icon"
-            onClick={loadUsers}
-            disabled={fetching}
-            className="h-8 w-8"
-          >
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
-        </div>
-
-        {error && <p className="text-xs text-destructive mb-3">{error}</p>}
-
-        {fetching && users.length === 0 ? (
-          <p className="text-xs text-muted-foreground">Loading users...</p>
-        ) : users.length === 0 ? (
-          <p className="text-xs text-muted-foreground">
-            No users found.
-          </p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-separate border-spacing-y-1">
-              <thead className="text-[11px] uppercase text-muted-foreground">
-                <tr>
-                  <th className="text-left px-2 py-1">ID</th>
-                  <th className="text-left px-2 py-1">Username</th>
-                  <th className="text-left px-2 py-1">Role</th>
-                  <th className="text-right px-2 py-1">Actions</th>
-                </tr>
-              </thead>
-              <tbody>
-                {users.map((u) => (
-                  <tr key={u.id} className="rounded-xl bg-background/40">
-                    <td className="px-2 py-2">{u.id}</td>
-                    <td className="px-2 py-2 font-medium">{u.username}</td>
-                    <td className="px-2 py-2">
-                      <select
-                        value={u.role}
-                        disabled={updatingId === u.id}
-                        onChange={(e) => handleRoleChange(u.id, e.target.value)}
-                        className="bg-background border border-input rounded-md px-2 py-1 text-xs"
-                      >
-                        <option value="user">User</option>
-                        <option value="admin">Admin</option>
-                      </select>
-                    </td>
-                    <td className="px-2 py-2 text-right">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        className="h-7 w-7 text-destructive border-destructive/40"
-                        onClick={() => handleDelete(u.id, u.username)}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+      {isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
+          <div className="bg-card p-5 rounded-lg border border-border shadow-xl w-full max-w-sm">
+            <h3 className="font-semibold text-sm mb-4">Add User</h3>
+            <form onSubmit={handleCreate} className="space-y-3">
+              <Input
+                className="h-9"
+                placeholder="Username"
+                value={formData.username}
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
+              />
+              <Input
+                className="h-9"
+                type="password"
+                placeholder="Password"
+                value={formData.password}
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              />
+              <select
+                className="flex h-9 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                value={formData.role}
+                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+              >
+                <option value="user">User</option>
+                <option value="admin">Admin</option>
+              </select>
+              <div className="flex justify-end gap-2 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsOpen(false)}
+                  className="text-muted-foreground"
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" size="sm">
+                  Create
+                </Button>
+              </div>
+            </form>
           </div>
-        )}
+        </div>
+      )}
+
+      <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+        <table className="w-full text-sm text-left">
+          <thead className="bg-muted border-b border-border text-xs uppercase text-muted-foreground font-medium">
+            <tr>
+              <th className="px-5 py-3">User</th>
+              <th className="px-5 py-3">Role</th>
+              <th className="px-5 py-3 text-right">Action</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border/70">
+            {users.map((u) => (
+              <tr key={u.id} className="hover:bg-muted/50">
+                <td className="px-5 py-3 font-medium">{u.username}</td>
+                <td className="px-5 py-3">
+                  <select
+                    className="h-6 text-xs bg-transparent border-none focus:ring-0 text-muted-foreground cursor-pointer"
+                    value={u.role}
+                    onChange={async (e) => {
+                      await updateUserRole(u.id, e.target.value)
+                      loadData()
+                    }}
+                  >
+                    <option value="user">User</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </td>
+                <td className="px-5 py-3 text-right">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={async () => {
+                      if (confirm("Delete?")) {
+                        await deleteUser(u.id)
+                        loadData()
+                      }
+                    }}
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </Button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </div>
   )
 }
 
-/* ======================
- * RECORDINGS SECTION
- * ====================== */
-// ... (RecordingsSection stays exactly the same as previous)
+/* --- RECORDINGS SECTION (ADMIN) --- */
 
 function RecordingsSection({ isAdmin }: { isAdmin: boolean }) {
   const [recordings, setRecordings] = useState<RecordingDto[]>([])
-  const [fetching, setFetching] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  const [filterRoomId, setFilterRoomId] = useState("")
   const [renamingId, setRenamingId] = useState<number | null>(null)
-  const [renameValue, setRenameValue] = useState("")
+  const [val, setVal] = useState("")
 
   useEffect(() => {
-    if (!isAdmin) return
-    loadRecordings()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    if (isAdmin) load()
   }, [isAdmin])
 
-  const loadRecordings = async (roomID?: string) => {
-    setError(null)
-    setFetching(true)
-    try {
-      const data = await fetchRecordings(roomID)
-      setRecordings(Array.isArray(data) ? data : [])
-    } catch (err: any) {
-      console.error(err)
-      setError(err.message || "Failed to fetch recordings")
-      setRecordings([])
-    } finally {
-      setFetching(false)
-    }
-  }
+  const load = async () => setRecordings((await fetchRecordings()) || [])
 
-  const handleFilter = (e: React.FormEvent) => {
-    e.preventDefault()
-    const roomID = filterRoomId.trim() || undefined
-    loadRecordings(roomID)
-  }
-
-  const handleStartRename = (rec: RecordingDto) => {
-    setRenamingId(rec.id)
-    setRenameValue(rec.name)
-  }
-
-  const handleSaveRename = async (rec: RecordingDto) => {
-    if (!renameValue.trim()) return
-    try {
-      const updated = await updateRecordingName(rec.id, renameValue.trim())
-      setRecordings((prev) =>
-        prev.map((r) => (r.id === rec.id ? updated : r)),
-      )
+  const handleRename = async (id: number) => {
+    if (val) {
+      await updateRecordingName(id, val)
       setRenamingId(null)
-      setRenameValue("")
-    } catch (err: any) {
-      console.error(err)
-      alert(err.message || "Failed to update recording name")
+      load()
     }
   }
 
-  const handleDelete = async (rec: RecordingDto) => {
-    if (!confirm(`Delete recording "${rec.name}" ?`)) return
-    try {
-      await deleteRecording(rec.id)
-      setRecordings((prev) => prev.filter((r) => r.id !== rec.id))
-    } catch (err: any) {
-      console.error(err)
-      alert(err.message || "Failed to delete recording")
-    }
-  }
-
-  if (!isAdmin) {
-    return (
-      <div className="max-w-5xl mx-auto rounded-2xl border border-border bg-card text-card-foreground p-5">
-        <p className="text-sm text-muted-foreground">
-          Hanya admin yang dapat mengakses Recording Management.
-        </p>
-      </div>
-    )
-  }
-
-  const hasRecordings = recordings.length > 0
+  if (!isAdmin) return null
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Filter */}
-      <div className="rounded-2xl border border-border bg-card text-card-foreground p-4 space-y-3">
-        <h2 className="text-sm font-semibold flex items-center gap-2">
-          <PlayCircle className="h-4 w-4" />
-          Recordings
-        </h2>
-        <form
-          onSubmit={handleFilter}
-          className="flex flex-col gap-3 sm:flex-row sm:items-center"
-        >
-          <Input
-            placeholder="Filter by Room ID (opsional)"
-            value={filterRoomId}
-            onChange={(e) => setFilterRoomId(e.target.value)}
-          />
-          <Button type="submit" disabled={fetching}>
-            {fetching ? "Loading..." : "Apply filter"}
-          </Button>
-          <Button
-            type="button"
-            variant="outline"
-            size="icon"
-            className="h-9 w-9"
-            onClick={() => {
-              setFilterRoomId("")
-              loadRecordings()
-            }}
-            disabled={fetching}
-          >
-            <RefreshCcw className="h-4 w-4" />
-          </Button>
-        </form>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h2 className="text-base font-semibold">Recordings</h2>
+        <Button variant="outline" size="sm" onClick={load} className="h-8 text-xs">
+          <RefreshCcw className="h-3 w-3 mr-2" /> Refresh
+        </Button>
       </div>
-
-      {/* List recordings */}
-      <div className="rounded-2xl border border-border bg-card text-card-foreground p-4">
-        {error && <p className="text-xs text-destructive mb-3">{error}</p>}
-
-        {fetching && !hasRecordings ? (
-          <p className="text-xs text-muted-foreground">Loading recordings...</p>
-        ) : !hasRecordings ? (
-          <p className="text-xs text-muted-foreground">
-            Belum ada recording yang tersimpan di database.
-          </p>
+      <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
+        {recordings.length === 0 ? (
+          <div className="p-8 text-center text-muted-foreground text-sm">No recordings found</div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs border-separate border-spacing-y-1">
-              <thead className="text-[11px] uppercase text-muted-foreground">
-                <tr>
-                  <th className="text-left px-2 py-1">ID</th>
-                  <th className="text-left px-2 py-1">Title / Name</th>
-                  <th className="text-left px-2 py-1">Room ID</th>
-                  <th className="text-left px-2 py-1">Egress ID</th>
-                  <th className="text-left px-2 py-1">Created</th>
-                  <th className="text-right px-2 py-1">Actions</th>
+          <table className="w-full text-sm text-left">
+            <thead className="bg-muted border-b border-border text-xs uppercase text-muted-foreground font-medium">
+              <tr>
+                <th className="px-5 py-3">Name</th>
+                <th className="px-5 py-3">Date</th>
+                <th className="px-5 py-3 text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-border/70">
+              {recordings.map((r) => (
+                <tr key={r.id} className="hover:bg-muted/50">
+                  <td className="px-5 py-3">
+                    {renamingId === r.id ? (
+                      <div className="flex gap-2">
+                        <Input
+                          className="h-7 text-xs"
+                          value={val}
+                          onChange={(e) => setVal(e.target.value)}
+                          autoFocus
+                        />
+                        <Button size="sm" className="h-7" onClick={() => handleRename(r.id)}>
+                          ✓
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 font-medium">
+                        {r.name}
+                        <button
+                          onClick={() => {
+                            setRenamingId(r.id)
+                            setVal(r.name)
+                          }}
+                          className="text-muted-foreground hover:text-primary"
+                        >
+                          <Pencil className="h-3 w-3" />
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-xs text-muted-foreground">
+                    {new Date(r.created_at).toLocaleDateString()}
+                  </td>
+                  <td className="px-5 py-3 text-right">
+                    <div className="flex justify-end gap-2">
+                      <a
+                        href={r.link}
+                        target="_blank"
+                        className="p-1.5 text-primary hover:bg-primary/10 rounded"
+                      >
+                        <Link2 className="h-3.5 w-3.5" />
+                      </a>
+                      <button
+                        onClick={async () => {
+                          if (confirm("Delete?")) {
+                            await deleteRecording(r.id)
+                            load()
+                          }
+                        }}
+                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded"
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {recordings.map((rec) => {
-                  const created =
-                    rec.created_at &&
-                    !Number.isNaN(Date.parse(rec.created_at))
-                      ? new Date(rec.created_at).toLocaleString()
-                      : rec.created_at
-
-                  const isRenaming = renamingId === rec.id
-
-                  return (
-                    <tr
-                      key={rec.id}
-                      className="rounded-xl bg-background/40"
-                    >
-                      <td className="px-2 py-2">{rec.id}</td>
-                      <td className="px-2 py-2">
-                        {isRenaming ? (
-                          <div className="flex items-center gap-2">
-                            <Input
-                              className="h-7 text-xs"
-                              value={renameValue}
-                              onChange={(e) => setRenameValue(e.target.value)}
-                              autoFocus
-                            />
-                            <Button
-                              size="icon"
-                              className="h-7 w-7"
-                              onClick={() => handleSaveRename(rec)}
-                            >
-                              ✓
-                            </Button>
-                            <Button
-                              size="icon"
-                              variant="outline"
-                              className="h-7 w-7"
-                              onClick={() => {
-                                setRenamingId(null)
-                                setRenameValue("")
-                              }}
-                            >
-                              ✕
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-1">
-                            <span className="font-medium truncate max-w-[220px]">
-                              {rec.name}
-                            </span>
-                            <button
-                              type="button"
-                              className="ml-1 text-muted-foreground hover:text-foreground"
-                              onClick={() => handleStartRename(rec)}
-                              title="Rename"
-                            >
-                              <Pencil className="h-3 w-3" />
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                      <td className="px-2 py-2">
-                        <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded">
-                          {rec.room_id}
-                        </code>
-                      </td>
-                      <td className="px-2 py-2">
-                        <span className="text-[11px] text-muted-foreground truncate max-w-[160px] inline-block">
-                          {rec.egress_id}
-                        </span>
-                      </td>
-                      <td className="px-2 py-2 text-muted-foreground">
-                        {created || "-"}
-                      </td>
-                      <td className="px-2 py-2 text-right">
-                        <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7"
-                            asChild
-                          >
-                            <a
-                              href={rec.link}
-                              target="_blank"
-                              rel="noreferrer"
-                              title="Open recording"
-                            >
-                              <Link2 className="h-3 w-3" />
-                            </a>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            className="h-7 w-7 text-destructive border-destructive/40"
-                            onClick={() => handleDelete(rec)}
-                            title="Delete record (DB)"
-                          >
-                            <Trash2 className="h-3 w-3" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+              ))}
+            </tbody>
+          </table>
         )}
       </div>
     </div>
   )
 }
 
-/* ======================
- * SETTINGS SECTION
- * ====================== */
+/* --- SETTINGS SECTION --- */
 
 function SettingsSection() {
   return (
-    <div className="max-w-3xl mx-auto rounded-2xl border border-border bg-card text-card-foreground p-5">
-      <h2 className="text-sm font-semibold mb-2">Settings</h2>
-      <p className="text-xs text-muted-foreground">
-        Placeholder untuk pengaturan aplikasi (theme, profile, dsb). Bisa diisi nanti.
-      </p>
+    <div className="max-w-2xl mx-auto space-y-6">
+      <div className="bg-card border border-border rounded-lg p-6 shadow-sm">
+        <h2 className="text-base font-semibold mb-1">General Settings</h2>
+        <p className="text-xs text-muted-foreground mb-6">Manage your application preferences.</p>
+        <div className="space-y-4">
+          <div className="flex items-center justify-between p-3 bg-muted rounded border border-border">
+            <span className="text-sm font-medium">Email Notifications</span>
+            <div className="h-5 w-9 bg-muted rounded-full relative cursor-not-allowed">
+              <div className="h-3 w-3 bg-background rounded-full absolute top-1 left-1 shadow-sm" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between p-3 bg-muted rounded border border-border">
+            <span className="text-sm font-medium">Two-Factor Auth</span>
+            <span className="text-xs text-muted-foreground">Coming Soon</span>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

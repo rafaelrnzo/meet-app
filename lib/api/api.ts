@@ -1,8 +1,7 @@
-// lib/api.ts
-
 type TokenResponse = {
   token: string
   room: string
+  room_name?: string
   identity: string
   host: string
 }
@@ -36,7 +35,7 @@ function getAuthToken(): string {
 }
 
 export async function fetchToken(
-  room: string,
+  room: string, 
   _identity?: string
 ): Promise<{
   token: string
@@ -53,19 +52,20 @@ export async function fetchToken(
       Authorization: `Bearer ${jwt}`,
     },
     cache: "no-store",
-    body: JSON.stringify({ room }),
+    body: JSON.stringify({ room_code: room }),
   })
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "")
-    throw new Error(`Failed to fetch LiveKit token: ${res.status} ${text}`)
+    const errorData = await res.json().catch(() => ({}))
+    const errorMessage = errorData.error || await res.text()
+    throw new Error(`Failed to fetch LiveKit token: ${res.status} - ${errorMessage}`)
   }
 
   const data = (await res.json()) as TokenResponse
 
   if (!data.host || !data.host.trim()) {
     throw new Error(
-      "Backend mengembalikan host kosong. Pastikan LIVEKIT_SERVER_URL di backend sudah diset (contoh: http://livekit.10.70.0.45:7880)."
+      "Backend mengembalikan host kosong. Pastikan LIVEKIT_SERVER_URL di backend sudah diset."
     )
   }
 
