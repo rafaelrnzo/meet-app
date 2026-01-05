@@ -35,7 +35,7 @@ function getAuthToken(): string {
 }
 
 export async function fetchToken(
-  room: string, 
+  room: string,
   _identity?: string
 ): Promise<{
   token: string
@@ -75,4 +75,15 @@ export async function fetchToken(
     room: data.room,
     identity: data.identity,
   }
+}
+
+export async function leaveRoomBackend(): Promise<void> {
+  const jwt = getAuthToken()
+  await fetch(`${BASE}/api/livekit/leave`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${jwt}`,
+    },
+    cache: "no-store",
+  })
 }

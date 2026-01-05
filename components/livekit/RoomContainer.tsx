@@ -9,11 +9,13 @@ import {
   StartAudio,
 } from "@livekit/components-react";
 import { Track, type Participant } from "livekit-client";
-import { useMemo, useState, useEffect } from "react";
+import { useMemo, useState, useEffect, useRef } from "react";
 import * as React from "react";
 import Whiteboard from "../whiteboard/Whiteboard";
 import { Controls } from "./Controls";
 import "@livekit/components-styles";
+import { MeetingChat } from "./MeetingChat";
+
 
 type TrackRef = any;
 type LayoutMode = "auto" | "grid" | "screen-horizontal";
@@ -23,11 +25,11 @@ function DebugTracks() {
   const countTracks = trackRefs.length;
   const ids = Array.from(new Set(trackRefs.map((t) => t.participant.identity)));
   return (
-    <div className="text-[11px] text-neutral-400 px-4 py-1 border-b border-neutral-800 bg-black/40 flex items-center justify-between">
+    <div className="text-[11px] text-muted-foreground px-4 py-1 border-b border-border bg-muted/50 flex items-center justify-between">
       <span className="opacity-70">
         tracks: {countTracks} | participants: {ids.length}
       </span>
-      <span className="truncate max-w-[60%] text-neutral-500">
+      <span className="truncate max-w-[60%] text-muted-foreground">
         {ids.join(", ") || "—"}
       </span>
     </div>
@@ -59,8 +61,7 @@ function CustomParticipantTile({
       setIsAudioMuted(first?.isMuted ?? true);
     };
 
-    const handleSpeakingChanged = (speaking: boolean) =>
-      setIsSpeaking(speaking);
+    const handleSpeakingChanged = (speaking: boolean) => setIsSpeaking(speaking);
 
     updateAudioMuted();
 
@@ -85,8 +86,8 @@ function CustomParticipantTile({
 
   return (
     <div
-      className={`relative rounded-2xl overflow-hidden bg-neutral-900/80 backdrop-blur-sm border border-neutral-800/70 ${
-        isSpeaking && !isScreenShare ? "ring-2 ring-teal-500/70" : ""
+      className={`relative rounded-lg overflow-hidden bg-card backdrop-blur-sm border border-border shadow-sm ${
+        isSpeaking && !isScreenShare ? "ring-2 ring-primary/70" : ""
       }`}
       style={{ width: "100%", height: "100%" }}
     >
@@ -145,39 +146,25 @@ function CustomParticipantTile({
           </div>
         </>
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-900 via-neutral-950 to-black">
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted via-card to-background">
           <div className="text-center px-4">
             <div
-              className="mx-auto mb-3 rounded-full bg-neutral-800 grid place-items-center text-neutral-50 shadow-lg shadow-black/40"
-              style={{ width: 64, height: 64, fontSize: "24px", fontWeight: 700 }}
+              className="mx-auto mb-3 rounded-full bg-muted grid place-items-center text-foreground shadow-lg"
+              style={{
+                width: 64,
+                height: 64,
+                fontSize: "24px",
+                fontWeight: 700,
+              }}
             >
               {participant.identity?.[0]?.toUpperCase() ?? "?"}
             </div>
-            <div className="text-sm text-neutral-100 font-medium">
+            <div className="text-sm text-foreground font-medium">
               {displayName}
             </div>
-            <div className="text-xs text-neutral-500 mt-1">
+            <div className="text-xs text-muted-foreground mt-1">
               {isScreenShare ? "screen sharing" : "kamera mati"}
             </div>
-            {isAudioMuted && !isScreenShare && (
-              <div className="mt-2 flex items-center justify-center gap-1 text-red-400">
-                <svg
-                  width="14"
-                  height="14"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <line x1="1" y1="1" x2="23" y2="23"></line>
-                  <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path>
-                  <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path>
-                  <line x1="12" y1="19" x2="12" y2="23"></line>
-                  <line x1="8" y1="23" x2="16" y2="23"></line>
-                </svg>
-                <span className="text-xs">Muted</span>
-              </div>
-            )}
           </div>
         </div>
       )}
@@ -206,10 +193,7 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
     for (const t of trackRefs) {
       const pub: any = t.publication;
       if (!pub) continue;
-      if (
-        pub.kind === Track.Kind.Video &&
-        pub.source === Track.Source.ScreenShare
-      ) {
+      if (pub.kind === Track.Kind.Video && pub.source === Track.Source.ScreenShare) {
         map.set(t.participant.sid, t);
       }
     }
@@ -225,9 +209,7 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
     (layoutMode === "auto" && primaryScreenTrack);
 
   if (wantScreenLayout && primaryScreenTrack) {
-    const sideParticipants = participants.filter(
-      (p) => p.sid !== primaryScreenSid,
-    );
+    const sideParticipants = participants.filter((p) => p.sid !== primaryScreenSid);
 
     return (
       <div className="flex flex-col h-full w-full gap-3 p-3">
@@ -243,14 +225,8 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
             const scrTrack = screenTracksBySid.get(p.sid);
             const trackForTile = camTrack ?? scrTrack;
             return (
-              <div
-                key={p.sid}
-                className="aspect-video h-full flex-shrink-0"
-              >
-                <CustomParticipantTile
-                  trackRef={trackForTile}
-                  participant={p}
-                />
+              <div key={p.sid} className="aspect-video h-full ">
+                <CustomParticipantTile trackRef={trackForTile} participant={p} />
               </div>
             );
           })}
@@ -290,15 +266,12 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
   }
 
   return (
-    <div className="w-full h-full grid place-items-center text-neutral-300">
+    <div className="w-full h-full grid place-items-center text-muted-foreground">
       Menunggu peserta…
     </div>
   );
 }
 
-// ============================
-// Server-side recording controls (UPDATED)
-// ============================
 function ServerRecordingControls({ roomName }: { roomName: string }) {
   const [isRecording, setIsRecording] = React.useState(false);
   const [loading, setLoading] = React.useState(false);
@@ -325,9 +298,7 @@ function ServerRecordingControls({ roomName }: { roomName: string }) {
           "Content-Type": "application/json",
           Authorization: `Bearer ${getJwt()}`,
         },
-        body: JSON.stringify({
-          room_name: roomName,
-        }),
+        body: JSON.stringify({ room_name: roomName }),
       });
 
       if (!res.ok) {
@@ -335,10 +306,7 @@ function ServerRecordingControls({ roomName }: { roomName: string }) {
         throw new Error(data.error || `HTTP ${res.status}`);
       }
 
-      const data = await res.json().catch(() => ({} as any));
-      console.log("[Recording START response]", data);
-
-      // anggap saja "recording on" begitu backend menerima request
+      await res.json().catch(() => ({} as any));
       setIsRecording(true);
     } catch (err: any) {
       console.error("[Recording] gagal start:", err);
@@ -370,12 +338,8 @@ function ServerRecordingControls({ roomName }: { roomName: string }) {
       }
 
       const data = await res.json().catch(() => ({} as any));
-      console.log("[Recording STOP response]", data);
-
-      // status dari backend (EGRESS_ACTIVE / EGRESS_ABORTED / EGRESS_COMPLETE / dll)
       const status: string = data.status || "";
 
-      // kalau sudah ABORTED / COMPLETE / FAILED → anggap saja "sudah berhenti", jangan di-alert-in
       if (
         status === "EGRESS_ABORTED" ||
         status === "EGRESS_COMPLETE" ||
@@ -385,7 +349,6 @@ function ServerRecordingControls({ roomName }: { roomName: string }) {
         return;
       }
 
-      // fallback: tetap set false (recording off)
       setIsRecording(false);
     } catch (err: any) {
       console.error("[Recording] gagal stop:", err);
@@ -401,10 +364,10 @@ function ServerRecordingControls({ roomName }: { roomName: string }) {
       <button
         onClick={isRecording ? stopRecording : startRecording}
         disabled={loading}
-        className={`px-3 py-1 rounded-full text-xs font-medium transition-colors border flex items-center gap-1 ${
+        className={`px-3 py-1 rounded-md text-xs font-medium transition-all border flex items-center gap-1 ${
           isRecording
-            ? "bg-red-600 border-red-500 text-white hover:bg-red-500"
-            : "bg-neutral-900/80 border-neutral-700 text-neutral-100 hover:bg-neutral-800"
+            ? "bg-destructive border-destructive text-destructive-foreground hover:bg-destructive/90"
+            : "bg-card border-border text-foreground hover:bg-muted"
         } ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
       >
         {loading
@@ -414,10 +377,90 @@ function ServerRecordingControls({ roomName }: { roomName: string }) {
           : "Record (Server)"}
       </button>
       {lastError && (
-        <span className="text-[11px] text-red-400 max-w-[200px] truncate">
+        <span className="text-[11px] text-destructive max-w-[200px] truncate">
           {lastError}
         </span>
       )}
+    </div>
+  );
+}
+
+// Resizable Chat Component
+function ResizableChat({
+  roomName,
+  onClose,
+}: {
+  roomName: string;
+  onClose: () => void;
+}) {
+  const [width, setWidth] = useState(340);
+  const [isResizing, setIsResizing] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
+
+  const startResize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+  };
+
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isResizing || !containerRef.current) return;
+
+      const container = containerRef.current.parentElement;
+      if (!container) return;
+
+      const containerRect = container.getBoundingClientRect();
+      const newWidth = containerRect.right - e.clientX;
+      
+      // Min 280px, Max 600px
+      const clampedWidth = Math.max(280, Math.min(600, newWidth));
+      setWidth(clampedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    if (isResizing) {
+      document.addEventListener("mousemove", handleMouseMove);
+      document.addEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "ew-resize";
+      document.body.style.userSelect = "none";
+    }
+
+    return () => {
+      document.removeEventListener("mousemove", handleMouseMove);
+      document.removeEventListener("mouseup", handleMouseUp);
+      document.body.style.cursor = "";
+      document.body.style.userSelect = "";
+    };
+  }, [isResizing]);
+
+  return (
+    <div
+      ref={containerRef}
+      className="relative hidden md:flex flex-col border-l border-border bg-card/50 flex-shrink-0"
+      style={{ width: `${width}px`, minWidth: "280px", maxWidth: "600px" }}
+    >
+      {/* Resize Handle */}
+      <div
+        onMouseDown={startResize}
+        className={`absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/50 transition-colors ${
+          isResizing ? "bg-primary" : "bg-transparent"
+        }`}
+        style={{ zIndex: 10 }}
+      >
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-12 bg-border rounded-full" />
+      </div>
+
+      {/* Chat Content */}
+      <div className="flex-1 min-h-0 p-3 overflow-hidden">
+        <MeetingChat
+          roomCode={roomName}
+          storage="memory"
+          onClose={onClose}
+        />
+      </div>  
     </div>
   );
 }
@@ -434,12 +477,12 @@ export default function RoomContainer({
   const wsUrl = serverUrl.startsWith("ws")
     ? serverUrl
     : serverUrl.replace(/^http/, "ws");
+
   const [showWb, setShowWb] = useState(false);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("auto");
+  const [showChat, setShowChat] = useState(false);
 
-  const handleLayoutChange = (mode: LayoutMode) => {
-    setLayoutMode(mode);
-  };
+  const handleLayoutChange = (mode: LayoutMode) => setLayoutMode(mode);
 
   return (
     <LiveKitRoom
@@ -450,74 +493,72 @@ export default function RoomContainer({
       video
       connectOptions={{ autoSubscribe: true }}
       options={{ adaptiveStream: true, dynacast: true }}
-      onConnected={() =>
-        console.log("[LiveKit] connected to room:", roomName)
-      }
+      onConnected={() => console.log("[LiveKit] connected to room:", roomName)}
       onError={(e) => console.error("[LiveKit] onError:", e)}
       style={{
         height: "100vh",
         display: "flex",
         flexDirection: "column",
-        backgroundColor: "#050505",
-        color: "#fff",
+        backgroundColor: "hsl(var(--background))",
+        color: "hsl(var(--foreground))",
       }}
       data-lk-theme="default"
     >
       <RoomAudioRenderer />
       <StartAudio label="Klik untuk mengaktifkan audio" />
 
-      <div className="px-4 py-2 border-b border-neutral-800 bg-gradient-to-r from-black via-neutral-950 to-black flex items-center justify-between">
+      <div className="px-4 py-2 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="flex flex-col">
-            <span className="font-semibold text-sm text-neutral-50 tracking-wide">
+            <span className="font-semibold text-sm text-foreground tracking-wide">
               LiveKit Room
             </span>
-            <span className="text-[11px] text-neutral-500">
-              {roomName}
-            </span>
+            <span className="text-[11px] text-muted-foreground">{roomName}</span>
           </div>
-          <div className="hidden sm:flex items-center gap-1 text-[11px] bg-neutral-950/80 border border-neutral-800 rounded-full px-1.5 py-0.5">
-            <span className="px-1.5 text-neutral-500">Layout</span>
+
+          <div className="hidden sm:flex items-center gap-1 text-[11px] bg-muted border border-border rounded-md px-1.5 py-0.5">
+            <span className="px-1.5 text-muted-foreground">Layout</span>
             <button
               onClick={() => handleLayoutChange("auto")}
-              className={`px-2 py-0.5 rounded-full transition-colors ${
+              className={`px-2 py-0.5 rounded transition-all text-xs font-medium ${
                 layoutMode === "auto"
-                  ? "bg-teal-600 text-white"
-                  : "text-neutral-300 hover:bg-neutral-800"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
               }`}
             >
               Auto
             </button>
             <button
               onClick={() => handleLayoutChange("grid")}
-              className={`px-2 py-0.5 rounded-full transition-colors ${
+              className={`px-2 py-0.5 rounded transition-all text-xs font-medium ${
                 layoutMode === "grid"
-                  ? "bg-teal-600 text-white"
-                  : "text-neutral-300 hover:bg-neutral-800"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
               }`}
             >
               Grid
             </button>
             <button
               onClick={() => handleLayoutChange("screen-horizontal")}
-              className={`px-2 py-0.5 rounded-full transition-colors ${
+              className={`px-2 py-0.5 rounded transition-all text-xs font-medium ${
                 layoutMode === "screen-horizontal"
-                  ? "bg-teal-600 text-white"
-                  : "text-neutral-300 hover:bg-neutral-800"
+                  ? "bg-primary text-primary-foreground"
+                  : "text-muted-foreground hover:bg-muted"
               }`}
             >
               Screen
             </button>
           </div>
         </div>
+
         <div className="flex items-center gap-2">
           <ServerRecordingControls roomName={roomName} />
           <button
             onClick={() => setShowWb((v) => !v)}
-            className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+            className={`px-3 py-1 rounded-md text-xs font-medium border transition-all ${
               showWb
-                ? "bg-teal-600 border-teal-500 text-white hover:bg-teal-500"
-                : "bg-neutral-900/80 border-neutral-700 text-neutral-100 hover:bg-neutral-800"
+                ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
+                : "bg-card border-border text-foreground hover:bg-muted"
             }`}
           >
             Whiteboard {showWb ? "ON" : "OFF"}
@@ -527,13 +568,41 @@ export default function RoomContainer({
 
       <DebugTracks />
 
-      <div className="flex-1 min-h-0 relative bg-gradient-to-br from-neutral-950 via-black to-neutral-950">
-        <VideoGrid layoutMode={layoutMode} />
-        <Whiteboard active={showWb} onClose={() => setShowWb(false)} />
+      {/* Main Content Area */}
+      <div className="flex-1 min-h-0 relative bg-background flex overflow-hidden">
+        {/* Video Area */}
+        <div className="flex-1 min-w-0 min-h-0 relative overflow-hidden">
+          <VideoGrid layoutMode={layoutMode} />
+          <Whiteboard active={showWb} onClose={() => setShowWb(false)} />
+        </div>
+
+        {/* Resizable Chat Panel (Desktop Only) */}
+        {showChat && (
+          <ResizableChat
+            roomName={roomName}
+            onClose={() => setShowChat(false)}
+          />
+        )}
       </div>
 
-      <div className="border-t border-neutral-800 bg-black/60">
-        <Controls />
+      {/* Mobile Chat Overlay */}
+      {showChat && (
+        <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end">
+          <div className="w-full h-[80vh] bg-card rounded-t-3xl overflow-hidden border-t border-border shadow-2xl">
+            <MeetingChat
+              roomCode={roomName}
+              storage="memory"
+              onClose={() => setShowChat(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      <div className="border-t border-border bg-card/60 backdrop-blur-md">
+        <Controls
+          onToggleChat={() => setShowChat((v) => !v)}
+          isChatOpen={showChat}
+        />
       </div>
     </LiveKitRoom>
   );
