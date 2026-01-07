@@ -14,14 +14,24 @@ import {
   PhoneOff,
   Loader2,
   MessageSquare,
+  Users,
+  Sparkles,
 } from "lucide-react";
 
 export function Controls({
   onToggleChat,
   isChatOpen,
+  onToggleParticipants,
+  isParticipantsOpen,
+  onToggleEffects,
+  isEffectsOpen,
 }: {
   onToggleChat?: () => void;
   isChatOpen?: boolean;
+  onToggleParticipants?: () => void;
+  isParticipantsOpen?: boolean;
+  onToggleEffects?: () => void;
+  isEffectsOpen?: boolean;
 }) {
   const room = useRoomContext();
   const {
@@ -89,8 +99,8 @@ export function Controls({
       <button
         onClick={toggleMic}
         className={`${baseBtn} ${isMicrophoneEnabled
-            ? "bg-card border-border text-foreground hover:bg-muted"
-            : "bg-red-600 border-red-600 text-white hover:bg-red-700 ring-2 ring-red-500/30"
+          ? "bg-card border-border text-foreground hover:bg-muted"
+          : "bg-red-600 border-red-600 text-white hover:bg-red-700 ring-2 ring-red-500/30"
           }`}
         aria-label="Toggle microphone"
         disabled={busy}
@@ -108,8 +118,8 @@ export function Controls({
       <button
         onClick={toggleCam}
         className={`${baseBtn} ${isCameraEnabled
-            ? "bg-card border-border text-foreground hover:bg-muted"
-            : "bg-muted border-border text-muted-foreground hover:bg-muted/70"
+          ? "bg-card border-border text-foreground hover:bg-muted"
+          : "bg-muted border-border text-muted-foreground hover:bg-muted/70"
           }`}
         aria-label="Toggle camera"
         disabled={busy}
@@ -127,8 +137,8 @@ export function Controls({
       <button
         onClick={toggleScreen}
         className={`${baseBtn} ${isScreenShareEnabled
-            ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
-            : "bg-card border-border text-foreground hover:bg-muted"
+          ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
+          : "bg-card border-border text-foreground hover:bg-muted"
           }`}
         aria-label="Toggle screen share"
         disabled={busy}
@@ -146,13 +156,39 @@ export function Controls({
       <button
         onClick={onToggleChat}
         className={`${baseBtn} ${isChatOpen
-            ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
-            : "bg-card border-border text-foreground hover:bg-muted"
+          ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
+          : "bg-card border-border text-foreground hover:bg-muted"
           }`}
         aria-label="Toggle chat"
         disabled={busy}
       >
         <MessageSquare className="w-5 h-5" />
+      </button>
+
+      {/* PARTICIPANTS */}
+      <button
+        onClick={onToggleParticipants}
+        className={`${baseBtn} ${isParticipantsOpen
+          ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
+          : "bg-card border-border text-foreground hover:bg-muted"
+          }`}
+        aria-label="Toggle participants"
+        disabled={busy}
+      >
+        <Users className="w-5 h-5" />
+      </button>
+
+      {/* EFFECTS */}
+      <button
+        onClick={onToggleEffects}
+        className={`${baseBtn} ${isEffectsOpen
+          ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
+          : "bg-card border-border text-foreground hover:bg-muted"
+          }`}
+        aria-label="Toggle effects"
+        disabled={busy}
+      >
+        <Sparkles className="w-5 h-5" />
       </button>
 
       {/* LEAVE */}

@@ -7,7 +7,10 @@ import {
   useParticipants,
   VideoTrack,
   StartAudio,
+  useLocalParticipant,
 } from "@livekit/components-react";
+import { useRouter } from "next/navigation";
+
 import { Track, type Participant } from "livekit-client";
 import { useMemo, useState, useEffect, useRef } from "react";
 import * as React from "react";
@@ -15,6 +18,8 @@ import Whiteboard from "../whiteboard/Whiteboard";
 import { Controls } from "./Controls";
 import "@livekit/components-styles";
 import { MeetingChat } from "./MeetingChat";
+import { UserMinus } from "lucide-react";
+import { VirtualBackgroundSelector } from "./VirtualBackgroundSelector";
 
 
 type TrackRef = any;
@@ -86,9 +91,8 @@ function CustomParticipantTile({
 
   return (
     <div
-      className={`relative rounded-lg overflow-hidden bg-card backdrop-blur-sm border border-border shadow-sm ${
-        isSpeaking && !isScreenShare ? "ring-2 ring-primary/70" : ""
-      }`}
+      className={`relative rounded-lg overflow-hidden bg-card backdrop-blur-sm border border-border shadow-sm ${isSpeaking && !isScreenShare ? "ring-2 ring-primary/70" : ""
+        }`}
       style={{ width: "100%", height: "100%" }}
     >
       {hasVideo ? (
@@ -364,17 +368,16 @@ function ServerRecordingControls({ roomName }: { roomName: string }) {
       <button
         onClick={isRecording ? stopRecording : startRecording}
         disabled={loading}
-        className={`px-3 py-1 rounded-md text-xs font-medium transition-all border flex items-center gap-1 ${
-          isRecording
-            ? "bg-destructive border-destructive text-destructive-foreground hover:bg-destructive/90"
-            : "bg-card border-border text-foreground hover:bg-muted"
-        } ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
+        className={`px-3 py-1 rounded-md text-xs font-medium transition-all border flex items-center gap-1 ${isRecording
+          ? "bg-destructive border-destructive text-destructive-foreground hover:bg-destructive/90"
+          : "bg-card border-border text-foreground hover:bg-muted"
+          } ${loading ? "opacity-70 cursor-not-allowed" : ""}`}
       >
         {loading
           ? "Processing..."
           : isRecording
-          ? "Stop Recording"
-          : "Record (Server)"}
+            ? "Stop Recording"
+            : "Record (Server)"}
       </button>
       {lastError && (
         <span className="text-[11px] text-destructive max-w-[200px] truncate">
@@ -411,7 +414,7 @@ function ResizableChat({
 
       const containerRect = container.getBoundingClientRect();
       const newWidth = containerRect.right - e.clientX;
-      
+
       // Min 280px, Max 600px
       const clampedWidth = Math.max(280, Math.min(600, newWidth));
       setWidth(clampedWidth);
@@ -445,9 +448,8 @@ function ResizableChat({
       {/* Resize Handle */}
       <div
         onMouseDown={startResize}
-        className={`absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/50 transition-colors ${
-          isResizing ? "bg-primary" : "bg-transparent"
-        }`}
+        className={`absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/50 transition-colors ${isResizing ? "bg-primary" : "bg-transparent"
+          }`}
         style={{ zIndex: 10 }}
       >
         <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-12 bg-border rounded-full" />
@@ -460,10 +462,108 @@ function ResizableChat({
           storage="memory"
           onClose={onClose}
         />
-      </div>  
+      </div>
     </div>
   );
 }
+
+
+function ParticipantList({
+  roomName,
+  onClose,
+}: {
+  roomName: string;
+  onClose: () => void;
+}) {
+  const participants = useParticipants();
+  const { localParticipant } = useLocalParticipant();
+  const [kickLoading, setKickLoading] = useState<string | null>(null);
+
+  const API_BASE =
+    process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
+    "http://localhost:8080";
+
+  const getJwt = () => {
+    if (typeof window === "undefined") return "";
+    return localStorage.getItem("vc_token") || "";
+  };
+
+  const handleKick = async (identity: string) => {
+    if (!confirm(`Are you sure you want to kick ${identity}?`)) return;
+    setKickLoading(identity);
+    try {
+      const res = await fetch(`${API_BASE}/api/livekit/kick`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getJwt()}`,
+        },
+        body: JSON.stringify({ room_code: roomName, identity }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "Failed to kick");
+      }
+      // Success, LiveKit will handle the disconnect event
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setKickLoading(null);
+    }
+  };
+
+  return (
+    <div className="flex flex-col h-full bg-card/50 border-l border-border w-[280px] md:w-[320px] backdrop-blur-sm">
+      <div className="p-3 border-b border-border flex items-center justify-between">
+        <h3 className="font-semibold text-sm">Participants ({participants.length})</h3>
+        <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <path d="M18 6L6 18M6 6l12 12"></path>
+          </svg>
+        </button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-2 space-y-2">
+        {participants.map((p) => {
+          const isMe = p.identity === localParticipant.identity;
+          return (
+            <div key={p.sid} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
+              <div className="flex items-center gap-2 overflow-hidden">
+                <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                  {p.identity?.[0]?.toUpperCase()}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-sm font-medium truncate">
+                    {p.identity} {isMe && "(You)"}
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">
+                    {p.isSpeaking ? "Speaking" : "Idle"}
+                  </span>
+                </div>
+              </div>
+              {!isMe && (
+                <button
+                  onClick={() => handleKick(p.identity)}
+                  disabled={!!kickLoading}
+                  className="p-1.5 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                  title="Kick Participant"
+                >
+                  {kickLoading === p.identity ? (
+                    <span className="text-[10px]">...</span>
+                  ) : (
+                    <UserMinus className="w-4 h-4" />
+                  )}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+
 
 export default function RoomContainer({
   token,
@@ -474,6 +574,7 @@ export default function RoomContainer({
   serverUrl: string;
   roomName: string;
 }) {
+  const router = useRouter();
   const wsUrl = serverUrl.startsWith("ws")
     ? serverUrl
     : serverUrl.replace(/^http/, "ws");
@@ -481,6 +582,8 @@ export default function RoomContainer({
   const [showWb, setShowWb] = useState(false);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("auto");
   const [showChat, setShowChat] = useState(false);
+  const [showParticipants, setShowParticipants] = useState(false);
+  const [showEffects, setShowEffects] = useState(false);
 
   const handleLayoutChange = (mode: LayoutMode) => setLayoutMode(mode);
 
@@ -494,6 +597,10 @@ export default function RoomContainer({
       connectOptions={{ autoSubscribe: true }}
       options={{ adaptiveStream: true, dynacast: true }}
       onConnected={() => console.log("[LiveKit] connected to room:", roomName)}
+      onDisconnected={() => {
+        console.log("[LiveKit] disconnected");
+        router.push("/");
+      }}
       onError={(e) => console.error("[LiveKit] onError:", e)}
       style={{
         height: "100vh",
@@ -520,31 +627,28 @@ export default function RoomContainer({
             <span className="px-1.5 text-muted-foreground">Layout</span>
             <button
               onClick={() => handleLayoutChange("auto")}
-              className={`px-2 py-0.5 rounded transition-all text-xs font-medium ${
-                layoutMode === "auto"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
-              }`}
+              className={`px-2 py-0.5 rounded transition-all text-xs font-medium ${layoutMode === "auto"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted"
+                }`}
             >
               Auto
             </button>
             <button
               onClick={() => handleLayoutChange("grid")}
-              className={`px-2 py-0.5 rounded transition-all text-xs font-medium ${
-                layoutMode === "grid"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
-              }`}
+              className={`px-2 py-0.5 rounded transition-all text-xs font-medium ${layoutMode === "grid"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted"
+                }`}
             >
               Grid
             </button>
             <button
               onClick={() => handleLayoutChange("screen-horizontal")}
-              className={`px-2 py-0.5 rounded transition-all text-xs font-medium ${
-                layoutMode === "screen-horizontal"
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted"
-              }`}
+              className={`px-2 py-0.5 rounded transition-all text-xs font-medium ${layoutMode === "screen-horizontal"
+                ? "bg-primary text-primary-foreground"
+                : "text-muted-foreground hover:bg-muted"
+                }`}
             >
               Screen
             </button>
@@ -555,11 +659,10 @@ export default function RoomContainer({
           <ServerRecordingControls roomName={roomName} />
           <button
             onClick={() => setShowWb((v) => !v)}
-            className={`px-3 py-1 rounded-md text-xs font-medium border transition-all ${
-              showWb
-                ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
-                : "bg-card border-border text-foreground hover:bg-muted"
-            }`}
+            className={`px-3 py-1 rounded-md text-xs font-medium border transition-all ${showWb
+              ? "bg-primary border-primary text-primary-foreground hover:bg-primary/90"
+              : "bg-card border-border text-foreground hover:bg-muted"
+              }`}
           >
             Whiteboard {showWb ? "ON" : "OFF"}
           </button>
@@ -574,6 +677,11 @@ export default function RoomContainer({
         <div className="flex-1 min-w-0 min-h-0 relative overflow-hidden">
           <VideoGrid layoutMode={layoutMode} />
           <Whiteboard active={showWb} onClose={() => setShowWb(false)} />
+
+          <VirtualBackgroundSelector
+            isOpen={showEffects}
+            onClose={() => setShowEffects(false)}
+          />
         </div>
 
         {/* Resizable Chat Panel (Desktop Only) */}
@@ -582,6 +690,11 @@ export default function RoomContainer({
             roomName={roomName}
             onClose={() => setShowChat(false)}
           />
+        )}
+
+        {/* Participants Panel */}
+        {showParticipants && (
+          <ParticipantList roomName={roomName} onClose={() => setShowParticipants(false)} />
         )}
       </div>
 
@@ -598,10 +711,41 @@ export default function RoomContainer({
         </div>
       )}
 
+      {/* Mobile Participants Overlay */}
+      {showParticipants && (
+        <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end">
+          <div className="w-full h-[60vh] bg-card rounded-t-3xl overflow-hidden border-t border-border shadow-2xl">
+            <ParticipantList roomName={roomName} onClose={() => setShowParticipants(false)} />
+          </div>
+        </div>
+      )}
+
       <div className="border-t border-border bg-card/60 backdrop-blur-md">
         <Controls
-          onToggleChat={() => setShowChat((v) => !v)}
+          onToggleChat={() => {
+            setShowChat((v) => !v);
+            if (!showChat) {
+              setShowParticipants(false);
+              setShowEffects(false);
+            }
+          }}
           isChatOpen={showChat}
+          onToggleParticipants={() => {
+            setShowParticipants((v) => !v);
+            if (!showParticipants) {
+              setShowChat(false);
+              setShowEffects(false);
+            }
+          }}
+          isParticipantsOpen={showParticipants}
+          onToggleEffects={() => {
+            setShowEffects((v) => !v);
+            if (!showEffects) {
+              setShowChat(false);
+              setShowParticipants(false);
+            }
+          }}
+          isEffectsOpen={showEffects}
         />
       </div>
     </LiveKitRoom>
