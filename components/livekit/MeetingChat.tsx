@@ -6,23 +6,23 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 
 type ChatItem =
   | {
-      id: string;
-      ts: number;
-      from: string;
-      mine: boolean;
-      type: "text";
-      text: string;
-    }
+    id: string;
+    ts: number;
+    from: string;
+    mine: boolean;
+    type: "text";
+    text: string;
+  }
   | {
-      id: string;
-      ts: number;
-      from: string;
-      mine: boolean;
-      type: "image";
-      url: string;
-      mime: string;
-      size: number;
-    };
+    id: string;
+    ts: number;
+    from: string;
+    mine: boolean;
+    type: "image";
+    blob: Blob;
+    mime: string;
+    size: number;
+  };
 
 type ChatTextPayload = {
   type: "chat";
@@ -229,8 +229,7 @@ export function MeetingChat({
           .sort((a, b) => a[0] - b[0])
           .map((x) => x[1]);
 
-        const blob = new Blob(ordered, { type: buf.meta.mime });
-        const url = URL.createObjectURL(blob);
+        const blob = new Blob(ordered as BlobPart[], { type: buf.meta.mime });
 
         setItems((prev) => {
           if (prev.some((x) => x.id === msg.id)) return prev;
@@ -242,7 +241,7 @@ export function MeetingChat({
               from: buf.meta.from,
               mine: buf.meta.from === me,
               type: "image",
-              url,
+              blob,
               mime: buf.meta.mime,
               size: buf.meta.size,
             },
@@ -328,11 +327,11 @@ export function MeetingChat({
     await publishReliable(room, done);
 
     // optimistic local render
-    const url = URL.createObjectURL(blob);
+    // optimistic local render
     setItems((prev) => {
       const next: ChatItem[] = [
         ...prev,
-        { id, ts: meta.ts, from: me, mine: true, type: "image", url, mime: meta.mime, size: meta.size },
+        { id, ts: meta.ts, from: me, mine: true, type: "image", blob, mime: meta.mime, size: meta.size },
       ];
       return next.slice(-maxItems);
     });
@@ -381,19 +380,18 @@ export function MeetingChat({
           items.map((m) => (
             <div key={m.id} className={`flex ${m.mine ? "justify-end" : "justify-start"}`}>
               <div
-                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm border ${
-                  m.mine
-                    ? "bg-primary/90 text-primary-foreground border-primary/40"
-                    : "bg-muted/70 text-foreground border-border"
-                }`}
+                className={`max-w-[85%] rounded-lg px-3 py-2 text-sm border ${m.mine
+                  ? "bg-primary/90 text-primary-foreground border-primary/40"
+                  : "bg-muted/70 text-foreground border-border"
+                  }`}
               >
                 {!m.mine && <div className="text-[11px] text-muted-foreground mb-1">{m.from}</div>}
 
                 {m.type === "text" ? (
                   <div className="whitespace-pre-wrap break-words">{m.text}</div>
                 ) : (
-                  <img
-                    src={m.url}
+                  <BlobImage
+                    blob={m.blob}
                     alt="chat image"
                     className="block w-full h-auto rounded-lg border border-border/30 object-contain"
                   />
@@ -458,4 +456,19 @@ export function MeetingChat({
       </div>
     </div>
   );
+}
+
+function BlobImage({ blob, alt, className }: { blob: Blob; alt?: string; className?: string }) {
+  const [src, setSrc] = useState<string>("");
+
+  useEffect(() => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    setSrc(url);
+    return () => URL.revokeObjectURL(url);
+  }, [blob]);
+
+  if (!src) return <div className={`animate-pulse bg-muted ${className}`} style={{ minHeight: "100px" }} />;
+
+  return <img src={src} alt={alt} className={className} />;
 }

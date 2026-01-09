@@ -214,6 +214,12 @@ export async function fetchRecordings(roomID?: string): Promise<Recording[]> {
   })
 }
 
+export async function syncRecordings(): Promise<void> {
+  await apiRequest<void>("/admin/recordings/sync", {
+    method: "POST",
+  })
+}
+
 export async function updateRecordingName(id: number, newName: string): Promise<Recording> {
   return apiRequest<Recording>(`/admin/recordings/${id}`, {
     method: "PATCH",

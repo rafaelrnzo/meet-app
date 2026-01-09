@@ -49,7 +49,6 @@ export function VirtualBackgroundSelector({
             setProcessing(true);
 
             try {
-                // 1. Cleanup existing processor
                 if (processorRef.current) {
                     await videoTrack.setProcessor(processorRef.current);
                     if (processorRef.current.destroy) {
@@ -58,7 +57,6 @@ export function VirtualBackgroundSelector({
                     processorRef.current = null;
                 }
 
-                // 2. Apply new processor
                 if (activeBackground === "blur") {
                     const blur = BackgroundBlur(10, { delegate: "GPU" });
                     await videoTrack.setProcessor(blur);
@@ -71,7 +69,6 @@ export function VirtualBackgroundSelector({
                     if (activeBackground === "custom" && customImage) imageUrl = customImage;
 
                     if (imageUrl) {
-                        // VirtualBackground takes an image URL/Path
                         const vb = VirtualBackground(imageUrl, { delegate: "GPU" });
                         await videoTrack.setProcessor(vb);
                         processorRef.current = vb;

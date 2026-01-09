@@ -9,7 +9,7 @@ import {
   StartAudio,
   useLocalParticipant,
 } from "@livekit/components-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 import { Track, type Participant } from "livekit-client";
 import { useMemo, useState, useEffect, useRef } from "react";
@@ -575,6 +575,9 @@ export default function RoomContainer({
   roomName: string;
 }) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const isRecorder = searchParams.get("recorder") === "true";
+
   const wsUrl = serverUrl.startsWith("ws")
     ? serverUrl
     : serverUrl.replace(/^http/, "ws");
@@ -586,6 +589,25 @@ export default function RoomContainer({
   const [showEffects, setShowEffects] = useState(false);
 
   const handleLayoutChange = (mode: LayoutMode) => setLayoutMode(mode);
+
+  if (isRecorder) {
+    return (
+      <LiveKitRoom
+        token={token}
+        serverUrl={wsUrl}
+        connect
+        audio
+        video
+        connectOptions={{ autoSubscribe: true }}
+        options={{ adaptiveStream: true, dynacast: true }}
+        style={{ height: "100vh", backgroundColor: "#000" }}
+        data-lk-theme="default"
+      >
+        <RoomAudioRenderer />
+        <VideoGrid layoutMode="grid" />
+      </LiveKitRoom>
+    );
+  }
 
   return (
     <LiveKitRoom
