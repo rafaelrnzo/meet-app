@@ -42,7 +42,9 @@ export async function fetchToken(
   serverUrl: string
   room: string
   identity: string
+  roomName?: string
 }> {
+
   const jwt = getAuthToken()
 
   const res = await fetch(`${BASE}/api/livekit/token`, {
@@ -73,9 +75,11 @@ export async function fetchToken(
     token: data.token,
     serverUrl: normalizeServerUrl(data.host),
     room: data.room,
+    roomName: data.room_name,
     identity: data.identity,
   }
 }
+
 
 export async function leaveRoomBackend(): Promise<void> {
   const jwt = getAuthToken()

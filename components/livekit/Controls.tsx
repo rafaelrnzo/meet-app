@@ -22,6 +22,7 @@ import {
   Lock,
   Unlock,
   ChevronDown,
+  Smile,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
@@ -54,8 +55,23 @@ export function Controls({
   const [busy, setBusy] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminMenu, setShowAdminMenu] = useState(false);
+  const [showReactions, setShowReactions] = useState(false); // NEW
   const [metadataStr, setMetadataStr] = useState("");
   const adminMenuRef = useRef<HTMLDivElement>(null);
+
+  const sendReaction = async (emoji: string) => {
+    if (!room) return;
+    try {
+      const data = new TextEncoder().encode(JSON.stringify({ type: "reaction", emoji }));
+      await localParticipant.publishData(data, { reliable: true });
+      // Keep open for spamming: setShowReactions(false); 
+
+      // Dispatch local event for immediate echo
+      window.dispatchEvent(new CustomEvent("local-reaction", { detail: { emoji } }));
+    } catch (e) {
+      console.error("Failed to send reaction:", e);
+    }
+  };
 
   // Check Admin Role
   useEffect(() => {
@@ -114,6 +130,7 @@ export function Controls({
   const allowAudio = metadata.allow_audio !== false;
   const allowVideo = metadata.allow_video !== false;
   const allowScreen = metadata.allow_screen !== false;
+  const allowReaction = metadata.allow_reaction !== false; // NEW
 
   // Enforce Mute if permissions revoked (and not admin)
   useEffect(() => {
@@ -128,7 +145,11 @@ export function Controls({
     if (!allowScreen && isScreenShareEnabled) {
       localParticipant.setScreenShareEnabled(false);
     }
-  }, [allowAudio, allowVideo, allowScreen, isAdmin, isMicrophoneEnabled, isCameraEnabled, isScreenShareEnabled, localParticipant]);
+    // Reactions don't need active enforcement, just UI disable
+    if (!allowReaction && showReactions) {
+      setShowReactions(false);
+    }
+  }, [allowAudio, allowVideo, allowScreen, allowReaction, isAdmin, isMicrophoneEnabled, isCameraEnabled, isScreenShareEnabled, localParticipant, showReactions]);
 
 
   const toggleMic = async () => {
@@ -164,6 +185,10 @@ export function Controls({
       setBusy(false);
     }
   };
+
+  const codeObj = {
+
+  }
 
   const toggleScreen = async () => {
     if (busy) return;
@@ -300,7 +325,33 @@ export function Controls({
         <Users className="w-5 h-5" />
       </button>
 
-      {/* EFFECTS */}
+      {/* EFFECTS (REACTIONS) */}
+      {(allowReaction || isAdmin) && (
+        <div className="relative">
+          <button
+            onClick={() => setShowReactions(!showReactions)}
+            className={baseBtn(showReactions, busy, "normal")}
+            aria-label="Reactions"
+            disabled={busy}
+          >
+            <Smile className="w-5 h-5" />
+          </button>
+          {showReactions && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 bg-card border border-border rounded-full shadow-xl p-2 flex gap-2 z-50 animate-in fade-in slide-in-from-bottom-2">
+              {["💖", "👍", "🎉", "👏", "😂", "😮"].map((emoji) => (
+                <button
+                  key={emoji}
+                  onClick={() => sendReaction(emoji)}
+                  className="text-2xl hover:scale-125 transition-transform p-1"
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       <button
         onClick={onToggleEffects}
         className={baseBtn(!!isEffectsOpen, busy, "normal")}
@@ -360,6 +411,18 @@ export function Controls({
                 <Switch
                   checked={allowScreen}
                   onCheckedChange={(checked) => updatePermission("allow_screen", checked)}
+                />
+              </div>
+
+              {/* Reaction Toggle */}
+              <div className="flex items-center justify-between px-1">
+                <div className="flex items-center gap-2 text-sm text-foreground">
+                  <Smile className="w-4 h-4" />
+                  <span>Reactions</span>
+                </div>
+                <Switch
+                  checked={allowReaction}
+                  onCheckedChange={(checked) => updatePermission("allow_reaction", checked)}
                 />
               </div>
             </div>

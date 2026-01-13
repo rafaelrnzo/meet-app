@@ -8,6 +8,17 @@ import {
   type LocalParticipant,
   type DataPacket_Kind,
 } from "livekit-client";
+import {
+  Pencil,
+  Square,
+  Circle,
+  ArrowRight,
+  Minus,
+  Undo2,
+  Trash2,
+  X,
+  MousePointer2,
+} from "lucide-react";
 
 type Pt = { x: number; y: number };
 
@@ -155,7 +166,7 @@ export default function Whiteboard({
   const send = useCallback(
     async (msg: WbMsg) => {
       try {
-        if (!room) return;
+        if (!room || room.state !== "connected") return;
         const payload = new TextEncoder().encode(JSON.stringify(msg));
         await room.localParticipant.publishData(payload, { reliable: true });
         if (process.env.NODE_ENV !== "production") {
@@ -167,6 +178,7 @@ export default function Whiteboard({
     },
     [room]
   );
+
 
   const repaint = () => {
     const canvas = canvasRef.current;
@@ -398,95 +410,155 @@ export default function Whiteboard({
 
   /* ---------- UI ---------- */
 
-  const toolBtn = (t: Tool, label: string) => (
-    <button
-      key={t}
-      onClick={() => setTool(t)}
-      className={`px-2 py-1 rounded-full text-xs border ${
-        tool === t
-          ? "bg-teal-500 text-white border-teal-400"
-          : "bg-neutral-900 text-neutral-100 border-neutral-700 hover:bg-neutral-800"
-      }`}
-    >
-      {label}
-    </button>
-  );
+  const PRESET_COLORS = [
+    "#ef4444", // red
+    "#f97316", // orange
+    "#eab308", // yellow
+    "#22c55e", // green
+    "#3b82f6", // blue
+    "#a855f7", // purple
+    "#ffffff", // white
+    "#000000", // black
+  ];
 
   return (
     <div
       ref={wrapRef}
-      className="absolute inset-0 z-30"
+      className={`absolute inset-0 z-30 transition-all duration-300 ${active ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+        }`}
       style={{
-        pointerEvents: active ? "auto" : "none",
-        opacity: active ? 1 : 0,
-        transition: "opacity 120ms ease",
-        background: active ? "rgba(5,5,5,0.7)" : "transparent",
-        backdropFilter: active ? "blur(6px)" : "none",
+        background: active ? "rgba(0,0,0,0.4)" : "transparent",
+        backdropFilter: active ? "blur(4px)" : "none",
       }}
     >
       {active && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 flex items-center gap-2 sm:gap-3 bg-neutral-950/90 border border-neutral-800 rounded-full px-3 sm:px-4 py-1.5 shadow-lg shadow-black/40">
-          {/* color + width */}
-          <div className="flex items-center gap-2">
-            <div className="w-7 h-7 rounded-full overflow-hidden border border-neutral-700 bg-neutral-900">
+        <div className="absolute top-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+          {/* Toolbar Island */}
+          <div className="flex items-center p-2 rounded-2xl bg-background/95 backdrop-blur-md border border-border shadow-2xl ring-1 ring-black/5">
+            {/* Tools Group */}
+            <div className="flex items-center gap-1 pr-3 border-r border-border/50">
+              <button
+                onClick={() => setTool("pen")}
+                className={`p-2 rounded-xl transition-all ${tool === "pen"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                title="Pen"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTool("rect")}
+                className={`p-2 rounded-xl transition-all ${tool === "rect"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                title="Rectangle"
+              >
+                <Square className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTool("ellipse")}
+                className={`p-2 rounded-xl transition-all ${tool === "ellipse"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                title="Ellipse"
+              >
+                <Circle className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTool("arrow")}
+                className={`p-2 rounded-xl transition-all ${tool === "arrow"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                title="Arrow"
+              >
+                <ArrowRight className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => setTool("line")}
+                className={`p-2 rounded-xl transition-all ${tool === "line"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                title="Line"
+              >
+                <Minus className="w-4 h-4 -rotate-45" />
+              </button>
+            </div>
+
+            {/* Config Group */}
+            <div className="flex items-center gap-3 px-3 border-r border-border/50">
+              {/* Color Picker */}
+              <div className="flex items-center gap-1.5">
+                {PRESET_COLORS.slice(0, 4).map((c) => (
+                  <button
+                    key={c}
+                    onClick={() => setColor(c)}
+                    className={`w-5 h-5 rounded-full border border-white/20 transition-transform hover:scale-110 ${color === c ? "ring-2 ring-primary ring-offset-2 ring-offset-background" : ""
+                      }`}
+                    style={{ backgroundColor: c }}
+                  />
+                ))}
+                <div className="relative group ml-1">
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-blue-500 to-pink-500 ring-1 ring-border cursor-pointer" />
+                  <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="absolute inset-0 opacity-0 cursor-pointer"
+                  />
+                </div>
+              </div>
+
+              {/* Width Slider */}
+              <div className="w-px h-8 bg-border/50 mx-1" />
+
               <input
-                type="color"
-                value={color}
-                onChange={(e) => setColor(e.target.value)}
-                title="Pick color"
-                className="w-full h-full cursor-pointer border-0 p-0 bg-transparent"
+                type="range"
+                min={1}
+                max={20}
+                value={width}
+                onChange={(e) => setWidth(parseInt(e.target.value))}
+                className="w-20 accent-primary h-1.5 bg-muted rounded-full appearance-none cursor-pointer"
+                title={`Brush size: ${width}px`}
               />
             </div>
-            <input
-              type="range"
-              min={1}
-              max={16}
-              value={width}
-              onChange={(e) => setWidth(parseInt(e.target.value))}
-              title="Brush size"
-              className="w-24 sm:w-32 accent-teal-500 bg-transparent"
-            />
-          </div>
 
-          {/* tools */}
-          <div className="flex items-center gap-1 sm:gap-2 px-2 border-l border-neutral-800">
-            {toolBtn("pen", "✏️ Pen")}
-            {toolBtn("rect", "▭ Rect")}
-            {toolBtn("ellipse", "⬭ Ellipse")}
-            {toolBtn("line", "／ Line")}
-            {toolBtn("arrow", "➜ Arrow")}
-          </div>
-
-          {/* actions */}
-          <div className="flex items-center gap-1 sm:gap-2 pl-2 border-l border-neutral-800">
-            <button
-              onClick={undoLast}
-              className="px-2.5 py-1 rounded-full bg-neutral-900 text-xs text-neutral-100 hover:bg-neutral-800 border border-neutral-700"
-            >
-              Undo
-            </button>
-            <button
-              onClick={clearBoard}
-              className="px-2.5 py-1 rounded-full bg-neutral-900 text-xs text-red-300 hover:bg-red-600/80 hover:text-white border border-red-500/70"
-            >
-              Clear
-            </button>
-            {onClose && (
+            {/* Actions Group */}
+            <div className="flex items-center gap-1 pl-3">
+              <button
+                onClick={undoLast}
+                className="p-2 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Undo"
+              >
+                <Undo2 className="w-4 h-4" />
+              </button>
+              <button
+                onClick={clearBoard}
+                className="p-2 rounded-xl text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
+                title="Clear All"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+              <div className="w-px h-8 bg-border/50 mx-1" />
               <button
                 onClick={onClose}
-                className="px-2.5 py-1 rounded-full bg-red-600 text-xs text-white hover:bg-red-500 border border-red-500"
+                className="p-2 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
+                title="Close Whiteboard"
               >
-                Close
+                <X className="w-4 h-4" />
               </button>
-            )}
+            </div>
           </div>
         </div>
       )}
 
       <canvas
         ref={canvasRef}
-        className="w-full h-full touch-none"
-        style={{ cursor: active ? "crosshair" : "default" }}
+        className={`w-full h-full touch-none outline-none ${active ? "cursor-crosshair" : ""}`}
         onPointerDown={onDown}
         onPointerMove={onMove}
         onPointerUp={onUp}

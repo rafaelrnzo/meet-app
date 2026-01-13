@@ -18,8 +18,9 @@ import Whiteboard from "../whiteboard/Whiteboard";
 import { Controls } from "./Controls";
 import "@livekit/components-styles";
 import { MeetingChat } from "./MeetingChat";
-import { UserMinus } from "lucide-react";
+import { Camera, UserMinus, Video } from "lucide-react";
 import { VirtualBackgroundSelector } from "./VirtualBackgroundSelector";
+import { ReactionOverlay } from "./ReactionOverlay";
 
 
 type TrackRef = any;
@@ -392,9 +393,11 @@ function ServerRecordingControls({ roomName }: { roomName: string }) {
 function ResizableChat({
   roomName,
   onClose,
+  visible,
 }: {
   roomName: string;
   onClose: () => void;
+  visible: boolean;
 }) {
   const [width, setWidth] = useState(340);
   const [isResizing, setIsResizing] = useState(false);
@@ -443,7 +446,12 @@ function ResizableChat({
     <div
       ref={containerRef}
       className="relative hidden md:flex flex-col border-l border-border bg-card/50 flex-shrink-0"
-      style={{ width: `${width}px`, minWidth: "280px", maxWidth: "600px" }}
+      style={{
+        width: `${width}px`,
+        minWidth: "280px",
+        maxWidth: "600px",
+        display: visible ? "flex" : "none"
+      }}
     >
       {/* Resize Handle */}
       <div
@@ -586,10 +594,12 @@ export default function RoomContainer({
   token,
   serverUrl,
   roomName,
+  roomTitle,
 }: {
   token: string;
   serverUrl: string;
   roomName: string;
+  roomTitle?: string;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -653,16 +663,21 @@ export default function RoomContainer({
       <RoomAudioRenderer />
       <StartAudio label="Klik untuk mengaktifkan audio" />
 
-      <div className="px-4 py-2 border-b border-border bg-card/80 backdrop-blur-md flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <div className="flex flex-col">
-            <span className="font-semibold text-sm text-foreground tracking-wide">
-              LiveKit Room
+      <div className="h-18 px-6 border-b border-border/40 bg-background/80 backdrop-blur-xl flex items-center justify-between z-10">
+        <div className="flex items-center gap-4">
+          <div className="h-10 w-10 flex items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20 shadow-sm">
+            <Video className="w-5 h-5" />
+          </div>
+          <div className="flex flex-col gap-0.5">
+            <span className="text-[10px] items-center flex font-bold uppercase tracking-wider text-muted-foreground/80">
+              {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
             </span>
-            <span className="text-[11px] text-muted-foreground">{roomName}</span>
+            <span className="font-bold text-base text-foreground tracking-tight leading-none">
+              {roomTitle}
+            </span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-1 text-[11px] bg-muted border border-border rounded-md px-1.5 py-0.5">
+          {/* <div className="hidden sm:flex items-center gap-1 text-[11px] bg-muted border border-border rounded-md px-1.5 py-0.5">
             <span className="px-1.5 text-muted-foreground">Layout</span>
             <button
               onClick={() => handleLayoutChange("auto")}
@@ -691,7 +706,7 @@ export default function RoomContainer({
             >
               Screen
             </button>
-          </div>
+          </div> */}
         </div>
 
         <div className="flex items-center gap-2">
@@ -708,10 +723,11 @@ export default function RoomContainer({
         </div>
       </div>
 
-      <DebugTracks />
+      {/* <DebugTracks /> */}
 
       {/* Main Content Area */}
       <div className="flex-1 min-h-0 relative bg-background flex overflow-hidden">
+        <ReactionOverlay />
         {/* Video Area */}
         <div className="flex-1 min-w-0 min-h-0 relative overflow-hidden">
           <VideoGrid layoutMode={layoutMode} />
@@ -723,13 +739,12 @@ export default function RoomContainer({
           />
         </div>
 
-        {/* Resizable Chat Panel (Desktop Only) */}
-        {showChat && (
-          <ResizableChat
-            roomName={roomName}
-            onClose={() => setShowChat(false)}
-          />
-        )}
+        {/* Resizable Chat Panel (Desktop Only) - Always mounted to persist state */}
+        <ResizableChat
+          roomName={roomName}
+          onClose={() => setShowChat(false)}
+          visible={showChat}
+        />
 
         {/* Participants Panel */}
         {showParticipants && (
@@ -738,26 +753,30 @@ export default function RoomContainer({
       </div>
 
       {/* Mobile Chat Overlay */}
-      {showChat && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end">
-          <div className="w-full h-[80vh] bg-card rounded-t-3xl overflow-hidden border-t border-border shadow-2xl">
-            <MeetingChat
-              roomCode={roomName}
-              storage="session"
-              onClose={() => setShowChat(false)}
-            />
+      {
+        showChat && (
+          <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end">
+            <div className="w-full h-[80vh] bg-card rounded-t-3xl overflow-hidden border-t border-border shadow-2xl">
+              <MeetingChat
+                roomCode={roomName}
+                storage="session"
+                onClose={() => setShowChat(false)}
+              />
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       {/* Mobile Participants Overlay */}
-      {showParticipants && (
-        <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end">
-          <div className="w-full h-[60vh] bg-card rounded-t-3xl overflow-hidden border-t border-border shadow-2xl">
-            <ParticipantList roomName={roomName} onClose={() => setShowParticipants(false)} />
+      {
+        showParticipants && (
+          <div className="md:hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end">
+            <div className="w-full h-[60vh] bg-card rounded-t-3xl overflow-hidden border-t border-border shadow-2xl">
+              <ParticipantList roomName={roomName} onClose={() => setShowParticipants(false)} />
+            </div>
           </div>
-        </div>
-      )}
+        )
+      }
 
       <div className="border-t border-border bg-card/60 backdrop-blur-md">
         <Controls
@@ -787,6 +806,6 @@ export default function RoomContainer({
           isEffectsOpen={showEffects}
         />
       </div>
-    </LiveKitRoom>
+    </LiveKitRoom >
   );
 }

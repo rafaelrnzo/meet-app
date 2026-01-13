@@ -18,6 +18,7 @@ export default function MeetingClient({ room }: { room: string }) {
 
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string>("");
+  const [tokenParams, setTokenParams] = useState<{ roomName?: string } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -25,10 +26,12 @@ export default function MeetingClient({ room }: { room: string }) {
     (async () => {
       try {
         setError(null); // Reset error before fetching
-        const { token, serverUrl } = await fetchToken(room, identity);
+        const data = await fetchToken(room, identity);
         if (!active) return;
-        setToken(token);
-        setServerUrl(serverUrl);
+        setToken(data.token);
+        setServerUrl(data.serverUrl);
+        setTokenParams({ roomName: data.roomName });
+
       } catch (e: any) {
         console.error("fetchToken error:", e);
         if (e.message && e.message.includes("409")) {
@@ -70,6 +73,8 @@ export default function MeetingClient({ room }: { room: string }) {
       token={token}
       serverUrl={serverUrl}
       roomName={room}
+      roomTitle={tokenParams?.roomName}
     />
   );
 }
+

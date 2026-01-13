@@ -164,6 +164,7 @@ export function MeetingChat({
 
   const [items, setItems] = useState<ChatItem[]>([]);
   const [value, setValue] = useState("");
+  const [isLoaded, setIsLoaded] = useState(false);
   const endRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
 
@@ -183,14 +184,18 @@ export function MeetingChat({
         if (parsed) setItems(parsed);
       }
     }
+    setIsLoaded(true);
   }, [storage, key]);
 
   // Save to session storage whenever items change
   useEffect(() => {
+    if (!isLoaded) return;
     if (storage === "session") {
-      sessionStorage.setItem(key, JSON.stringify(items));
+      // Only save text messages, blobs cannot be JSON stringified correctly and cause crashes on reload
+      const toSave = items.filter((i) => i.type === "text");
+      sessionStorage.setItem(key, JSON.stringify(toSave));
     }
-  }, [items, storage, key]);
+  }, [items, storage, key, isLoaded]);
 
   // NOTE: We do NOT clear session storage on unmount anymore, 
   // so chat persists if user toggles the chat window within the same session.
@@ -488,7 +493,7 @@ function BlobImage({ blob, alt, className }: { blob: Blob; alt?: string; classNa
   const [src, setSrc] = useState<string>("");
 
   useEffect(() => {
-    if (!blob) return;
+    if (!blob || !(blob instanceof Blob)) return;
     const url = URL.createObjectURL(blob);
     setSrc(url);
     return () => URL.revokeObjectURL(url);
