@@ -2,7 +2,11 @@
 
 import { useRoomContext } from "@livekit/components-react";
 import { DataPacket_Kind, RoomEvent } from "livekit-client";
+import { Clipboard, Send } from "lucide-react";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import { LinkPreview } from "./LinkPreview";
+
+const URL_REGEX = /(https?:\/\/[^\s]+)/g;
 
 type ChatItem =
   | {
@@ -132,14 +136,17 @@ async function publishReliable(room: any, obj: any) {
 
   const bytes = new TextEncoder().encode(JSON.stringify(obj));
 
-  // LiveKit v2 signature: publishData(data, {reliable})
-  if (room.localParticipant?.publishData?.length === 2) {
+  try {
+    // Try LiveKit v2 signature first: publishData(data, { reliable: true })
     await room.localParticipant.publishData(bytes, { reliable: true });
-    return;
+  } catch (e) {
+    // Fallback to LiveKit v1 signature: publishData(data, kind)
+    try {
+      await room.localParticipant.publishData(bytes, DataPacket_Kind.RELIABLE);
+    } catch (e2) {
+      console.error("Failed to publish data", e, e2);
+    }
   }
-
-  // LiveKit v1 fallback: publishData(data, kind)
-  await room.localParticipant.publishData(bytes, DataPacket_Kind.RELIABLE);
 }
 
 export function MeetingChat({
@@ -167,14 +174,26 @@ export function MeetingChat({
     Map<string, { meta: ImageMetaPayload; chunks: Map<number, Uint8Array> }>
   >(new Map());
 
-  // Clear chat when component unmounts (leaving room)
+  // Load from session storage on mount if enabled
   useEffect(() => {
-    return () => {
-      if (storage === "session") {
-        sessionStorage.removeItem(key);
+    if (storage === "session") {
+      const saved = sessionStorage.getItem(key);
+      if (saved) {
+        const parsed = safeParse<ChatItem[]>(saved);
+        if (parsed) setItems(parsed);
       }
-    };
+    }
   }, [storage, key]);
+
+  // Save to session storage whenever items change
+  useEffect(() => {
+    if (storage === "session") {
+      sessionStorage.setItem(key, JSON.stringify(items));
+    }
+  }, [items, storage, key]);
+
+  // NOTE: We do NOT clear session storage on unmount anymore, 
+  // so chat persists if user toggles the chat window within the same session.
 
   // autoscroll
   useEffect(() => {
@@ -355,7 +374,7 @@ export function MeetingChat({
   };
 
   return (
-    <div className="h-full w-full rounded-lg overflow-hidden border border-border bg-card/80 backdrop-blur-sm flex flex-col shadow-sm">
+    <div className="h-full w-full flex flex-col bg-card/80 backdrop-blur-sm">
       <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-muted/50">
         <div className="text-sm font-semibold text-foreground">Chat</div>
         <div className="flex items-center gap-2">
@@ -388,7 +407,12 @@ export function MeetingChat({
                 {!m.mine && <div className="text-[11px] text-muted-foreground mb-1">{m.from}</div>}
 
                 {m.type === "text" ? (
-                  <div className="whitespace-pre-wrap break-words">{m.text}</div>
+                  <div className="whitespace-pre-wrap break-words">
+                    {m.text}
+                    {m.text.match(URL_REGEX) && (
+                      <LinkPreview url={m.text.match(URL_REGEX)![0]} />
+                    )}
+                  </div>
                 ) : (
                   <BlobImage
                     blob={m.blob}
@@ -441,15 +465,17 @@ export function MeetingChat({
             className="h-9 px-3 rounded-lg text-sm font-medium border border-border bg-card text-foreground hover:bg-muted transition-all"
             title="Kirim gambar"
           >
-            📎
+            <Clipboard className="w-4 h-4 " />
+
           </button>
 
           <button
             onClick={sendText}
             disabled={!value.trim()}
-            className="h-9 px-4 rounded-lg text-sm font-medium border border-primary/50 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+            className="h p-2 rounded-lg text-sm font-medium border border-primary/50 bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
           >
-            Send
+            <Send className="w-4 h-4 " />
+
           </button>
         </div>
 

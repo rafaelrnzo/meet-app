@@ -456,10 +456,10 @@ function ResizableChat({
       </div>
 
       {/* Chat Content */}
-      <div className="flex-1 min-h-0 p-3 overflow-hidden">
+      <div className="flex-1 min-h-0 overflow-hidden">
         <MeetingChat
           roomCode={roomName}
-          storage="memory"
+          storage="session"
           onClose={onClose}
         />
       </div>
@@ -478,6 +478,23 @@ function ParticipantList({
   const participants = useParticipants();
   const { localParticipant } = useLocalParticipant();
   const [kickLoading, setKickLoading] = useState<string | null>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const userStr = localStorage.getItem("vc_user");
+        if (userStr) {
+          const user = JSON.parse(userStr);
+          if (user.role === "admin") {
+            setIsAdmin(true);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to parse user role", e);
+      }
+    }
+  }, []);
 
   const API_BASE =
     process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
@@ -541,7 +558,7 @@ function ParticipantList({
                   </span>
                 </div>
               </div>
-              {!isMe && (
+              {!isMe && isAdmin && (
                 <button
                   onClick={() => handleKick(p.identity)}
                   disabled={!!kickLoading}
@@ -726,7 +743,7 @@ export default function RoomContainer({
           <div className="w-full h-[80vh] bg-card rounded-t-3xl overflow-hidden border-t border-border shadow-2xl">
             <MeetingChat
               roomCode={roomName}
-              storage="memory"
+              storage="session"
               onClose={() => setShowChat(false)}
             />
           </div>

@@ -3,10 +3,15 @@ const API_BASE =
 
 function getToken(): string | null {
   if (typeof window === "undefined") return null
-  return localStorage.getItem("vc_token")
+  try {
+    return localStorage.getItem("vc_token")
+  } catch (e) {
+    console.error("Failed to access localStorage", e)
+    return null
+  }
 }
 
-async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
   const token = getToken()
 
   const headers: Record<string, string> = {
@@ -28,7 +33,9 @@ async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T
     throw new Error(text || `Request failed with status ${res.status}`)
   }
 
-  return res.json() as Promise<T>
+  // Handle empty responses (like 204 No Content)
+  const text = await res.text()
+  return text ? JSON.parse(text) : (null as any)
 }
 
 export type DbRoom = {
@@ -230,5 +237,19 @@ export async function updateRecordingName(id: number, newName: string): Promise<
 export async function deleteRecording(id: number): Promise<void> {
   await apiRequest<void>(`/admin/recordings/${id}`, {
     method: "DELETE",
+  })
+}
+
+export async function muteAllParticipants(roomCode: string, muteAudio: boolean, muteVideo: boolean): Promise<void> {
+  await apiRequest<void>("/admin/livekit/rooms/mute-all", {
+    method: "POST",
+    body: JSON.stringify({ room_code: roomCode, mute_audio: muteAudio, mute_video: muteVideo }),
+  })
+}
+
+export async function updateRoomPermissions(roomCode: string, metadata: any): Promise<void> {
+  await apiRequest<void>("/admin/livekit/rooms/permissions", {
+    method: "POST",
+    body: JSON.stringify({ room_code: roomCode, metadata: JSON.stringify(metadata) }),
   })
 }
