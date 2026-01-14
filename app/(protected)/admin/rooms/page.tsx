@@ -6,10 +6,10 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Video, Plus, RefreshCcw, Trash2 } from "lucide-react"
 import {
-  createRoom,
-  deleteRoom,
-  fetchRooms,
-  type Room,
+  createDbRoom,
+  deleteDbRoom,
+  fetchDbRooms,
+  type DbRoom,
 } from "@/lib/api/admin-api"
 import { useAuth } from "@/hooks/use-auth"
 
@@ -17,7 +17,7 @@ export default function AdminRoomsPage() {
   const router = useRouter()
   const { loading, isAuthenticated, isAdmin } = useAuth({ requireAdmin: true })
 
-  const [rooms, setRooms] = useState<Room[]>([])
+  const [rooms, setRooms] = useState<DbRoom[]>([])
   const [fetching, setFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [name, setName] = useState("")
@@ -33,7 +33,7 @@ export default function AdminRoomsPage() {
     setError(null)
     setFetching(true)
     try {
-      const data = await fetchRooms()
+      const data = await fetchDbRooms()
       setRooms(data)
     } catch (err: any) {
       console.error(err)
@@ -49,7 +49,7 @@ export default function AdminRoomsPage() {
     setCreating(true)
     setError(null)
     try {
-      await createRoom({
+      await createDbRoom({
         name: name.trim(),
         maxParticipants: maxParticipants || 10,
       })
@@ -63,11 +63,11 @@ export default function AdminRoomsPage() {
     }
   }
 
-  const handleDelete = async (roomName: string) => {
+  const handleDelete = async (roomId: number, roomName: string) => {
     if (!confirm(`Delete room "${roomName}" ?`)) return
     try {
-      await deleteRoom(roomName)
-      setRooms((prev) => prev.filter((r) => r.name !== roomName))
+      await deleteDbRoom(roomId)
+      setRooms((prev) => prev.filter((r) => r.id !== roomId))
     } catch (err: any) {
       console.error(err)
       alert(err.message || "Failed to delete room")
@@ -189,23 +189,21 @@ export default function AdminRoomsPage() {
                 <tbody>
                   {rooms.map((room) => (
                     <tr
-                      key={room.sid || room.name}
+                      key={room.id}
                       className="rounded-xl bg-background/40"
                     >
                       <td className="px-2 py-2 font-medium">
                         {room.name}
                       </td>
                       <td className="px-2 py-2">
-                        {room.num_participants ?? 0}
+                        -
                       </td>
                       <td className="px-2 py-2">
                         {room.max_participants ?? "-"}
                       </td>
                       <td className="px-2 py-2 text-muted-foreground">
-                        {room.creation_time
-                          ? new Date(
-                              room.creation_time * 1000
-                            ).toLocaleString()
+                        {room.created_at
+                          ? new Date(room.created_at).toLocaleString()
                           : "-"}
                       </td>
                       <td className="px-2 py-2 text-right">
@@ -213,7 +211,7 @@ export default function AdminRoomsPage() {
                           variant="outline"
                           size="icon"
                           className="h-7 w-7 text-destructive border-destructive/40"
-                          onClick={() => handleDelete(room.name)}
+                          onClick={() => handleDelete(room.id, room.name)}
                         >
                           <Trash2 className="h-3 w-3" />
                         </Button>
