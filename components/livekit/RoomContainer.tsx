@@ -11,7 +11,7 @@ import {
 } from "@livekit/components-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { Track, type Participant } from "livekit-client";
+import { Track, type Participant, RoomEvent, DataPacket_Kind } from "livekit-client";
 import { useMemo, useState, useEffect, useRef } from "react";
 import { Video, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";
@@ -21,6 +21,7 @@ import "@livekit/components-styles";
 import { VirtualBackgroundSelector } from "./VirtualBackgroundSelector";
 import { ReactionOverlay } from "./ReactionOverlay";
 import { SidePanel } from "./SidePanel";
+import { Toaster, toast } from "sonner";
 
 
 type TrackRef = any;
@@ -381,6 +382,7 @@ export default function RoomContainer({
   const [showWb, setShowWb] = useState(false);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("auto");
   const [activeSidebar, setActiveSidebar] = useState<"chat" | "participants" | "tools" | "settings" | null>(null);
+  const [toolsView, setToolsView] = useState<"menu" | "polling">("menu");
   const [isAdmin, setIsAdmin] = useState(false);
 
   useEffect(() => {
@@ -397,6 +399,15 @@ export default function RoomContainer({
         console.error("Failed to parse user role", e);
       }
     }
+  }, []);
+
+  // Poll Notification Listener
+  useEffect(() => {
+    // We need room instance, but we don't have direct access here easily without Context.
+    // Actually LiveKitRoom creates context. We are inside it? No, checking return...
+    // LiveKitRoom wraps children. So we have to move this listener INSIDE LiveKitRoom children.
+    // We can't use useRoomContext here because RoomContainer renders LiveKitRoom.
+    // Solution: Create a wrapper component or Move logic to a child.
   }, []);
 
   const handleLayoutChange = (mode: LayoutMode) => setLayoutMode(mode);
@@ -445,6 +456,21 @@ export default function RoomContainer({
     >
       <RoomAudioRenderer />
       <StartAudio label="Klik untuk mengaktifkan audio" />
+      <Toaster position="top-center" />
+
+      <PollListener onPollCreated={() => {
+        toast.info("New Poll Started", {
+          description: "Click to view",
+          action: {
+            label: "Open",
+            onClick: () => {
+              setActiveSidebar("tools");
+              setToolsView("polling");
+            }
+          },
+          duration: 5000
+        });
+      }} />
 
 
 
@@ -488,6 +514,8 @@ export default function RoomContainer({
             onToggleWhiteboard={() => setShowWb(v => !v)}
             isWhiteboardOpen={showWb}
             isAdmin={isAdmin}
+            toolsView={toolsView}
+            onToolsViewChange={setToolsView}
           />
         </div>
       </div>
@@ -501,4 +529,25 @@ export default function RoomContainer({
       </div>
     </LiveKitRoom >
   );
+}
+
+import { useRoomContext } from "@livekit/components-react";
+function PollListener({ onPollCreated }: { onPollCreated: () => void }) {
+  const room = useRoomContext();
+  useEffect(() => {
+    if (!room) return;
+    const onData = (payload: Uint8Array, participant: any, kind: any) => {
+      if (kind !== DataPacket_Kind.RELIABLE) return;
+      try {
+        const str = new TextDecoder().decode(payload);
+        const data = JSON.parse(str);
+        if (data.type === "POLL_CREATE") {
+          onPollCreated();
+        }
+      } catch (e) { }
+    };
+    room.on(RoomEvent.DataReceived, onData);
+    return () => { room.off(RoomEvent.DataReceived, onData); };
+  }, [room, onPollCreated]);
+  return null;
 }

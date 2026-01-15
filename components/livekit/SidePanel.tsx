@@ -1,10 +1,11 @@
 "use client";
 
 import { useParticipants, useLocalParticipant } from "@livekit/components-react";
-import { UserMinus, X, Video, PencilRuler, Disc } from "lucide-react";
+import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft } from "lucide-react";
 import { useState, useEffect } from "react";
 import { MeetingChat } from "./MeetingChat";
 import { ServerRecordingControls } from "./ServerRecordingControls";
+import { PollingTool } from "./Polling";
 
 type SidebarTab = "chat" | "participants" | "tools" | "settings" | null;
 
@@ -15,6 +16,8 @@ interface SidePanelProps {
     onToggleWhiteboard: () => void;
     isWhiteboardOpen: boolean;
     isAdmin: boolean;
+    toolsView?: "menu" | "polling";
+    onToolsViewChange?: (view: "menu" | "polling") => void;
 }
 
 export function SidePanel({
@@ -23,7 +26,9 @@ export function SidePanel({
     roomName,
     onToggleWhiteboard,
     isWhiteboardOpen,
-    isAdmin
+    isAdmin,
+    toolsView = "menu",
+    onToolsViewChange
 }: SidePanelProps) {
     // If tab is settings (handled by VirtualBackgroundSelector) or null, don't render sidebar
     if (!activeTab || activeTab === "settings") return null;
@@ -96,6 +101,8 @@ export function SidePanel({
                         isAdmin={isAdmin}
                         onToggleWhiteboard={onToggleWhiteboard}
                         isWhiteboardOpen={isWhiteboardOpen}
+                        view={toolsView}
+                        setView={onToolsViewChange || (() => { })}
                     />
                 )}
             </div>
@@ -107,15 +114,56 @@ function ToolsListContent({
     roomName,
     isAdmin,
     onToggleWhiteboard,
-    isWhiteboardOpen
+    isWhiteboardOpen,
+    view,
+    setView
 }: {
     roomName: string;
     isAdmin: boolean;
     onToggleWhiteboard: () => void;
     isWhiteboardOpen: boolean;
+    view: "menu" | "polling";
+    setView: (v: "menu" | "polling") => void;
 }) {
+    if (view === "polling") {
+        return (
+            <div className="flex flex-col h-full">
+                <div className="p-2 border-b border-border">
+                    <button
+                        onClick={() => setView("menu")}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" /> Back to Tools
+                    </button>
+                </div>
+                <div className="flex-1 overflow-y-auto">
+                    <PollingTool isAdmin={isAdmin} />
+                </div>
+            </div>
+        );
+    }
+
     return (
         <div className="p-4 space-y-4">
+            {/* Polling Item */}
+            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50 hover:bg-muted/50 transition-colors">
+                <div className="flex items-center gap-3">
+                    <div className="p-2 rounded-md bg-blue-500/10 text-blue-500">
+                        <BarChart2 className="w-5 h-5" />
+                    </div>
+                    <div className="flex flex-col">
+                        <span className="text-sm font-medium">Polling</span>
+                        <span className="text-xs text-muted-foreground">Create and manage polls</span>
+                    </div>
+                </div>
+                <button
+                    onClick={() => setView("polling")}
+                    className="px-3 py-1.5 rounded text-xs font-medium bg-background border border-border hover:bg-muted transition-colors"
+                >
+                    Open
+                </button>
+            </div>
+
             {/* Whiteboard Item */}
             <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50 hover:bg-muted/50 transition-colors">
                 <div className="flex items-center gap-3">
