@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { Track, type Participant } from "livekit-client";
 import { useMemo, useState, useEffect, useRef } from "react";
-import { Video, Users } from "lucide-react";
+import { Video, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import * as React from "react";
 import Whiteboard from "../whiteboard/Whiteboard";
 import { Controls } from "./Controls";
@@ -250,7 +250,22 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
   }
 
   // --- Grid Layout Calculation ---
-  const count = participants.length;
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+
+  const totalParticipants = participants.length;
+  const totalPages = Math.ceil(totalParticipants / PAGE_SIZE) || 1;
+
+  // Ensure current page is valid
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [totalParticipants, totalPages, page]);
+
+  const startIndex = (page - 1) * PAGE_SIZE;
+  const visibleParticipants = participants.slice(startIndex, startIndex + PAGE_SIZE);
+  const count = visibleParticipants.length;
 
   // Simple heuristic for Col/Row calculation for landscape-ish container
   // Goal: maximize tile size while keeping them somewhat rectangular (landscape).
@@ -268,9 +283,9 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
   else if (count <= 20) { cols = 5; rows = 4; }
   else { cols = 5; rows = 5; } // Max 25
 
-  if (count > 0) {
+  if (totalParticipants > 0) {
     return (
-      <div className="w-full h-full p-2 bg-black/90">
+      <div className="w-full h-full p-2 bg-black/90 relative group">
         <div
           className="grid gap-2 w-full h-full"
           style={{
@@ -278,7 +293,7 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
             gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
           }}
         >
-          {participants.map((p) => {
+          {visibleParticipants.map((p) => {
             const camTrack = cameraTracksBySid.get(p.sid);
             const scrTrack = screenTracksBySid.get(p.sid);
             const trackForTile = camTrack ?? scrTrack;
@@ -293,6 +308,36 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
             );
           })}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <>
+            {/* Previous Button */}
+            {page > 1 && (
+              <button
+                onClick={() => setPage((p) => Math.max(1, p - 1))}
+                className="absolute left-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-sm border border-white/10 transition-all opacity-0 group-hover:opacity-100"
+              >
+                <ChevronLeft size={24} />
+              </button>
+            )}
+
+            {/* Next Button */}
+            {page < totalPages && (
+              <button
+                onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                className="absolute right-4 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/50 hover:bg-black/70 flex items-center justify-center text-white backdrop-blur-sm border border-white/10 transition-all opacity-0 group-hover:opacity-100"
+              >
+                <ChevronRight size={24} />
+              </button>
+            )}
+
+            {/* Page Indicator */}
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 px-3 py-1 rounded-full bg-black/50 backdrop-blur-sm border border-white/10 text-xs text-white/80 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
+              Page {page} of {totalPages}
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -387,7 +432,6 @@ export default function RoomContainer({
       onConnected={() => console.log("[LiveKit] connected to room:", roomName)}
       onDisconnected={() => {
         console.log("[LiveKit] disconnected");
-        router.push("/");
       }}
       onError={(e) => console.error("[LiveKit] onError:", e)}
       style={{
@@ -412,8 +456,10 @@ export default function RoomContainer({
 
         {/* Video Area */}
         <div className="flex-1 min-w-0 min-h-0 relative overflow-hidden flex flex-col">
-          <div className="flex-1 relative">
-            <VideoGrid layoutMode={layoutMode} />
+          <div className="flex-1 relative w-full h-full flex flex-col">
+            <div className="flex-1 min-h-0 relative">
+              <VideoGrid layoutMode={layoutMode} />
+            </div>
             <Whiteboard active={showWb} onClose={() => setShowWb(false)} />
             <VirtualBackgroundSelector
               isOpen={activeSidebar === "settings"}

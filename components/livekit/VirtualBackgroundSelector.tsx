@@ -110,7 +110,7 @@ export function VirtualBackgroundSelector({
     if (!isOpen) return null;
 
     return (
-        <div className="absolute bottom-16 left-1/2 -translate-x-1/2 bg-card border border-border rounded-xl shadow-2xl p-4 w-[90vw] max-w-md z-50">
+        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-card border border-border rounded-xl shadow-2xl p-4 w-[90vw] max-w-md z-50">
             <div className="flex justify-between items-center mb-3">
                 <h3 className="font-semibold text-sm">Virtual Background</h3>
                 <button onClick={onClose} className="text-muted-foreground hover:text-foreground text-xs">
