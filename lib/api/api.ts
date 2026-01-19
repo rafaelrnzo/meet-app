@@ -4,6 +4,7 @@ type TokenResponse = {
   room_name?: string
   identity: string
   host: string
+  is_waiting?: boolean
 }
 
 const BASE =
@@ -43,6 +44,7 @@ export async function fetchToken(
   room: string
   identity: string
   roomName?: string
+  isWaiting?: boolean
 }> {
 
   const jwt = getAuthToken()
@@ -77,6 +79,7 @@ export async function fetchToken(
     room: data.room,
     roomName: data.room_name,
     identity: data.identity,
+    isWaiting: data.is_waiting,
   }
 }
 

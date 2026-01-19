@@ -18,7 +18,7 @@ export default function MeetingClient({ room }: { room: string }) {
 
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string>("");
-  const [tokenParams, setTokenParams] = useState<{ roomName?: string } | null>(null);
+  const [tokenParams, setTokenParams] = useState<{ roomName?: string; isWaiting?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export default function MeetingClient({ room }: { room: string }) {
         if (!active) return;
         setToken(data.token);
         setServerUrl(data.serverUrl);
-        setTokenParams({ roomName: data.roomName });
+        setTokenParams({ roomName: data.roomName, isWaiting: data.isWaiting });
 
       } catch (e: any) {
         console.error("fetchToken error:", e);
@@ -74,6 +74,7 @@ export default function MeetingClient({ room }: { room: string }) {
       serverUrl={serverUrl}
       roomName={room}
       roomTitle={tokenParams?.roomName}
+      initialIsWaiting={tokenParams?.isWaiting}
     />
   );
 }

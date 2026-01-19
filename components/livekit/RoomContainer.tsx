@@ -8,10 +8,11 @@ import {
   VideoTrack,
   StartAudio,
   useLocalParticipant,
+  useRoomContext,
 } from "@livekit/components-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { Track, type Participant, RoomEvent, DataPacket_Kind, ParticipantEvent, DisconnectReason } from "livekit-client";
+import { Track, type Participant, type LocalParticipant, RoomEvent, DataPacket_Kind, ParticipantEvent, DisconnectReason } from "livekit-client";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Video, Users, ChevronLeft, ChevronRight, BarChart2, UserMinus } from "lucide-react";
 import * as React from "react";
@@ -31,6 +32,12 @@ type LayoutMode = "auto" | "grid" | "screen-horizontal";
 function DebugTracks() {
   const trackRefs = useTracks(undefined, { onlySubscribed: false });
   const countTracks = trackRefs.length;
+  //...
+  // (I will apply the import change separately or together if possible. The `replace_file_content` tool works on contiguous blocks. I'll split into two calls if needed or try to capture both if close, but imports are at top and KickOverlay at bottom. So I need 2 calls or use proper targeting.)
+
+  // Wait, I can't easily change imports and the bottom function in one go if they are far apart.
+  // I'll start with the imports.
+
   const ids = Array.from(new Set(trackRefs.map((t) => t.participant.identity)));
   return (
     <div className="text-[11px] text-muted-foreground px-4 py-1 border-b border-border bg-muted/50 flex items-center justify-between">
@@ -356,21 +363,18 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
   );
 }
 
-
-
-
-
-
 export default function RoomContainer({
   token,
   serverUrl,
   roomName,
   roomTitle,
+  initialIsWaiting = false,
 }: {
   token: string;
   serverUrl: string;
   roomName: string;
   roomTitle?: string;
+  initialIsWaiting?: boolean;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -404,15 +408,6 @@ export default function RoomContainer({
     }
   }, []);
 
-  // Poll Notification Listener
-  useEffect(() => {
-    // We need room instance, but we don't have direct access here easily without Context.
-    // Actually LiveKitRoom creates context. We are inside it? No, checking return...
-    // LiveKitRoom wraps children. So we have to move this listener INSIDE LiveKitRoom children.
-    // We can't use useRoomContext here because RoomContainer renders LiveKitRoom.
-    // Solution: Create a wrapper component or Move logic to a child.
-  }, []);
-
   const handleLayoutChange = (mode: LayoutMode) => setLayoutMode(mode);
 
   if (isRecorder) {
@@ -434,6 +429,10 @@ export default function RoomContainer({
     );
   }
 
+  if (isKicked) {
+    return <KickedState />;
+  }
+
   return (
     <LiveKitRoom
       token={token}
@@ -447,6 +446,11 @@ export default function RoomContainer({
       onDisconnected={(reason) => {
         console.log("[LiveKit] disconnected", reason);
         if (reason === DisconnectReason.PARTICIPANT_REMOVED) {
+          // We need to attempt to clean up tracks if possible, forcing them to stop.
+          // Since we don't have direct access to the room object here (it's internal to LiveKitRoom unless ref is used),
+          // we assume LiveKitRoom unmount (caused by state change) will handle most.
+          // However, to be extra safe, we can try to access media streams if we had them.
+          // Given the constraint, unmounting LiveKitRoom is the most effective way to kill the session.
           setIsKicked(true);
         }
       }}
@@ -503,8 +507,7 @@ export default function RoomContainer({
           ), { id: `poll-${pollId}`, duration: 10000 });
         }} />
 
-        <WaitingRoomOverlay />
-        <KickOverlay isOpen={isKicked} />
+        <WaitingRoomOverlay initialIsWaiting={initialIsWaiting} />
 
         {/* <DebugTracks /> */}
 
@@ -579,7 +582,6 @@ export default function RoomContainer({
   );
 }
 
-import { useRoomContext } from "@livekit/components-react";
 function PollListener({ onPollCreated }: { onPollCreated: (question: string, pollId: string) => void }) {
   const room = useRoomContext();
   useEffect(() => {
@@ -601,12 +603,12 @@ function PollListener({ onPollCreated }: { onPollCreated: (question: string, pol
   return null;
 }
 
-function KickOverlay({ isOpen }: { isOpen: boolean }) {
+
+function KickedState() {
   const router = useRouter();
-  if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[200] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+    <div className="fixed inset-0 z-[200] bg-background flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
       <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mb-6 ring-4 ring-destructive/20 animate-pulse">
         <UserMinus className="w-10 h-10 text-destructive" />
       </div>
@@ -624,7 +626,7 @@ function KickOverlay({ isOpen }: { isOpen: boolean }) {
   );
 }
 
-function WaitingRoomOverlay() {
+function WaitingRoomOverlay({ initialIsWaiting }: { initialIsWaiting: boolean }) {
   const { localParticipant } = useLocalParticipant();
 
   // Parse metadata safely
@@ -636,7 +638,7 @@ function WaitingRoomOverlay() {
     }
   }, [localParticipant?.metadata]);
 
-  const isWaiting = metadata.status === "waiting";
+  const isWaiting = metadata.status === "waiting" || (metadata.status === undefined && initialIsWaiting);
 
   if (!isWaiting) return null;
 
