@@ -11,9 +11,9 @@ import {
 } from "@livekit/components-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { Track, type Participant, RoomEvent, DataPacket_Kind } from "livekit-client";
-import { useMemo, useState, useEffect, useRef } from "react";
-import { Video, Users, ChevronLeft, ChevronRight } from "lucide-react";
+import { Track, type Participant, RoomEvent, DataPacket_Kind, ParticipantEvent, DisconnectReason } from "livekit-client";
+import { useMemo, useState, useEffect, useRef, useCallback } from "react";
+import { Video, Users, ChevronLeft, ChevronRight, BarChart2, UserMinus } from "lucide-react";
 import * as React from "react";
 import Whiteboard from "../whiteboard/Whiteboard";
 import { Controls } from "./Controls";
@@ -22,6 +22,7 @@ import { VirtualBackgroundSelector } from "./VirtualBackgroundSelector";
 import { ReactionOverlay } from "./ReactionOverlay";
 import { SidePanel } from "./SidePanel";
 import { Toaster, toast } from "sonner";
+import { PollingProvider } from "./Polling";
 
 
 type TrackRef = any;
@@ -381,9 +382,11 @@ export default function RoomContainer({
 
   const [showWb, setShowWb] = useState(false);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("auto");
-  const [activeSidebar, setActiveSidebar] = useState<"chat" | "participants" | "tools" | "settings" | null>(null);
+  const [activeSidebar, setActiveSidebar] = useState<"chat" | "participants" | "tools" | "settings" | "host_controls" | null>(null);
+  const [sidebarWidth, setSidebarWidth] = useState(320);
   const [toolsView, setToolsView] = useState<"menu" | "polling">("menu");
   const [isAdmin, setIsAdmin] = useState(false);
+  const [isKicked, setIsKicked] = useState(false);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -441,8 +444,11 @@ export default function RoomContainer({
       connectOptions={{ autoSubscribe: true }}
       options={{ adaptiveStream: true, dynacast: true }}
       onConnected={() => console.log("[LiveKit] connected to room:", roomName)}
-      onDisconnected={() => {
-        console.log("[LiveKit] disconnected");
+      onDisconnected={(reason) => {
+        console.log("[LiveKit] disconnected", reason);
+        if (reason === DisconnectReason.PARTICIPANT_REMOVED) {
+          setIsKicked(true);
+        }
       }}
       onError={(e) => console.error("[LiveKit] onError:", e)}
       style={{
@@ -458,91 +464,134 @@ export default function RoomContainer({
       <StartAudio label="Klik untuk mengaktifkan audio" />
       <Toaster position="top-center" />
 
-      <PollListener onPollCreated={() => {
-        toast.info("New Poll Started", {
-          description: "Click to view",
-          action: {
-            label: "Open",
-            onClick: () => {
-              setActiveSidebar("tools");
-              setToolsView("polling");
-            }
-          },
-          duration: 5000
-        });
-      }} />
-
-
-
-      {/* <DebugTracks /> */}
-
-      {/* Main Content Area */}
-      <div className="flex-1 min-h-0 relative bg-background flex overflow-hidden">
-        <ReactionOverlay />
-
-        {/* Video Area */}
-        <div className="flex-1 min-w-0 min-h-0 relative overflow-hidden flex flex-col">
-          <div className="flex-1 relative w-full h-full flex flex-col">
-            <div className="flex-1 min-h-0 relative">
-              <VideoGrid layoutMode={layoutMode} />
+      <PollingProvider>
+        <PollListener onPollCreated={(question, pollId) => {
+          toast.custom((t) => (
+            <div className="w-[340px] p-4 rounded-xl bg-card border border-border shadow-2xl flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300">
+              <div className="flex items-start gap-3">
+                <div className="p-2.5 rounded-lg bg-primary/10 text-primary shrink-0">
+                  <BarChart2 className="w-5 h-5" />
+                </div>
+                <div className="flex flex-col gap-1 min-w-0">
+                  <h4 className="text-sm font-semibold text-foreground">New Poll Started</h4>
+                  <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                    {question}
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2 ">
+                <button
+                  onClick={() => {
+                    toast.dismiss(t);
+                  }}
+                  className="flex-1 py-2 px-3 bg-muted hover:bg-muted/80 text-foreground text-xs font-medium rounded-lg transition-colors"
+                >
+                  Dismiss
+                </button>
+                <button
+                  onClick={() => {
+                    setActiveSidebar("tools");
+                    setToolsView("polling");
+                    toast.dismiss(t);
+                  }}
+                  className="flex-1 py-2 px-3 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg transition-colors"
+                >
+                  Vote Now
+                </button>
+              </div>
             </div>
-            <Whiteboard active={showWb} onClose={() => setShowWb(false)} />
-            <VirtualBackgroundSelector
-              isOpen={activeSidebar === "settings"}
-              onClose={() => setActiveSidebar(null)}
+          ), { id: `poll-${pollId}`, duration: 10000 });
+        }} />
+
+        <WaitingRoomOverlay />
+        <KickOverlay isOpen={isKicked} />
+
+        {/* <DebugTracks /> */}
+
+        {/* Main Content Area */}
+        <div className="flex-1 min-h-0 relative bg-background flex overflow-hidden">
+          <ReactionOverlay />
+
+          {/* Video Area */}
+          <div className="flex-1 min-w-0 min-h-0 relative overflow-hidden flex flex-col">
+            <div className="flex-1 relative w-full h-full flex flex-col">
+              <div className="flex-1 min-h-0 relative">
+                <VideoGrid layoutMode={layoutMode} />
+              </div>
+              <Whiteboard active={showWb} onClose={() => setShowWb(false)} />
+              <VirtualBackgroundSelector
+                isOpen={activeSidebar === "settings"}
+                onClose={() => setActiveSidebar(null)}
+              />
+            </div>
+          </div>
+
+          {/* Sidebar Panel (Desktop: Fixed right, Mobile: Overlay) */}
+          <div className={`
+             fixed inset-0 z-50 
+             md:static md:z-auto
+             transition-all duration-300
+             ${(activeSidebar && activeSidebar !== "settings") ? "pointer-events-auto" : "pointer-events-none md:pointer-events-auto"}
+        `}>
+            {/* Mobile Backdrop */}
+            <div
+              className={`absolute inset-0 bg-black/60 backdrop-blur-sm md:hidden transition-opacity duration-300 ${activeSidebar && activeSidebar !== "settings" ? "opacity-100" : "opacity-0"}`}
+              onClick={() => setActiveSidebar(null)}
             />
+
+            {/* Sidebar Content Wrapper */}
+            <div className={`
+                h-full flex justify-end 
+                w-full md:w-[var(--sidebar-width)]
+                md:block md:overflow-hidden 
+                transition-[transform,width] duration-300 ease-[cubic-bezier(0.4,0,0.2,1)]
+                ${(activeSidebar && activeSidebar !== "settings") ? "translate-x-0" : "translate-x-full md:translate-x-0"}
+            `}
+              style={{
+                '--sidebar-width': (activeSidebar && activeSidebar !== "settings") ? `${sidebarWidth}px` : '0px',
+              } as React.CSSProperties}
+            >
+              <SidePanel
+                activeTab={activeSidebar}
+                onClose={() => setActiveSidebar(null)}
+                roomName={roomName}
+                onToggleWhiteboard={() => setShowWb(v => !v)}
+                isWhiteboardOpen={showWb}
+                isAdmin={isAdmin}
+                toolsView={toolsView}
+                onToolsViewChange={setToolsView}
+                width={sidebarWidth}
+                onWidthChange={setSidebarWidth}
+              />
+            </div>
           </div>
         </div>
 
-        {/* Sidebar Panel (Desktop: Fixed right, Mobile: Overlay) */}
-        <div className={`
-             fixed inset-0 z-50 md:static md:z-auto md:w-auto
-             ${activeSidebar ? "flex" : "hidden md:hidden"}
-             justify-end md:block
-        `}>
-          {/* Mobile Backdrop */}
-          <div
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm md:hidden"
-            onClick={() => setActiveSidebar(null)}
-          />
-
-          {/* Sidebar Content */}
-          <SidePanel
-            activeTab={activeSidebar}
-            onClose={() => setActiveSidebar(null)}
+        <div className="border-t border-border bg-card/60 backdrop-blur-md">
+          <Controls
             roomName={roomName}
-            onToggleWhiteboard={() => setShowWb(v => !v)}
-            isWhiteboardOpen={showWb}
-            isAdmin={isAdmin}
-            toolsView={toolsView}
-            onToolsViewChange={setToolsView}
+            activeSidebar={activeSidebar}
+            onSidebarChange={setActiveSidebar}
           />
         </div>
-      </div>
-
-      <div className="border-t border-border bg-card/60 backdrop-blur-md">
-        <Controls
-          roomName={roomName}
-          activeSidebar={activeSidebar}
-          onSidebarChange={setActiveSidebar}
-        />
-      </div>
+      </PollingProvider>
     </LiveKitRoom >
   );
 }
 
 import { useRoomContext } from "@livekit/components-react";
-function PollListener({ onPollCreated }: { onPollCreated: () => void }) {
+function PollListener({ onPollCreated }: { onPollCreated: (question: string, pollId: string) => void }) {
   const room = useRoomContext();
   useEffect(() => {
     if (!room) return;
-    const onData = (payload: Uint8Array, participant: any, kind: any) => {
+    const onData = (payload: Uint8Array, participant: any, kind: any, topic?: string) => {
       if (kind !== DataPacket_Kind.RELIABLE) return;
+      if (topic !== "polling") return;
       try {
         const str = new TextDecoder().decode(payload);
         const data = JSON.parse(str);
         if (data.type === "POLL_CREATE") {
-          onPollCreated();
+          onPollCreated(data.poll.question, data.poll.id);
         }
       } catch (e) { }
     };
@@ -550,4 +599,56 @@ function PollListener({ onPollCreated }: { onPollCreated: () => void }) {
     return () => { room.off(RoomEvent.DataReceived, onData); };
   }, [room, onPollCreated]);
   return null;
+}
+
+function KickOverlay({ isOpen }: { isOpen: boolean }) {
+  const router = useRouter();
+  if (!isOpen) return null;
+
+  return (
+    <div className="fixed inset-0 z-[200] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+      <div className="w-20 h-20 rounded-full bg-destructive/10 flex items-center justify-center mb-6 ring-4 ring-destructive/20 animate-pulse">
+        <UserMinus className="w-10 h-10 text-destructive" />
+      </div>
+      <h2 className="text-2xl font-bold mb-2 text-foreground">You have been removed</h2>
+      <p className="text-muted-foreground max-w-md mb-8">
+        The host has removed you from this meeting.
+      </p>
+      <button
+        onClick={() => router.push("/")}
+        className="px-6 py-2.5 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all shadow-lg hover:shadow-primary/20"
+      >
+        Return to Home
+      </button>
+    </div>
+  );
+}
+
+function WaitingRoomOverlay() {
+  const { localParticipant } = useLocalParticipant();
+
+  // Parse metadata safely
+  const metadata = useMemo(() => {
+    try {
+      return localParticipant?.metadata ? JSON.parse(localParticipant.metadata) : {};
+    } catch {
+      return {};
+    }
+  }, [localParticipant?.metadata]);
+
+  const isWaiting = metadata.status === "waiting";
+
+  if (!isWaiting) return null;
+
+  return (
+    <div className="absolute inset-0 z-[100] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
+      <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mb-6 ring-4 ring-primary/20 animate-pulse">
+        <Users className="w-10 h-10 text-primary" />
+      </div>
+      <h2 className="text-2xl font-bold mb-2">Waiting for Host</h2>
+      <p className="text-muted-foreground max-w-md">
+        Please wait, the meeting host will let you in shortly.
+      </p>
+    </div>
+  );
 }

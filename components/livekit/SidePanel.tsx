@@ -7,7 +7,9 @@ import { MeetingChat } from "./MeetingChat";
 import { ServerRecordingControls } from "./ServerRecordingControls";
 import { PollingTool } from "./Polling";
 
-type SidebarTab = "chat" | "participants" | "tools" | "settings" | null;
+import { HostControls } from "./HostControls";
+
+type SidebarTab = "chat" | "participants" | "tools" | "settings" | "host_controls" | null;
 
 interface SidePanelProps {
     activeTab: SidebarTab;
@@ -18,6 +20,8 @@ interface SidePanelProps {
     isAdmin: boolean;
     toolsView?: "menu" | "polling";
     onToolsViewChange?: (view: "menu" | "polling") => void;
+    width?: number;
+    onWidthChange?: (w: number) => void;
 }
 
 export function SidePanel({
@@ -28,12 +32,17 @@ export function SidePanel({
     isWhiteboardOpen,
     isAdmin,
     toolsView = "menu",
-    onToolsViewChange
+    onToolsViewChange,
+    width: controlledWidth,
+    onWidthChange
 }: SidePanelProps) {
     // If tab is settings (handled by VirtualBackgroundSelector) or null, don't render sidebar
     if (!activeTab || activeTab === "settings") return null;
 
-    const [width, setWidth] = useState(320);
+    const [internalWidth, setInternalWidth] = useState(320);
+    const width = controlledWidth ?? internalWidth;
+    const setWidth = onWidthChange ?? setInternalWidth;
+
     const [isResizing, setIsResizing] = useState(false);
 
     useEffect(() => {
@@ -64,7 +73,7 @@ export function SidePanel({
 
     return (
         <div
-            className="flex flex-col h-full bg-card/60 border-l border-border backdrop-blur-xl animate-in slide-in-from-right duration-200 relative"
+            className="flex flex-col h-full bg-card/60 border-l border-border backdrop-blur-xl relative"
             style={{ width: `${width}px` }}
         >
             {/* Resize Handle */}
@@ -78,7 +87,7 @@ export function SidePanel({
             {/* HEADER */}
             <div className="p-3 border-b border-border flex items-center justify-between bg-card/40">
                 <h3 className="font-semibold text-sm capitalize">
-                    {activeTab === "tools" ? "Meeting Tools" : activeTab}
+                    {activeTab === "tools" ? "Meeting Tools" : activeTab === "host_controls" ? "Host Controls" : activeTab}
                 </h3>
                 <button onClick={onClose} className="p-1 hover:bg-muted rounded-md transition-colors">
                     <X className="w-4 h-4 text-muted-foreground" />
@@ -104,6 +113,10 @@ export function SidePanel({
                         view={toolsView}
                         setView={onToolsViewChange || (() => { })}
                     />
+                )}
+
+                {activeTab === "host_controls" && (
+                    <HostControls roomName={roomName} />
                 )}
             </div>
         </div>
@@ -210,7 +223,7 @@ function ToolsListContent({
 function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdmin: boolean }) {
     const participants = useParticipants();
     const { localParticipant } = useLocalParticipant();
-    const [kickLoading, setKickLoading] = useState<string | null>(null);
+    const [actionLoading, setActionLoading] = useState<string | null>(null);
 
     const API_BASE =
         process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
@@ -223,7 +236,7 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
 
     const handleKick = async (identity: string) => {
         if (!confirm(`Are you sure you want to kick ${identity}?`)) return;
-        setKickLoading(identity);
+        setActionLoading(identity);
         try {
             const res = await fetch(`${API_BASE}/api/livekit/kick`, {
                 method: "POST",
@@ -241,46 +254,124 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
         } catch (err: any) {
             alert(err.message);
         } finally {
-            setKickLoading(null);
+            setActionLoading(null);
         }
     };
 
+    const handleAdmit = async (identity: string) => {
+        setActionLoading(identity);
+        try {
+            const res = await fetch(`${API_BASE}/api/livekit/admit`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${getJwt()}`,
+                },
+                body: JSON.stringify({ room_code: roomName, identity }),
+            });
+
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error(data.error || "Failed to admit");
+            }
+        } catch (err: any) {
+            alert(err.message);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
+    const waitingParticipants = participants.filter(p => {
+        const metadata = p.metadata ? JSON.parse(p.metadata) : {};
+        return metadata.status === "waiting";
+    });
+
+    const activeParticipants = participants.filter(p => {
+        const metadata = p.metadata ? JSON.parse(p.metadata) : {};
+        return metadata.status !== "waiting";
+    });
+
     return (
-        <div className="flex-1 overflow-y-auto p-2 space-y-2">
-            {participants.map((p) => {
-                const isMe = p.identity === localParticipant.identity;
-                return (
-                    <div key={p.sid} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
-                        <div className="flex items-center gap-2 overflow-hidden">
-                            <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
-                                {p.identity?.[0]?.toUpperCase()}
+        <div className="flex-1 overflow-y-auto p-2 space-y-4">
+            {/* Waiting Room Section */}
+            {isAdmin && waitingParticipants.length > 0 && (
+                <div className="space-y-2">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2">Waiting Room ({waitingParticipants.length})</h4>
+                    <div className="space-y-1">
+                        {waitingParticipants.map((p) => (
+                            <div key={p.sid} className="flex items-center justify-between p-2 rounded-md bg-muted/30 border border-border">
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                    <div className="w-8 h-8 rounded-full bg-amber-500/10 flex items-center justify-center text-xs font-bold text-amber-500 shrink-0">
+                                        {p.identity?.[0]?.toUpperCase()}
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-sm font-medium truncate">{p.identity}</span>
+                                        <span className="text-[10px] text-muted-foreground">Waiting...</span>
+                                    </div>
+                                </div>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => handleAdmit(p.identity)}
+                                        disabled={!!actionLoading}
+                                        className="px-2 py-1 text-xs font-medium bg-primary text-primary-foreground rounded hover:bg-primary/90 transition-colors"
+                                    >
+                                        Admit
+                                    </button>
+                                    <button
+                                        onClick={() => handleKick(p.identity)}
+                                        disabled={!!actionLoading}
+                                        className="p-1 text-destructive hover:bg-destructive/10 rounded transition-colors"
+                                        title="Remove"
+                                    >
+                                        <X className="w-4 h-4" />
+                                    </button>
+                                </div>
                             </div>
-                            <div className="flex flex-col min-w-0">
-                                <span className="text-sm font-medium truncate">
-                                    {p.identity} {isMe && "(You)"}
-                                </span>
-                                <span className="text-[10px] text-muted-foreground">
-                                    {p.isSpeaking ? "Speaking" : "Idle"}
-                                </span>
-                            </div>
-                        </div>
-                        {!isMe && isAdmin && (
-                            <button
-                                onClick={() => handleKick(p.identity)}
-                                disabled={!!kickLoading}
-                                className="p-1.5 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                                title="Kick Participant"
-                            >
-                                {kickLoading === p.identity ? (
-                                    <span className="text-[10px]">...</span>
-                                ) : (
-                                    <UserMinus className="w-4 h-4" />
-                                )}
-                            </button>
-                        )}
+                        ))}
                     </div>
-                );
-            })}
+                </div>
+            )}
+
+            {/* Active Participants Section */}
+            <div className="space-y-2">
+                <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2">In Meeting ({activeParticipants.length})</h4>
+                <div className="space-y-1">
+                    {activeParticipants.map((p) => {
+                        const isMe = p.identity === localParticipant.identity;
+                        return (
+                            <div key={p.sid} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50 transition-colors">
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                    <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary shrink-0">
+                                        {p.identity?.[0]?.toUpperCase()}
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-sm font-medium truncate">
+                                            {p.identity} {isMe && "(You)"}
+                                        </span>
+                                        <span className="text-[10px] text-muted-foreground">
+                                            {p.isSpeaking ? "Speaking" : "Idle"}
+                                        </span>
+                                    </div>
+                                </div>
+                                {!isMe && isAdmin && (
+                                    <button
+                                        onClick={() => handleKick(p.identity)}
+                                        disabled={!!actionLoading}
+                                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
+                                        title="Kick Participant"
+                                    >
+                                        {actionLoading === p.identity ? (
+                                            <span className="text-[10px]">...</span>
+                                        ) : (
+                                            <UserMinus className="w-4 h-4" />
+                                        )}
+                                    </button>
+                                )}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
         </div>
     );
 }

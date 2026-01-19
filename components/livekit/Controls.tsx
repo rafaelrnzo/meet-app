@@ -28,7 +28,7 @@ import {
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 
-type SidebarTab = "chat" | "participants" | "tools" | "settings" | null;
+type SidebarTab = "chat" | "participants" | "tools" | "settings" | "host_controls" | null;
 
 export function Controls({
   roomName,
@@ -51,11 +51,9 @@ export function Controls({
 
   const [busy, setBusy] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
-  const [showAdminMenu, setShowAdminMenu] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
   const [metadataStr, setMetadataStr] = useState("");
   const [copied, setCopied] = useState(false);
-  const adminMenuRef = useRef<HTMLDivElement>(null);
 
   const sendReaction = async (emoji: string) => {
     if (!room) return;
@@ -99,20 +97,7 @@ export function Controls({
     };
   }, [room]);
 
-  // Click outside to close admin menu
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (adminMenuRef.current && !adminMenuRef.current.contains(event.target as Node)) {
-        setShowAdminMenu(false);
-      }
-    };
-    if (showAdminMenu) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
-  }, [showAdminMenu]);
+
 
   const metadata = useMemo(() => {
     try {
@@ -209,20 +194,7 @@ export function Controls({
     setTimeout(() => setCopied(false), 2000);
   };
 
-  // Admin Actions
-  const updatePermission = async (key: string, val: boolean, muteKind?: "audio" | "video") => {
-    if (!room) return;
-    const newMeta = { ...metadata, [key]: val };
 
-    try {
-      await updateRoomPermissions(room.name, newMeta);
-      if (val === false && muteKind) {
-        await muteAllParticipants(room.name, muteKind === "audio", muteKind === "video");
-      }
-    } catch (e: any) {
-      toast.error("Failed to update permissions: " + e.message);
-    }
-  };
 
 
   const baseBtn = (active: boolean, disabled: boolean, variant: "default" | "destructive" | "normal" = "normal") => `
@@ -364,39 +336,13 @@ export function Controls({
 
         {/* Admin Permissions Menu */}
         {isAdmin && (
-          <div className="relative" ref={adminMenuRef}>
-            <button
-              onClick={() => setShowAdminMenu(!showAdminMenu)}
-              className={minimalBtn(showAdminMenu, busy)}
-              title="Admin Settings"
-            >
-              <Settings className="w-5 h-5" />
-            </button>
-
-            {showAdminMenu && (
-              <div className="absolute bottom-full right-0 mb-4 w-64 bg-card border border-border rounded-lg shadow-xl p-3 flex flex-col gap-3 z-50">
-                <div className="px-1 py-1 text-xs font-semibold text-muted-foreground border-b border-border/50 pb-2">
-                  Permission Controls
-                </div>
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2 text-sm text-foreground"><Mic className="w-4 h-4" /><span>Microphone</span></div>
-                  <Switch checked={allowAudio} onCheckedChange={(checked) => updatePermission("allow_audio", checked, !checked ? "audio" : undefined)} />
-                </div>
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2 text-sm text-foreground"><Video className="w-4 h-4" /><span>Camera</span></div>
-                  <Switch checked={allowVideo} onCheckedChange={(checked) => updatePermission("allow_video", checked, !checked ? "video" : undefined)} />
-                </div>
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2 text-sm text-foreground"><ScreenShare className="w-4 h-4" /><span>Screen Share</span></div>
-                  <Switch checked={allowScreen} onCheckedChange={(checked) => updatePermission("allow_screen", checked)} />
-                </div>
-                <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2 text-sm text-foreground"><Smile className="w-4 h-4" /><span>Reactions</span></div>
-                  <Switch checked={allowReaction} onCheckedChange={(checked) => updatePermission("allow_reaction", checked)} />
-                </div>
-              </div>
-            )}
-          </div>
+          <button
+            onClick={() => onSidebarChange(activeSidebar === "host_controls" ? null : "host_controls")}
+            className={minimalBtn(activeSidebar === "host_controls", busy)}
+            title="Host Controls"
+          >
+            <Settings className="w-5 h-5" />
+          </button>
         )}
 
       </div>

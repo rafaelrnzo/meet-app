@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 import { useRoomContext, useLocalParticipant } from "@livekit/components-react";
 import { DataPacket_Kind, RoomEvent } from "livekit-client";
 import { Plus, X, BarChart2, Check, SkipForward } from "lucide-react";
@@ -17,6 +17,7 @@ export interface Poll {
     options: PollOption[];
     isActive: boolean;
     createdBy: string; // identity
+    roomId?: string;
     hasVoted?: boolean; // local state helper
 }
 
@@ -25,9 +26,28 @@ type PollPacket =
     | { type: "POLL_VOTE"; pollId: string; optionId: string; voterIdentity: string }
     | { type: "POLL_CLOSE"; pollId: string };
 
-// --- Hook ---
+// --- Context & Hook ---
+
+interface PollingState {
+    activePoll: Poll | null;
+    createPoll: (question: string, optionsTexts: string[]) => Promise<void>;
+    vote: (pollId: string, optionId: string) => Promise<void>;
+    closePoll: (pollId: string) => Promise<void>;
+    skipPoll: () => void;
+}
+
+const PollingContext = createContext<PollingState | null>(null);
 
 export function usePolling() {
+    const context = useContext(PollingContext);
+    if (!context) {
+        throw new Error("usePolling must be used within a PollingProvider");
+    }
+    return context;
+}
+
+
+export function PollingProvider({ children }: { children: React.ReactNode }) {
     const room = useRoomContext();
     const { localParticipant } = useLocalParticipant();
     const [activePoll, setActivePoll] = useState<Poll | null>(null);
@@ -52,14 +72,15 @@ export function usePolling() {
         if (!room) return;
         const encoder = new TextEncoder();
         const payload = encoder.encode(JSON.stringify(data));
-        await room.localParticipant.publishData(payload, { reliable: true });
+        await room.localParticipant.publishData(payload, { reliable: true, topic: "polling" });
     };
 
     useEffect(() => {
         if (!room) return;
 
-        const onData = (payload: Uint8Array, participant: any, kind: any) => {
+        const onData = (payload: Uint8Array, participant: any, kind: any, topic?: string) => {
             if (kind !== DataPacket_Kind.RELIABLE) return;
+            if (topic !== "polling") return;
             const str = new TextDecoder().decode(payload);
             try {
                 const data = JSON.parse(str) as PollPacket;
@@ -67,7 +88,7 @@ export function usePolling() {
                 if (data.type === "POLL_CREATE") {
                     const voted = getVotedPolls();
                     setActivePoll({ ...data.poll, hasVoted: voted.includes(data.poll.id) });
-                    // Dispatch a global event for notification (hacky but works for loose coupling)
+                    // Dispatch a global event for notification
                     window.dispatchEvent(new CustomEvent("poll-created", { detail: data.poll }));
                 }
 
@@ -109,6 +130,7 @@ export function usePolling() {
             options: optionsTexts.map((text, i) => ({ id: i.toString(), text, count: 0 })),
             isActive: true,
             createdBy: localParticipant.identity,
+            roomId: roomName,
         };
         await publish({ type: "POLL_CREATE", poll });
         setActivePoll(poll);
@@ -143,11 +165,14 @@ export function usePolling() {
     };
 
     const skipPoll = () => {
-        // Just visually remove/ignore
         setActivePoll(null);
     };
 
-    return { activePoll, createPoll, vote, closePoll, skipPoll };
+    return (
+        <PollingContext.Provider value={{ activePoll, createPoll, vote, closePoll, skipPoll }}>
+            {children}
+        </PollingContext.Provider>
+    );
 }
 
 async function savePollToDb(poll: Poll) {
@@ -160,7 +185,12 @@ async function savePollToDb(poll: Poll) {
                 "Content-Type": "application/json",
                 "Authorization": `Bearer ${token}`
             },
-            body: JSON.stringify(poll)
+            body: JSON.stringify({
+                ...poll,
+                poll_id: poll.id,
+                id: undefined, // Remove string ID to avoid conflict with backend uint ID
+                isActive: false // Ensure stored poll is marked as closed
+            })
         });
     } catch (e) {
         console.error("Failed to save poll", e);
@@ -181,13 +211,15 @@ export function PollingTool({ isAdmin }: { isAdmin: boolean }) {
         <div className="p-4 space-y-4">
             <div className="flex justify-between items-center">
                 <h3 className="font-semibold text-sm">Active Queue</h3>
-                <button
-                    onClick={() => setView("create")}
-                    className="p-1 rounded hover:bg-muted text-primary"
-                    title="Create Poll"
-                >
-                    <Plus className="w-4 h-4" />
-                </button>
+                {isAdmin && (
+                    <button
+                        onClick={() => setView("create")}
+                        className="p-1 rounded hover:bg-muted text-primary"
+                        title="Create Poll"
+                    >
+                        <Plus className="w-4 h-4" />
+                    </button>
+                )}
             </div>
 
             {!activePoll && (
@@ -290,8 +322,8 @@ function PollActive({ poll, onVote, onSkip }: { poll: Poll, onVote: (pid: string
                     key={opt.id}
                     onClick={() => setSelected(opt.id)}
                     className={`w-full text-left p-2 rounded text-sm transition-colors border ${selected === opt.id
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:bg-muted"
+                        ? "border-primary bg-primary/10"
+                        : "border-border hover:bg-muted"
                         }`}
                 >
                     {opt.text}
