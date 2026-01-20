@@ -23,10 +23,12 @@ import {
   Smile,
   Copy,
   Check,
-  LayoutGrid
+  LayoutGrid,
+  ChevronUp
 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
+import { VideoPresets, VideoPreset, Track } from "livekit-client";
 
 type SidebarTab = "chat" | "participants" | "tools" | "settings" | "host_controls" | null;
 
@@ -52,8 +54,37 @@ export function Controls({
   const [busy, setBusy] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
+  const [showCameraMenu, setShowCameraMenu] = useState(false);
+  const [videoQuality, setVideoQuality] = useState<VideoPreset>(VideoPresets.h720);
   const [metadataStr, setMetadataStr] = useState("");
   const [copied, setCopied] = useState(false);
+
+  const qualities = [
+    { label: "QHD (2K)", preset: VideoPresets.h2160 },
+    { label: "Full HD (1080p)", preset: VideoPresets.h1080 },
+    { label: "High Definition (720p)", preset: VideoPresets.h720 },
+    { label: "Standard (540p)", preset: VideoPresets.h540 },
+    { label: "Data Saver (360p)", preset: VideoPresets.h360 },
+  ];
+
+  const changeVideoQuality = async (preset: VideoPreset) => {
+    setVideoQuality(preset);
+    setShowCameraMenu(false);
+
+    if (isCameraEnabled && localParticipant) {
+      const trackPub = localParticipant.getTrackPublication(Track.Source.Camera);
+      if (trackPub && trackPub.videoTrack) {
+        try {
+          // @ts-ignore - restartTrack exists on LocalVideoTrack
+          await trackPub.videoTrack.restartTrack({ resolution: preset });
+          toast.success("Camera quality updated");
+        } catch (error) {
+          console.error("Failed to update camera quality", error);
+          toast.error("Failed to update camera quality");
+        }
+      }
+    }
+  };
 
   const sendReaction = async (emoji: string) => {
     if (!room) return;
@@ -156,7 +187,7 @@ export function Controls({
     }
     try {
       setBusy(true);
-      await localParticipant.setCameraEnabled(!isCameraEnabled);
+      await localParticipant.setCameraEnabled(!isCameraEnabled, { resolution: videoQuality });
     } catch (e) {
       console.error("toggle camera error:", e, lastCameraError);
       toast.error("Gagal mengaktifkan/mematikan kamera. Cek permission & device.");
@@ -247,16 +278,56 @@ export function Controls({
           {!allowAudio && !isAdmin && <div className="absolute -top-1 -right-1 bg-muted rounded-full p-0.5 border border-border"><Lock className="w-3 h-3 text-destructive" /></div>}
         </button>
 
-        {/* CAMERA */}
-        <button
-          onClick={toggleCam}
-          disabled={busy || (!allowVideo && !isAdmin)}
-          className={baseBtn(false, busy || (!allowVideo && !isAdmin), isCameraEnabled ? "normal" : "normal")}
-          title="Camera"
-        >
-          {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : isCameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-          {!allowVideo && !isAdmin && <div className="absolute -top-1 -right-1 bg-muted rounded-full p-0.5 border border-border"><Lock className="w-3 h-3 text-destructive" /></div>}
-        </button>
+        {/* CAMERA GROUP */}
+        <div className="relative flex items-center gap-1 bg-secondary pr-2 rounded-full">
+          <button
+            onClick={toggleCam}
+            disabled={busy || (!allowVideo && !isAdmin)}
+            className={baseBtn(false, busy || (!allowVideo && !isAdmin), isCameraEnabled ? "normal" : "normal")}
+            title="Camera"
+          >
+            {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : isCameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
+            {!allowVideo && !isAdmin && <div className="absolute -top-1 -right-1 bg-muted rounded-full p-0.5 border border-border"><Lock className="w-3 h-3 text-destructive" /></div>}
+          </button>
+
+          {/* Settings Trigger */}
+          <button
+            onClick={() => setShowCameraMenu(!showCameraMenu)}
+            className={`
+              w-6 h-11 sm:h-12 rounded-full flex items-center justify-center transition-all bg-transparent
+              hover:text-muted-foreground hover:text-foreground
+              ${showCameraMenu ? "bg-muted text-foreground" : ""}
+            `}
+            title="Camera Settings"
+          >
+            <ChevronUp className="w-4 h-4" />
+          </button>
+
+          {/* Quality Menu */}
+          {showCameraMenu && (
+            <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-3 w-56 bg-card border border-border rounded-lg shadow-lg p-1 z-50 animate-in fade-in slide-in-from-bottom-2">
+              <div className="text-xs font-semibold text-muted-foreground px-2 py-2 uppercase tracking-wider">Camera Quality</div>
+              <div className="flex flex-col gap-0.5">
+                {qualities.map((q) => (
+                  <button
+                    key={q.label}
+                    onClick={() => changeVideoQuality(q.preset)}
+                    className={`
+                      w-full text-left px-3 py-2 rounded-md text-sm flex items-center justify-between transition-colors
+                      ${videoQuality === q.preset
+                        ? "bg-primary/10 text-primary font-medium"
+                        : "hover:bg-muted text-foreground/80 hover:text-foreground"
+                      }
+                    `}
+                  >
+                    <span>{q.label}</span>
+                    {videoQuality === q.preset && <Check className="w-4 h-4" />}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
 
         {/* SCREEN SHARE */}
         {(allowScreen || isAdmin) && (
