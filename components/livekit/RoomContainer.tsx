@@ -626,19 +626,53 @@ function KickedState() {
   );
 }
 
+
+
 function WaitingRoomOverlay({ initialIsWaiting }: { initialIsWaiting: boolean }) {
   const { localParticipant } = useLocalParticipant();
+  const room = useRoomContext();
+  const [metadata, setMetadata] = useState<any>({});
 
-  // Parse metadata safely
-  const metadata = useMemo(() => {
+  // Helper to parse metadata
+  const parseMetadata = (m?: string) => {
     try {
-      return localParticipant?.metadata ? JSON.parse(localParticipant.metadata) : {};
+      return m ? JSON.parse(m) : {};
     } catch {
       return {};
     }
-  }, [localParticipant?.metadata]);
+  };
 
-  const isWaiting = metadata.status === "waiting" || (metadata.status === undefined && initialIsWaiting);
+  useEffect(() => {
+    // Initialize
+    if (localParticipant) {
+      setMetadata(parseMetadata(localParticipant.metadata));
+    }
+
+    const onMetadataChanged = (
+      _oldMetadata: string | undefined,
+      participant: any
+    ) => {
+      if (participant === localParticipant) {
+        setMetadata(parseMetadata(participant.metadata));
+      }
+    };
+
+    room?.on(RoomEvent.ParticipantMetadataChanged, onMetadataChanged);
+    return () => {
+      room?.off(RoomEvent.ParticipantMetadataChanged, onMetadataChanged);
+    };
+  }, [room, localParticipant]);
+
+  // If status is explicitly "waiting", we wait.
+  // If status is "active", we do NOT wait.
+  // If status is undefined:
+  //    - If initialIsWaiting is true, we assume we are still waiting (until told "active").
+  //    - If initialIsWaiting is false, we are not waiting.
+  // Exception: If metadata is EMPTY but we were initially waiting, we might look for "active".
+  // Backend sets {"status": "active"} on admit. So we check for that.
+
+  const status = metadata.status;
+  const isWaiting = status === "waiting" || (status !== "active" && initialIsWaiting);
 
   if (!isWaiting) return null;
 

@@ -12,6 +12,7 @@ import {
   updateUserRole,
   type User,
 } from "@/lib/api/admin-api"
+import { fetchRoles } from "@/lib/api/rbac-api"
 import { useAuth } from "@/hooks/use-auth"
 
 export default function AdminUsersPage() {
@@ -19,6 +20,7 @@ export default function AdminUsersPage() {
   const { loading, isAuthenticated, isAdmin } = useAuth({ requireAdmin: true })
 
   const [users, setUsers] = useState<User[]>([])
+  const [roles, setRoles] = useState<string[]>([])
   const [fetching, setFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -31,19 +33,42 @@ export default function AdminUsersPage() {
 
   useEffect(() => {
     if (!isAuthenticated || !isAdmin) return
-    loadUsers()
+    loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isAdmin])
 
-  const loadUsers = async () => {
+  const loadData = async () => {
     setError(null)
+    setFetching(true)
+    try {
+      const [usersData, rolesData] = await Promise.all([
+        fetchUsers(),
+        fetchRoles()
+      ])
+      setUsers(usersData)
+      // Ensure we have at least user and admin if API returns empty for some reason
+      const safeRoles = rolesData.length > 0 ? rolesData : ["user", "admin"]
+      setRoles(safeRoles)
+
+      // Default newRole to first available
+      if (safeRoles.length > 0) {
+        setNewRole(safeRoles[0])
+      }
+    } catch (err: any) {
+      console.error(err)
+      setError(err.message || "Failed to fetch data")
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  const loadUsers = async () => {
     setFetching(true)
     try {
       const data = await fetchUsers()
       setUsers(data)
     } catch (err: any) {
       console.error(err)
-      setError(err.message || "Failed to fetch users")
     } finally {
       setFetching(false)
     }
@@ -63,7 +88,8 @@ export default function AdminUsersPage() {
       setUsers((prev) => [...prev, user])
       setNewUsername("")
       setNewPassword("")
-      setNewRole("user")
+      // Reset role to current default or first
+      setNewRole(roles[0] || "user")
     } catch (err: any) {
       console.error(err)
       setError(err.message || "Failed to create user")
@@ -141,6 +167,7 @@ export default function AdminUsersPage() {
           </Button>
         </div>
 
+
         {/* Create user form */}
         <div className="rounded-2xl border border-border bg-card text-card-foreground p-4 space-y-3">
           <h2 className="text-sm font-semibold flex items-center gap-2">
@@ -164,14 +191,22 @@ export default function AdminUsersPage() {
               onChange={(e) => setNewPassword(e.target.value)}
               className="bg-background md:col-span-1"
             />
-            <select
-              value={newRole}
-              onChange={(e) => setNewRole(e.target.value)}
-              className="bg-background border border-input rounded-md px-3 py-2 text-sm text-foreground md:col-span-1"
-            >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
-            </select>
+
+            <div className="md:col-span-1">
+              <Input
+                list="roles-list"
+                placeholder="Role (e.g. user, admin)"
+                value={newRole}
+                onChange={(e) => setNewRole(e.target.value)}
+                className="bg-background"
+              />
+              <datalist id="roles-list">
+                {roles.map((r) => (
+                  <option key={r} value={r} />
+                ))}
+              </datalist>
+            </div>
+
             <Button
               type="submit"
               disabled={creating}
@@ -236,13 +271,23 @@ export default function AdminUsersPage() {
                         <select
                           value={u.role}
                           disabled={updatingId === u.id}
-                          onChange={(e) =>
-                            handleRoleChange(u.id, e.target.value)
-                          }
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            if (val === "__NEW_ROLE__") {
+                              const custom = prompt("Enter new role name:");
+                              if (custom && custom.trim()) {
+                                handleRoleChange(u.id, custom.trim());
+                              }
+                            } else {
+                              handleRoleChange(u.id, val);
+                            }
+                          }}
                           className="bg-background border border-input rounded-md px-2 py-1 text-xs"
                         >
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
+                          {roles.map(r => (
+                            <option key={r} value={r}>{r}</option>
+                          ))}
+                          <option value="__NEW_ROLE__">+ Custom Role...</option>
                         </select>
                       </td>
                       <td className="px-2 py-2 text-right">

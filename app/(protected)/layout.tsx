@@ -13,6 +13,7 @@ import {
   Sun,
   PlayCircle,
   Briefcase,
+  Shield,
 } from "lucide-react"
 import { getUser } from "@/lib/api/auth-client"
 import { cn } from "@/lib/utils"
@@ -57,7 +58,8 @@ const sidebarItems = [
   { id: "home", href: "/", icon: Home, label: "Home" },
   { id: "rooms", href: "/rooms", icon: Video, label: "Rooms" },
   { id: "groups", href: "/groups", icon: Briefcase, label: "Groups" },
-  { id: "users", href: "/users", icon: Users, label: "Users" },
+  { id: "users", href: "/admin/users", icon: Users, label: "Users" },
+  { id: "roles", href: "/admin/roles", icon: Shield, label: "Roles" },
   { id: "recordings", href: "/recordings", icon: PlayCircle, label: "Recordings" },
   { id: "settings", href: "/settings", icon: Settings, label: "Settings" },
 ]
@@ -117,7 +119,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
             const Icon = item.icon
             // Simple active check: strictly equal or starts with for subroutes
             const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
-            const disabled = !isAdmin && ["/rooms", "/groups", "/users", "/recordings"].includes(item.href)
+            const disabled = !isAdmin && ["/rooms", "/groups", "/admin/users", "/recordings", "/admin/roles"].includes(item.href)
 
             if (disabled) {
               return (

@@ -7,7 +7,7 @@ type TokenResponse = {
   is_waiting?: boolean
 }
 
-const BASE =
+export const API_URL =
   process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
   "http://localhost:8080"
 
@@ -22,7 +22,7 @@ export function normalizeServerUrl(hostFromBackend: string): string {
   }
 }
 
-function getAuthToken(): string {
+export function getAuthToken(): string {
   if (typeof window === "undefined") {
     throw new Error("Token hanya bisa diambil di client")
   }
@@ -33,6 +33,14 @@ function getAuthToken(): string {
   }
 
   return token
+}
+
+export function getAuthHeaders(): HeadersInit {
+  const token = getAuthToken()
+  return {
+    "Content-Type": "application/json",
+    Authorization: `Bearer ${token}`,
+  }
 }
 
 export async function fetchToken(
@@ -49,7 +57,7 @@ export async function fetchToken(
 
   const jwt = getAuthToken()
 
-  const res = await fetch(`${BASE}/api/livekit/token`, {
+  const res = await fetch(`${API_URL}/api/livekit/token`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -86,7 +94,7 @@ export async function fetchToken(
 
 export async function leaveRoomBackend(): Promise<void> {
   const jwt = getAuthToken()
-  await fetch(`${BASE}/api/livekit/leave`, {
+  await fetch(`${API_URL}/api/livekit/leave`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${jwt}`,
