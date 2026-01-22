@@ -17,7 +17,8 @@ import {
 import { useAuth } from "../../../hooks/use-auth"
 
 export default function GroupsPage() {
-    const { isAdmin } = useAuth()
+    const { hasPermission } = useAuth()
+    const canManage = hasPermission("groups", "manage")
     const [groups, setGroups] = useState<GroupDto[]>([])
     const [users, setUsers] = useState<UserDto[]>([])
     const [isOpen, setIsOpen] = useState(false)
@@ -27,8 +28,8 @@ export default function GroupsPage() {
     const [selectedUserId, setSelectedUserId] = useState("")
 
     useEffect(() => {
-        if (isAdmin) loadData()
-    }, [isAdmin])
+        if (canManage || hasPermission("groups", "read")) loadData()
+    }, [canManage])
 
     const loadData = async () => {
         const [g, u] = await Promise.all([fetchGroups(), fetchUsers()])
@@ -53,15 +54,17 @@ export default function GroupsPage() {
         }
     }
 
-    if (!isAdmin) return <div className="p-8 text-center text-muted-foreground">Unauthorized</div>
+    if (!hasPermission("groups", "read")) return <div className="p-8 text-center text-muted-foreground">Unauthorized</div>
 
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h2 className="text-base font-semibold">Groups</h2>
-                <Button onClick={() => setIsOpen(true)} size="sm" className="h-8">
-                    <Plus className="h-3 w-3 mr-1.5" /> New Group
-                </Button>
+                {canManage && (
+                    <Button onClick={() => setIsOpen(true)} size="sm" className="h-8">
+                        <Plus className="h-3 w-3 mr-1.5" /> New Group
+                    </Button>
+                )}
             </div>
 
             {isOpen && (
@@ -108,19 +111,21 @@ export default function GroupsPage() {
                                 <h3 className="text-sm font-semibold">{g.name}</h3>
                                 <p className="text-xs text-muted-foreground">{g.description}</p>
                             </div>
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={async () => {
-                                    if (confirm("Delete?")) {
-                                        await deleteGroup(g.id)
-                                        loadData()
-                                    }
-                                }}
-                                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                            >
-                                <Trash2 className="h-3 w-3" />
-                            </Button>
+                            {canManage && (
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={async () => {
+                                        if (confirm("Delete?")) {
+                                            await deleteGroup(g.id)
+                                            loadData()
+                                        }
+                                    }}
+                                    className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                >
+                                    <Trash2 className="h-3 w-3" />
+                                </Button>
+                            )}
                         </div>
 
                         <div className="bg-muted border border-border rounded p-3">
@@ -140,15 +145,17 @@ export default function GroupsPage() {
                                         </option>
                                     ))}
                                 </select>
-                                <Button
-                                    size="sm"
-                                    onClick={handleAdd}
-                                    disabled={!selectedUserId || manageGroupId !== g.id}
-                                    className="h-7 w-7 p-0"
-                                    variant="outline"
-                                >
-                                    <Plus className="h-3 w-3" />
-                                </Button>
+                                {canManage && (
+                                    <Button
+                                        size="sm"
+                                        onClick={handleAdd}
+                                        disabled={!selectedUserId || manageGroupId !== g.id}
+                                        className="h-7 w-7 p-0"
+                                        variant="outline"
+                                    >
+                                        <Plus className="h-3 w-3" />
+                                    </Button>
+                                )}
                             </div>
 
                             <div className="space-y-1 max-h-32 overflow-y-auto">

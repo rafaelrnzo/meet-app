@@ -24,6 +24,7 @@ import { ReactionOverlay } from "./ReactionOverlay";
 import { SidePanel } from "./SidePanel";
 import { Toaster, toast } from "sonner";
 import { PollingProvider } from "./Polling";
+import { useAuth } from "@/hooks/use-auth";
 
 
 type TrackRef = any;
@@ -389,9 +390,12 @@ export default function RoomContainer({
   const [activeSidebar, setActiveSidebar] = useState<"chat" | "participants" | "tools" | "settings" | "host_controls" | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [toolsView, setToolsView] = useState<"menu" | "polling">("menu");
+  /* 
   const [isAdmin, setIsAdmin] = useState(false);
+  */
   const [isKicked, setIsKicked] = useState(false);
 
+  /*
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
@@ -406,7 +410,16 @@ export default function RoomContainer({
         console.error("Failed to parse user role", e);
       }
     }
-  }, []);
+  }, []); 
+  */
+  // Replaced manual check with useAuth
+  const { hasPermission } = useAuth();
+
+  // Define granular permissions
+  const canManageRecordings = hasPermission("recordings", "manage");
+  // Assuming 'rooms:manage' allows kicking/admitting users for now
+  const canManageParticipants = hasPermission("rooms", "manage");
+
 
   const handleLayoutChange = (mode: LayoutMode) => setLayoutMode(mode);
 
@@ -560,7 +573,8 @@ export default function RoomContainer({
                 roomName={roomName}
                 onToggleWhiteboard={() => setShowWb(v => !v)}
                 isWhiteboardOpen={showWb}
-                isAdmin={isAdmin}
+                canManageRecordings={canManageRecordings}
+                canManageParticipants={canManageParticipants}
                 toolsView={toolsView}
                 onToolsViewChange={setToolsView}
                 width={sidebarWidth}

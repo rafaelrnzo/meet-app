@@ -5,6 +5,10 @@ export interface Permission {
     action: string;
 }
 
+export interface SystemPermission extends Permission {
+    label: string;
+}
+
 export interface Role {
     name: string;
 }
@@ -65,4 +69,13 @@ export async function removePermission(role: string, object: string, action: str
         const err = await res.json();
         throw new Error(err.error || "Failed to remove permission");
     }
+}
+
+export async function fetchSystemPermissions(): Promise<SystemPermission[]> {
+    const res = await fetch(`${API_URL}/admin/system/permissions`, {
+        headers: getAuthHeaders(),
+    });
+    if (!res.ok) throw new Error("Failed to fetch system permissions");
+    const data = await res.json();
+    return data.permissions;
 }

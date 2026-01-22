@@ -81,7 +81,7 @@ export default function ProtectedLayout({
 function ProtectedContent({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { loading, isAuthenticated, isAdmin, logout } = useAuth()
+  const { loading, isAuthenticated, isAdmin, hasPermission, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const [user, setUser] = useState<StoredUser | null>(null)
 
@@ -119,20 +119,25 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
             const Icon = item.icon
             // Simple active check: strictly equal or starts with for subroutes
             const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
-            const disabled = !isAdmin && ["/rooms", "/groups", "/admin/users", "/recordings", "/admin/roles"].includes(item.href)
 
-            if (disabled) {
-              return (
-                <button
-                  key={item.id}
-                  disabled
-                  className="flex h-9 w-9 items-center justify-center rounded-md opacity-30 cursor-not-allowed text-muted-foreground"
-                  title={item.label}
-                >
-                  <Icon className="h-4 w-4" />
-                </button>
-              )
-            }
+            // Permission Check
+            let isVisible = true
+
+            // Logic:
+            // Home, Settings -> Always visible (or authenticated)
+            // Rooms -> rooms:read
+            // Groups -> groups:read
+            // Users -> users:read
+            // Roles -> roles:manage
+            // Recordings -> recordings:read
+
+            if (item.id === "rooms" && !hasPermission("rooms", "read")) isVisible = false
+            if (item.id === "groups" && !hasPermission("groups", "read")) isVisible = false
+            if (item.id === "users" && !hasPermission("users", "read")) isVisible = false
+            if (item.id === "roles" && !hasPermission("roles", "manage")) isVisible = false
+            if (item.id === "recordings" && !hasPermission("recordings", "read")) isVisible = false
+
+            if (!isVisible) return null
 
             return (
               <Link

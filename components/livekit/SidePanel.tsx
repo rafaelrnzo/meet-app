@@ -17,7 +17,8 @@ interface SidePanelProps {
     roomName: string;
     onToggleWhiteboard: () => void;
     isWhiteboardOpen: boolean;
-    isAdmin: boolean;
+    canManageRecordings: boolean;
+    canManageParticipants: boolean;
     toolsView?: "menu" | "polling";
     onToolsViewChange?: (view: "menu" | "polling") => void;
     width?: number;
@@ -30,7 +31,8 @@ export function SidePanel({
     roomName,
     onToggleWhiteboard,
     isWhiteboardOpen,
-    isAdmin,
+    canManageRecordings,
+    canManageParticipants,
     toolsView = "menu",
     onToolsViewChange,
     width: controlledWidth,
@@ -101,13 +103,13 @@ export function SidePanel({
                 )}
 
                 {activeTab === "participants" && (
-                    <ParticipantListContent roomName={roomName} isAdmin={isAdmin} />
+                    <ParticipantListContent roomName={roomName} canManageParticipants={canManageParticipants} />
                 )}
 
                 {activeTab === "tools" && (
                     <ToolsListContent
                         roomName={roomName}
-                        isAdmin={isAdmin}
+                        canManageRecordings={canManageRecordings}
                         onToggleWhiteboard={onToggleWhiteboard}
                         isWhiteboardOpen={isWhiteboardOpen}
                         view={toolsView}
@@ -125,14 +127,14 @@ export function SidePanel({
 
 function ToolsListContent({
     roomName,
-    isAdmin,
+    canManageRecordings,
     onToggleWhiteboard,
     isWhiteboardOpen,
     view,
     setView
 }: {
     roomName: string;
-    isAdmin: boolean;
+    canManageRecordings: boolean;
     onToggleWhiteboard: () => void;
     isWhiteboardOpen: boolean;
     view: "menu" | "polling";
@@ -150,7 +152,7 @@ function ToolsListContent({
                     </button>
                 </div>
                 <div className="flex-1 overflow-y-auto">
-                    <PollingTool isAdmin={isAdmin} />
+                    <PollingTool isAdmin={canManageRecordings} /> {/* Using canManageRecordings as proxy for now, or add specific prop */}
                 </div>
             </div>
         );
@@ -200,7 +202,7 @@ function ToolsListContent({
             </div>
 
             {/* Recording Item */}
-            {isAdmin && (
+            {canManageRecordings && (
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50 hover:bg-muted/50 transition-colors">
                     <div className="flex items-center gap-3">
                         <div className="p-2 rounded-md bg-red-500/10 text-red-500">
@@ -220,7 +222,7 @@ function ToolsListContent({
     )
 }
 
-function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdmin: boolean }) {
+function ParticipantListContent({ roomName, canManageParticipants }: { roomName: string, canManageParticipants: boolean }) {
     const participants = useParticipants();
     const { localParticipant } = useLocalParticipant();
     const [actionLoading, setActionLoading] = useState<string | null>(null);
@@ -294,7 +296,7 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
     return (
         <div className="flex-1 overflow-y-auto p-2 space-y-4">
             {/* Waiting Room Section */}
-            {isAdmin && waitingParticipants.length > 0 && (
+            {canManageParticipants && waitingParticipants.length > 0 && (
                 <div className="space-y-2">
                     <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2">Waiting Room ({waitingParticipants.length})</h4>
                     <div className="space-y-1">
@@ -353,7 +355,7 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
                                         </span>
                                     </div>
                                 </div>
-                                {!isMe && isAdmin && (
+                                {!isMe && canManageParticipants && (
                                     <button
                                         onClick={() => handleKick(p.identity)}
                                         disabled={!!actionLoading}

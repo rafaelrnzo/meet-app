@@ -1,25 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Permission, fetchRolePermissions, addPermission, removePermission } from "@/lib/api/rbac-api";
+import { Permission, fetchRolePermissions, addPermission, removePermission, fetchSystemPermissions, SystemPermission } from "@/lib/api/rbac-api";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
-
-const SYSTEM_PERMISSIONS = [
-    { label: "View Rooms", object: "rooms", action: "read" },
-    { label: "Create Rooms", object: "rooms", action: "create" },
-    { label: "Delete Rooms", object: "rooms", action: "delete" },
-    { label: "Manage Participants (Kick/Mute)", object: "rooms", action: "manage" },
-
-    { label: "View Users", object: "users", action: "read" },
-    { label: "Manage Users", object: "users", action: "manage" },
-
-    { label: "View Recordings", object: "recordings", action: "read" },
-    { label: "Manage Recordings", object: "recordings", action: "manage" },
-
-    { label: "Manage Roles", object: "roles", action: "manage" },
-];
 
 interface RoleEditorProps {
     role: string;
@@ -27,18 +12,23 @@ interface RoleEditorProps {
 
 export function RoleEditor({ role }: RoleEditorProps) {
     const [permissions, setPermissions] = useState<Permission[]>([]);
+    const [systemPermissions, setSystemPermissions] = useState<SystemPermission[]>([]);
     const [loading, setLoading] = useState(false);
     const [updating, setUpdating] = useState(false);
 
     useEffect(() => {
-        loadPermissions();
+        loadData();
     }, [role]);
 
-    const loadPermissions = async () => {
+    const loadData = async () => {
         try {
             setLoading(true);
-            const data = await fetchRolePermissions(role);
-            setPermissions(data.permissions || []);
+            const [roleData, sysData] = await Promise.all([
+                fetchRolePermissions(role),
+                fetchSystemPermissions()
+            ]);
+            setPermissions(roleData.permissions || []);
+            setSystemPermissions(sysData || []); // Use fetched system permissions
         } catch (e) {
             console.error(e);
             toast.error("Failed to load permissions");
@@ -77,7 +67,7 @@ export function RoleEditor({ role }: RoleEditorProps) {
         <div className="space-y-4 border rounded-lg p-4 bg-card">
             <h3 className="text-lg font-medium">Permissions for {role}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {SYSTEM_PERMISSIONS.map((sysPerm) => {
+                {systemPermissions.map((sysPerm) => {
                     const isChecked = permissions.some(
                         (p) => p.object === sysPerm.object && p.action === sysPerm.action
                     );

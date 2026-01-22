@@ -17,7 +17,9 @@ import { useAuth } from "@/hooks/use-auth"
 
 export default function AdminUsersPage() {
   const router = useRouter()
-  const { loading, isAuthenticated, isAdmin } = useAuth({ requireAdmin: true })
+  // We remove check here and do it manually
+  const { loading, isAuthenticated, hasPermission } = useAuth()
+  const canManage = hasPermission("users", "manage")
 
   const [users, setUsers] = useState<User[]>([])
   const [roles, setRoles] = useState<string[]>([])
@@ -32,10 +34,10 @@ export default function AdminUsersPage() {
   const [updatingId, setUpdatingId] = useState<number | null>(null)
 
   useEffect(() => {
-    if (!isAuthenticated || !isAdmin) return
-    loadData()
+    if (!isAuthenticated) return
+    if (canManage || hasPermission("users", "read")) loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthenticated, isAdmin])
+  }, [isAuthenticated, canManage])
 
   const loadData = async () => {
     setError(null)
@@ -134,7 +136,7 @@ export default function AdminUsersPage() {
     )
   }
 
-  if (!isAuthenticated || !isAdmin) {
+  if (!isAuthenticated || !hasPermission("users", "read")) {
     return (
       <div className="min-h-screen bg-background text-foreground flex items-center justify-center">
         <p className="text-sm text-muted-foreground">
@@ -169,57 +171,59 @@ export default function AdminUsersPage() {
 
 
         {/* Create user form */}
-        <div className="rounded-2xl border border-border bg-card text-card-foreground p-4 space-y-3">
-          <h2 className="text-sm font-semibold flex items-center gap-2">
-            <Shield className="h-4 w-4" />
-            Create new user
-          </h2>
-          <form
-            onSubmit={handleCreateUser}
-            className="grid gap-3 md:grid-cols-4"
-          >
-            <Input
-              placeholder="Username"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              className="bg-background md:col-span-1"
-            />
-            <Input
-              type="password"
-              placeholder="Password"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              className="bg-background md:col-span-1"
-            />
-
-            <div className="md:col-span-1">
-              <Input
-                list="roles-list"
-                placeholder="Role (e.g. user, admin)"
-                value={newRole}
-                onChange={(e) => setNewRole(e.target.value)}
-                className="bg-background"
-              />
-              <datalist id="roles-list">
-                {roles.map((r) => (
-                  <option key={r} value={r} />
-                ))}
-              </datalist>
-            </div>
-
-            <Button
-              type="submit"
-              disabled={creating}
-              className="w-full md:col-span-1"
+        {canManage && (
+          <div className="rounded-2xl border border-border bg-card text-card-foreground p-4 space-y-3">
+            <h2 className="text-sm font-semibold flex items-center gap-2">
+              <Shield className="h-4 w-4" />
+              Create new user
+            </h2>
+            <form
+              onSubmit={handleCreateUser}
+              className="grid gap-3 md:grid-cols-4"
             >
-              {creating ? "Creating..." : "Create"}
-            </Button>
-          </form>
-          <p className="text-[11px] text-muted-foreground">
-            Password akan disimpan sesuai logic backend kamu (sebaiknya
-            di-hash). Endpoint di backend: <code>/admin/users</code>.
-          </p>
-        </div>
+              <Input
+                placeholder="Username"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                className="bg-background md:col-span-1"
+              />
+              <Input
+                type="password"
+                placeholder="Password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="bg-background md:col-span-1"
+              />
+
+              <div className="md:col-span-1">
+                <Input
+                  list="roles-list"
+                  placeholder="Role (e.g. user, admin)"
+                  value={newRole}
+                  onChange={(e) => setNewRole(e.target.value)}
+                  className="bg-background"
+                />
+                <datalist id="roles-list">
+                  {roles.map((r) => (
+                    <option key={r} value={r} />
+                  ))}
+                </datalist>
+              </div>
+
+              <Button
+                type="submit"
+                disabled={creating}
+                className="w-full md:col-span-1"
+              >
+                {creating ? "Creating..." : "Create"}
+              </Button>
+            </form>
+            <p className="text-[11px] text-muted-foreground">
+              Password akan disimpan sesuai logic backend kamu (sebaiknya
+              di-hash). Endpoint di backend: <code>/admin/users</code>.
+            </p>
+          </div>
+        )}
 
         {/* List users */}
         <div className="rounded-2xl border border-border bg-card text-card-foreground p-4">
@@ -270,7 +274,7 @@ export default function AdminUsersPage() {
                       <td className="px-2 py-2">
                         <select
                           value={u.role}
-                          disabled={updatingId === u.id}
+                          disabled={updatingId === u.id || !canManage}
                           onChange={(e) => {
                             const val = e.target.value;
                             if (val === "__NEW_ROLE__") {
@@ -291,14 +295,16 @@ export default function AdminUsersPage() {
                         </select>
                       </td>
                       <td className="px-2 py-2 text-right">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7 text-destructive border-destructive/40"
-                          onClick={() => handleDelete(u.id, u.username)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                        {canManage && (
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7 text-destructive border-destructive/40"
+                            onClick={() => handleDelete(u.id, u.username)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        )}
                       </td>
                     </tr>
                   ))}
