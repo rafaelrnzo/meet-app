@@ -253,3 +253,10 @@ export async function updateRoomPermissions(roomCode: string, metadata: any): Pr
     body: JSON.stringify({ room_code: roomCode, metadata: JSON.stringify(metadata) }),
   })
 }
+
+export async function muteParticipant(roomCode: string, identity: string, muteAudio: boolean, muteVideo: boolean): Promise<void> {
+  await apiRequest<void>("/admin/livekit/participants/mute", {
+    method: "POST",
+    body: JSON.stringify({ room_code: roomCode, identity, mute_audio: muteAudio, mute_video: muteVideo }),
+  })
+}

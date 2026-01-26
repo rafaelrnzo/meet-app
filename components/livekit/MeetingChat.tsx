@@ -167,10 +167,8 @@ async function publishReliable(room: any, obj: any, to?: string[]) {
   const bytes = new TextEncoder().encode(JSON.stringify(obj));
 
   try {
-    // Try LiveKit v2 signature first: publishData(data, { reliable: true, destinationIdentities: [...] })
     await room.localParticipant.publishData(bytes, { reliable: true, destinationIdentities: to });
   } catch (e) {
-    // Fallback to LiveKit v1 signature: publishData(data, kind, destinationIdentities)
     try {
       await room.localParticipant.publishData(bytes, DataPacket_Kind.RELIABLE, to);
     } catch (e2) {
@@ -195,13 +193,10 @@ export function MeetingChat({
 
   const [items, setItems] = useState<ChatItem[]>([]);
   const [value, setValue] = useState("");
-  // separate view state
   const [activeTab, setActiveTab] = useState<string>("everyone"); // "everyone" or participant identity
   const [isOpen, setIsOpen] = useState(false); // for new chat dropdown
   const [inConversation, setInConversation] = useState(true); // default to showing the active conversation (usually everyone)
-  // Track open conversations (identities)
   const [conversations, setConversations] = useState<string[]>([]);
-  // Unread counts map: identity -> count
   const [unread, setUnread] = useState<Record<string, number>>({});
 
   // Message Actions State

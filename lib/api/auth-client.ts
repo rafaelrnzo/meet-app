@@ -2,7 +2,7 @@
 
 export type StoredUser = {
   username?: string
-  role?: string
+  role?: string | { name: string }
 }
 
 const TOKEN_KEY = "vc_token"

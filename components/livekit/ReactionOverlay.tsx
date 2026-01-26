@@ -7,7 +7,7 @@ import { RoomEvent, DataPacket_Kind } from "livekit-client";
 type Reaction = {
     id: string;
     emoji: string;
-    x: number; // random horizontal position 10-90%
+    x: number;
     senderName: string;
 };
 
@@ -20,13 +20,11 @@ export function ReactionOverlay() {
         const x = 10 + Math.random() * 80;
         setReactions((prev) => [...prev, { id, emoji, x, senderName }]);
 
-        // Auto remove after animation
         setTimeout(() => {
             setReactions((prev) => prev.filter((r) => r.id !== id));
-        }, 4000); // 4s matches CSS animation
+        }, 4000);
     }, []);
 
-    // Listen for local reactions (echo)
     useEffect(() => {
         const handleLocal = (e: Event) => {
             const detail = (e as CustomEvent).detail;
@@ -47,7 +45,6 @@ export function ReactionOverlay() {
             kind?: DataPacket_Kind,
             topic?: string
         ) => {
-            // Allow receiving from generic data channel
             try {
                 const str = new TextDecoder().decode(payload);
                 const data = JSON.parse(str);

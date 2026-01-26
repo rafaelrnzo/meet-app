@@ -30,7 +30,7 @@ export function useAuth(options?: { requireAdmin?: boolean }) {
     }
 
     setIsAuthenticated(true)
-    const admin = user?.role === "admin"
+    const admin = user?.role === "admin" || (typeof user?.role === "object" && user?.role?.name === "admin")
     setIsAdmin(admin)
 
     if (options?.requireAdmin && !admin) {

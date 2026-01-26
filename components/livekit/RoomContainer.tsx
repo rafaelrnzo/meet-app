@@ -227,6 +227,20 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
     layoutMode === "screen-horizontal" ||
     (layoutMode === "auto" && primaryScreenTrack);
 
+  // --- Grid Layout Calculation ---
+  const PAGE_SIZE = 25;
+  const [page, setPage] = useState(1);
+
+  const totalParticipants = participants.length;
+  const totalPages = Math.ceil(totalParticipants / PAGE_SIZE) || 1;
+
+  // Ensure current page is valid
+  useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [totalParticipants, totalPages, page]);
+
   // --- Screen Share Layout ---
   if (wantScreenLayout && primaryScreenTrack) {
     const sideParticipants = participants.filter((p) => p.sid !== primaryScreenSid);
@@ -258,19 +272,7 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
     );
   }
 
-  // --- Grid Layout Calculation ---
-  const PAGE_SIZE = 25;
-  const [page, setPage] = useState(1);
 
-  const totalParticipants = participants.length;
-  const totalPages = Math.ceil(totalParticipants / PAGE_SIZE) || 1;
-
-  // Ensure current page is valid
-  useEffect(() => {
-    if (page > totalPages) {
-      setPage(totalPages);
-    }
-  }, [totalParticipants, totalPages, page]);
 
   const startIndex = (page - 1) * PAGE_SIZE;
   const visibleParticipants = participants.slice(startIndex, startIndex + PAGE_SIZE);
@@ -507,7 +509,7 @@ export default function RoomContainer({
           ), { id: `poll-${pollId}`, duration: 10000 });
         }} />
 
-        <WaitingRoomOverlay initialIsWaiting={initialIsWaiting} />
+        {/* <WaitingRoomOverlay initialIsWaiting={initialIsWaiting} /> */}
 
         {/* <DebugTracks /> */}
 

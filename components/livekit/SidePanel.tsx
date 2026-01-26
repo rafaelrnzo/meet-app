@@ -1,8 +1,11 @@
 "use client";
 
 import { useParticipants, useLocalParticipant } from "@livekit/components-react";
-import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft } from "lucide-react";
-import { useState, useEffect } from "react";
+import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft, MicOff, Mic, MoreVertical } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { muteParticipant } from "@/lib/api/admin-api";
+import { toast } from "sonner";
+import { Track } from "livekit-client";
 import { MeetingChat } from "./MeetingChat";
 import { ServerRecordingControls } from "./ServerRecordingControls";
 import { PollingTool } from "./Polling";
@@ -36,9 +39,6 @@ export function SidePanel({
     width: controlledWidth,
     onWidthChange
 }: SidePanelProps) {
-    // If tab is settings (handled by VirtualBackgroundSelector) or null, don't render sidebar
-    if (!activeTab || activeTab === "settings") return null;
-
     const [internalWidth, setInternalWidth] = useState(320);
     const width = controlledWidth ?? internalWidth;
     const setWidth = onWidthChange ?? setInternalWidth;
@@ -69,7 +69,10 @@ export function SidePanel({
             document.body.style.cursor = "";
             document.body.style.userSelect = "";
         };
-    }, [isResizing]);
+    }, [isResizing, setWidth]);
+
+    // If tab is settings (handled by VirtualBackgroundSelector) or null, don't render sidebar
+    if (!activeTab || activeTab === "settings") return null;
 
     return (
         <div
@@ -224,6 +227,19 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
     const participants = useParticipants();
     const { localParticipant } = useLocalParticipant();
     const [actionLoading, setActionLoading] = useState<string | null>(null);
+    const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const menuRef = useRef<HTMLDivElement>(null);
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+                setOpenMenuId(null);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
 
     const API_BASE =
         process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
@@ -281,6 +297,24 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
         }
     };
 
+    const handleMute = async (identity: string, isMuted: boolean) => {
+        const action = isMuted ? "Unmute" : "Mute";
+        // if (!confirm(`${action} ${identity}?`)) return; // Removed confirm for better UX, or keep if critical
+
+        setActionLoading(identity);
+        try {
+            // If they are currently muted (isMuted = true), we want to UNMUTE (false)
+            // If they are not muted (isMuted = false), we want to MUTE (true)
+            await muteParticipant(roomName, identity, !isMuted, !isMuted);
+            toast.success(`${action}d ${identity}`);
+        } catch (err: any) {
+            toast.error(`Failed to ${action.toLowerCase()}: ` + err.message);
+        } finally {
+            setActionLoading(null);
+            setOpenMenuId(null);
+        }
+    };
+
     const waitingParticipants = participants.filter(p => {
         const metadata = p.metadata ? JSON.parse(p.metadata) : {};
         return metadata.status === "waiting";
@@ -292,7 +326,7 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
     });
 
     return (
-        <div className="flex-1 overflow-y-auto p-2 space-y-4">
+        <div className="flex-1 overflow-y-auto p-2 space-y-4 h-full">
             {/* Waiting Room Section */}
             {isAdmin && waitingParticipants.length > 0 && (
                 <div className="space-y-2">
@@ -333,7 +367,7 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
             )}
 
             {/* Active Participants Section */}
-            <div className="space-y-2">
+            <div className="space-y-2 h-full ">
                 <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2">In Meeting ({activeParticipants.length})</h4>
                 <div className="space-y-1">
                     {activeParticipants.map((p) => {
@@ -354,18 +388,43 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
                                     </div>
                                 </div>
                                 {!isMe && isAdmin && (
-                                    <button
-                                        onClick={() => handleKick(p.identity)}
-                                        disabled={!!actionLoading}
-                                        className="p-1.5 text-destructive hover:bg-destructive/10 rounded-md transition-colors"
-                                        title="Kick Participant"
-                                    >
-                                        {actionLoading === p.identity ? (
-                                            <span className="text-[10px]">...</span>
-                                        ) : (
-                                            <UserMinus className="w-4 h-4" />
+                                    <div className="relative">
+                                        <button
+                                            onClick={() => setOpenMenuId(openMenuId === p.identity ? null : p.identity)}
+                                            className="p-1.5 hover:bg-muted rounded-md transition-colors text-muted-foreground hover:text-foreground"
+                                            title="Options"
+                                        >
+                                            <MoreVertical className="w-4 h-4" />
+                                        </button>
+
+                                        {openMenuId === p.identity && (
+                                            <div ref={menuRef} className="absolute right-0 top-full mt-1 w-32 bg-popover border border-border rounded-md shadow-md z-50 py-1">
+                                                {(() => {
+                                                    const audioTrack = p.getTrackPublication(Track.Source.Microphone);
+                                                    const isMuted = audioTrack ? audioTrack.isMuted : true; // Assume muted if no track
+
+                                                    return (
+                                                        <button
+                                                            onClick={() => handleMute(p.identity, isMuted)}
+                                                            disabled={!!actionLoading}
+                                                            className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-muted transition-colors"
+                                                        >
+                                                            {isMuted ? <Mic className="w-3.5 h-3.5" /> : <MicOff className="w-3.5 h-3.5" />}
+                                                            {isMuted ? "Unmute" : "Mute"}
+                                                        </button>
+                                                    );
+                                                })()}
+                                                <button
+                                                    onClick={() => handleKick(p.identity)}
+                                                    disabled={!!actionLoading}
+                                                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-500/10 text-destructive hover:text-destructive transition-colors"
+                                                >
+                                                    <UserMinus className="w-3.5 h-3.5" />
+                                                    Kick
+                                                </button>
+                                            </div>
                                         )}
-                                    </button>
+                                    </div>
                                 )}
                             </div>
                         );

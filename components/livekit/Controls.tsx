@@ -2,7 +2,7 @@
 
 import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
 import { leaveRoomBackend } from "@/lib/api/api";
-import { muteAllParticipants, updateRoomPermissions } from "@/lib/api/admin-api";
+import { muteAllParticipants } from "@/lib/api/admin-api";
 import Link from "next/link";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { RoomEvent } from "livekit-client";
@@ -28,7 +28,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
-import { VideoPresets, VideoPreset, Track } from "livekit-client";
+import { VideoPresets, VideoPreset, Track, TrackPublication, Participant } from "livekit-client";
 
 type SidebarTab = "chat" | "participants" | "tools" | "settings" | "host_controls" | null;
 
@@ -143,29 +143,99 @@ export function Controls({
   const allowScreen = metadata.allow_screen !== false;
   const allowReaction = metadata.allow_reaction !== false;
 
+  // Local Participant Metadata (for Hard Mute)
+  const [localMeta, setLocalMeta] = useState<any>({});
+
+  useEffect(() => {
+    if (!room || !localParticipant) return;
+
+    const parseMeta = () => {
+      try {
+        setLocalMeta(JSON.parse(localParticipant.metadata || "{}"));
+      } catch {
+        setLocalMeta({});
+      }
+    };
+
+    // Initial parse
+    parseMeta();
+
+    const onMetaChanged = (_: string | undefined, p: any) => {
+      if (p === localParticipant) {
+        parseMeta();
+      }
+    };
+
+    room.on(RoomEvent.ParticipantMetadataChanged, onMetaChanged);
+    return () => {
+      room.off(RoomEvent.ParticipantMetadataChanged, onMetaChanged);
+    };
+  }, [room, localParticipant]);
+
+  const adminMuteAudio = localMeta.admin_muted_audio === true;
+  const adminMuteVideo = localMeta.admin_muted_video === true;
+
+  // Notification for remote mute/unmute
+  useEffect(() => {
+    if (!room) return;
+
+    const onTrackMuted = (pub: TrackPublication, participant: Participant) => {
+      if (participant.isLocal && pub.source === Track.Source.Microphone) {
+        // Only show toast if it wasn't triggered by our own metadata enforcement (to avoid double toast)
+        // But metadata update might happen after.
+        // For now, simple toast is fine.
+        toast.info("Your microphone was muted by the host");
+      }
+    };
+
+    const onTrackUnmuted = (pub: TrackPublication, participant: Participant) => {
+      if (participant.isLocal && pub.source === Track.Source.Microphone) {
+        toast.success("Your microphone was unmuted by the host");
+      }
+    };
+
+    room.on(RoomEvent.TrackMuted, onTrackMuted);
+    room.on(RoomEvent.TrackUnmuted, onTrackUnmuted);
+
+    return () => {
+      room.off(RoomEvent.TrackMuted, onTrackMuted);
+      room.off(RoomEvent.TrackUnmuted, onTrackUnmuted);
+    };
+  }, [room]);
+
   // Enforce Mute if permissions revoked (and not admin)
   useEffect(() => {
     if (isAdmin) return;
 
+    // Room-level permissions
     if (!allowAudio && isMicrophoneEnabled) {
       localParticipant.setMicrophoneEnabled(false);
     }
     if (!allowVideo && isCameraEnabled) {
       localParticipant.setCameraEnabled(false);
     }
+
+    // Individual Hard Mute (metadata)
+    if (adminMuteAudio && isMicrophoneEnabled) {
+      localParticipant.setMicrophoneEnabled(false);
+    }
+    if (adminMuteVideo && isCameraEnabled) {
+      localParticipant.setCameraEnabled(false);
+    }
+
     if (!allowScreen && isScreenShareEnabled) {
       localParticipant.setScreenShareEnabled(false);
     }
     if (!allowReaction && showReactions) {
       setShowReactions(false);
     }
-  }, [allowAudio, allowVideo, allowScreen, allowReaction, isAdmin, isMicrophoneEnabled, isCameraEnabled, isScreenShareEnabled, localParticipant, showReactions]);
+  }, [allowAudio, allowVideo, allowScreen, allowReaction, isAdmin, isMicrophoneEnabled, isCameraEnabled, isScreenShareEnabled, localParticipant, showReactions, adminMuteAudio, adminMuteVideo]);
 
 
   const toggleMic = async () => {
-    if (busy) return;
-    if (!allowAudio && !isAdmin) {
-      alert("Microphone is disabled by admin");
+    if (busy || !localParticipant) return;
+    if ((!allowAudio && !isAdmin) || (adminMuteAudio && !isAdmin)) {
+      toast.error("Microphone is disabled by admin");
       return;
     }
     try {
@@ -180,8 +250,8 @@ export function Controls({
   };
 
   const toggleCam = async () => {
-    if (busy) return;
-    if (!allowVideo && !isAdmin) {
+    if (busy || !localParticipant) return;
+    if ((!allowVideo && !isAdmin) || (adminMuteVideo && !isAdmin)) {
       toast.error("Camera is disabled by admin");
       return;
     }
@@ -197,7 +267,7 @@ export function Controls({
   };
 
   const toggleScreen = async () => {
-    if (busy) return;
+    if (busy || !localParticipant) return;
     try {
       setBusy(true);
       await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
@@ -224,9 +294,6 @@ export function Controls({
     toast.success("Room code copied!");
     setTimeout(() => setCopied(false), 2000);
   };
-
-
-
 
   const baseBtn = (active: boolean, disabled: boolean, variant: "default" | "destructive" | "normal" = "normal") => `
     w-11 h-11 sm:w-12 sm:h-12 rounded-full flex items-center justify-center border transition-all duration-200 
@@ -270,24 +337,24 @@ export function Controls({
         {/* MIC */}
         <button
           onClick={toggleMic}
-          disabled={busy || (!allowAudio && !isAdmin)}
-          className={baseBtn(false, busy || (!allowAudio && !isAdmin), isMicrophoneEnabled ? "normal" : "destructive")}
-          title="Microphone"
+          disabled={busy || !localParticipant || (!allowAudio && !isAdmin) || (adminMuteAudio && !isAdmin)}
+          className={baseBtn(false, busy || !localParticipant || (!allowAudio && !isAdmin) || (adminMuteAudio && !isAdmin), isMicrophoneEnabled ? "normal" : "destructive")}
+          title={adminMuteAudio ? "Muted by Host" : "Microphone"}
         >
           {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : isMicrophoneEnabled ? <Mic className="w-5 h-5" /> : <MicOff className="w-5 h-5" />}
-          {!allowAudio && !isAdmin && <div className="absolute -top-1 -right-1 bg-muted rounded-full p-0.5 border border-border"><Lock className="w-3 h-3 text-destructive" /></div>}
+          {((!allowAudio && !isAdmin) || (adminMuteAudio && !isAdmin)) && <div className="absolute -top-1 -right-1 bg-muted rounded-full p-0.5 border border-border"><Lock className="w-3 h-3 text-destructive" /></div>}
         </button>
 
         {/* CAMERA GROUP */}
         <div className="relative flex items-center gap-1 bg-secondary pr-2 rounded-full">
           <button
             onClick={toggleCam}
-            disabled={busy || (!allowVideo && !isAdmin)}
-            className={baseBtn(false, busy || (!allowVideo && !isAdmin), isCameraEnabled ? "normal" : "normal")}
-            title="Camera"
+            disabled={busy || !localParticipant || (!allowVideo && !isAdmin) || (adminMuteVideo && !isAdmin)}
+            className={baseBtn(false, busy || !localParticipant || (!allowVideo && !isAdmin) || (adminMuteVideo && !isAdmin), isCameraEnabled ? "normal" : "normal")}
+            title={adminMuteVideo ? "Camera Disabled by Host" : "Camera"}
           >
             {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : isCameraEnabled ? <Video className="w-5 h-5" /> : <VideoOff className="w-5 h-5" />}
-            {!allowVideo && !isAdmin && <div className="absolute -top-1 -right-1 bg-muted rounded-full p-0.5 border border-border"><Lock className="w-3 h-3 text-destructive" /></div>}
+            {((!allowVideo && !isAdmin) || (adminMuteVideo && !isAdmin)) && <div className="absolute -top-1 -right-1 bg-muted rounded-full p-0.5 border border-border"><Lock className="w-3 h-3 text-destructive" /></div>}
           </button>
 
           {/* Settings Trigger */}
@@ -331,7 +398,7 @@ export function Controls({
 
         {/* SCREEN SHARE */}
         {(allowScreen || isAdmin) && (
-          <button onClick={toggleScreen} disabled={busy} className={baseBtn(isScreenShareEnabled, busy, "normal")} title="Screen Share">
+          <button onClick={toggleScreen} disabled={busy || !localParticipant} className={baseBtn(isScreenShareEnabled, busy, "normal")} title="Screen Share">
             {busy ? <Loader2 className="w-5 h-5 animate-spin" /> : isScreenShareEnabled ? <ScreenShareOff className="w-5 h-5" /> : <ScreenShare className="w-5 h-5" />}
           </button>
         )}

@@ -14,7 +14,7 @@ import {
   PlayCircle,
   Briefcase,
 } from "lucide-react"
-import { getUser } from "@/lib/api/auth-client"
+import { getUser, type StoredUser } from "@/lib/api/auth-client"
 import { cn } from "@/lib/utils"
 import { useAuth } from "../../hooks/use-auth"
 
@@ -62,7 +62,7 @@ const sidebarItems = [
   { id: "settings", href: "/settings", icon: Settings, label: "Settings" },
 ]
 
-type StoredUser = { username?: string; role?: string }
+
 
 export default function ProtectedLayout({
   children,
@@ -180,7 +180,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-3">
               <span className="text-xs font-medium px-2 py-0.5 bg-muted border border-border rounded uppercase text-muted-foreground">
-                {role}
+                {typeof role === "object" ? role.name : role}
               </span>
               <div className="h-7 w-7 rounded-full bg-primary flex items-center justify-center text-primary-foreground text-xs font-bold ring-2 ring-background">
                 {username.charAt(0).toUpperCase()}

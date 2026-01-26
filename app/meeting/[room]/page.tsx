@@ -1,5 +1,7 @@
 // app/meeting/[room]/page.tsx
+import { Suspense } from "react";
 import MeetingClient from "@/components/features/meeting/MeetingClient";
+import { Loader } from "@/components/livekit/Loader";
 
 export default async function MeetingPage({
   params,
@@ -22,5 +24,9 @@ export default async function MeetingPage({
     );
   }
 
-  return <MeetingClient room={room} />;
+  return (
+    <Suspense fallback={<Loader text="Preparing meeting..." />}>
+      <MeetingClient room={room} />
+    </Suspense>
+  );
 }
