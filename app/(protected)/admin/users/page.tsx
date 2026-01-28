@@ -13,37 +13,49 @@ import {
   type User,
 } from "@/lib/api/admin-api"
 import { useAuth } from "@/hooks/use-auth"
+import {
+  fetchRoles,
+  type Role,
+} from "@/lib/api/role-api"
 
 export default function AdminUsersPage() {
   const router = useRouter()
   const { loading, isAuthenticated, isAdmin } = useAuth({ requireAdmin: true })
 
   const [users, setUsers] = useState<User[]>([])
+  const [roles, setRoles] = useState<Role[]>([]) // Store available roles
   const [fetching, setFetching] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [newUsername, setNewUsername] = useState("")
   const [newPassword, setNewPassword] = useState("")
-  const [newRole, setNewRole] = useState("user")
+  const [newRole, setNewRole] = useState("") // Defaults to first available
   const [creating, setCreating] = useState(false)
 
   const [updatingId, setUpdatingId] = useState<number | null>(null)
 
   useEffect(() => {
     if (!isAuthenticated || !isAdmin) return
-    loadUsers()
+    loadData()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isAuthenticated, isAdmin])
 
-  const loadUsers = async () => {
+  const loadData = async () => {
     setError(null)
     setFetching(true)
     try {
-      const data = await fetchUsers()
-      setUsers(data)
+      const [usersData, rolesData] = await Promise.all([
+        fetchUsers(),
+        fetchRoles()
+      ])
+      setUsers(usersData)
+      setRoles(rolesData)
+      if (rolesData.length > 0) {
+        setNewRole(rolesData[0].name) // Default to first role
+      }
     } catch (err: any) {
       console.error(err)
-      setError(err.message || "Failed to fetch users")
+      setError(err.message || "Failed to fetch data")
     } finally {
       setFetching(false)
     }
@@ -63,7 +75,7 @@ export default function AdminUsersPage() {
       setUsers((prev) => [...prev, user])
       setNewUsername("")
       setNewPassword("")
-      setNewRole("user")
+      // Keep role as is
     } catch (err: any) {
       console.error(err)
       setError(err.message || "Failed to create user")
@@ -132,13 +144,22 @@ export default function AdminUsersPage() {
               Manage application users: create, update roles, and delete.
             </p>
           </div>
-          <Button
-            variant="outline"
-            onClick={() => router.push("/")}
-            className="text-xs"
-          >
-            Back to dashboard
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={() => router.push("/admin/roles")}
+              className="text-xs"
+            >
+              Manage Roles
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => router.push("/")}
+              className="text-xs"
+            >
+              Back to dashboard
+            </Button>
+          </div>
         </div>
 
         {/* Create user form */}
@@ -169,8 +190,9 @@ export default function AdminUsersPage() {
               onChange={(e) => setNewRole(e.target.value)}
               className="bg-background border border-input rounded-md px-3 py-2 text-sm text-foreground md:col-span-1"
             >
-              <option value="user">User</option>
-              <option value="admin">Admin</option>
+              {roles.map(r => (
+                <option key={r.id} value={r.name}>{r.name}</option>
+              ))}
             </select>
             <Button
               type="submit"
@@ -193,7 +215,7 @@ export default function AdminUsersPage() {
             <Button
               variant="outline"
               size="icon"
-              onClick={loadUsers}
+              onClick={loadData}
               disabled={fetching}
               className="h-8 w-8"
             >
@@ -223,40 +245,56 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((u) => (
-                    <tr
-                      key={u.id}
-                      className="rounded-xl bg-background/40"
-                    >
-                      <td className="px-2 py-2">{u.id}</td>
-                      <td className="px-2 py-2 font-medium">
-                        {u.username}
-                      </td>
-                      <td className="px-2 py-2">
-                        <select
-                          value={u.role}
-                          disabled={updatingId === u.id}
-                          onChange={(e) =>
-                            handleRoleChange(u.id, e.target.value)
-                          }
-                          className="bg-background border border-input rounded-md px-2 py-1 text-xs"
-                        >
-                          <option value="user">User</option>
-                          <option value="admin">Admin</option>
-                        </select>
-                      </td>
-                      <td className="px-2 py-2 text-right">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          className="h-7 w-7 text-destructive border-destructive/40"
-                          onClick={() => handleDelete(u.id, u.username)}
-                        >
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
+                  {users.map((u) => {
+                    // Try to match current role name or object
+                    // The backend might return role as object now, but updateUserRole expects name?
+                    // Wait, fetchUsers returns User which has Role field... 
+                    // Previously I saw User struct having RoleID and Role relation.
+                    // The frontend User type in admin-api.ts likely needs update too if it was just string.
+                    // But here I'll assume u.role is the role name (which my backend auth handler returns in JSON)
+                    // Wait, backend ListUsers returns list of users.
+                    // My backend user struct json tags: Role *Role `json:"role,omitempty"`
+                    // So u.role will be an object {id, name...}
+                    // I need to handle that.
+
+                    const roleName = typeof u.role === 'object' && u.role ? (u.role as any).name : u.role;
+
+                    return (
+                      <tr
+                        key={u.id}
+                        className="rounded-xl bg-background/40"
+                      >
+                        <td className="px-2 py-2">{u.id}</td>
+                        <td className="px-2 py-2 font-medium">
+                          {u.username}
+                        </td>
+                        <td className="px-2 py-2">
+                          <select
+                            value={roleName}
+                            disabled={updatingId === u.id}
+                            onChange={(e) =>
+                              handleRoleChange(u.id, e.target.value)
+                            }
+                            className="bg-background border border-input rounded-md px-2 py-1 text-xs"
+                          >
+                            {roles.map(r => (
+                              <option key={r.id} value={r.name}>{r.name}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td className="px-2 py-2 text-right">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="h-7 w-7 text-destructive border-destructive/40"
+                            onClick={() => handleDelete(u.id, u.username)}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>

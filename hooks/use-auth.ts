@@ -45,5 +45,12 @@ export function useAuth(options?: { requireAdmin?: boolean }) {
     router.replace("/login")
   }
 
-  return { loading, isAuthenticated, isAdmin, logout }
+  // Get user from storage as well
+  const [user, setUser] = useState<any>(null)
+
+  useEffect(() => {
+    setUser(getUser())
+  }, [])
+
+  return { loading, isAuthenticated, isAdmin, user, logout }
 }
