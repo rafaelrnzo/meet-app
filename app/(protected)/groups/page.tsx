@@ -17,7 +17,7 @@ import {
 import { useAuth } from "../../../hooks/use-auth"
 
 export default function GroupsPage() {
-    const { isAdmin } = useAuth()
+    const { hasPermission } = useAuth({ requirePermission: "group:manage" })
     const [groups, setGroups] = useState<GroupDto[]>([])
     const [users, setUsers] = useState<UserDto[]>([])
     const [isOpen, setIsOpen] = useState(false)
@@ -27,8 +27,8 @@ export default function GroupsPage() {
     const [selectedUserId, setSelectedUserId] = useState("")
 
     useEffect(() => {
-        if (isAdmin) loadData()
-    }, [isAdmin])
+        loadData()
+    }, [])
 
     const loadData = async () => {
         const [g, u] = await Promise.all([fetchGroups(), fetchUsers()])
@@ -52,8 +52,6 @@ export default function GroupsPage() {
             setSelectedUserId("")
         }
     }
-
-    if (!isAdmin) return <div className="p-8 text-center text-muted-foreground">Unauthorized</div>
 
     return (
         <div className="space-y-4">

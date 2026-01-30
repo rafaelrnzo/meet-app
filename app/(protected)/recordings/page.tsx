@@ -14,14 +14,17 @@ import {
 import { useAuth } from "../../../hooks/use-auth"
 
 export default function RecordingsPage() {
-    const { isAdmin } = useAuth()
+    const { hasPermission } = useAuth({ requirePermission: "recording:read" })
     const [recordings, setRecordings] = useState<RecordingDto[]>([])
     const [renamingId, setRenamingId] = useState<number | null>(null)
     const [val, setVal] = useState("")
 
+    const canUpdate = hasPermission("recording:update")
+    const canDelete = hasPermission("recording:delete")
+
     useEffect(() => {
-        if (isAdmin) load()
-    }, [isAdmin])
+        load()
+    }, [])
 
     const load = async () => {
         await syncRecordings()
@@ -35,8 +38,6 @@ export default function RecordingsPage() {
             load()
         }
     }
-
-    if (!isAdmin) return <div className="p-8 text-center text-muted-foreground">Unauthorized</div>
 
     return (
         <div className="space-y-4">
@@ -77,15 +78,17 @@ export default function RecordingsPage() {
                                         ) : (
                                             <div className="flex items-center gap-2 font-medium">
                                                 {r.name}
-                                                <button
-                                                    onClick={() => {
-                                                        setRenamingId(r.id)
-                                                        setVal(r.name)
-                                                    }}
-                                                    className="text-muted-foreground hover:text-primary"
-                                                >
-                                                    <Pencil className="h-3 w-3" />
-                                                </button>
+                                                {canUpdate && (
+                                                    <button
+                                                        onClick={() => {
+                                                            setRenamingId(r.id)
+                                                            setVal(r.name)
+                                                        }}
+                                                        className="text-muted-foreground hover:text-primary"
+                                                    >
+                                                        <Pencil className="h-3 w-3" />
+                                                    </button>
+                                                )}
                                             </div>
                                         )}
                                     </td>
@@ -101,17 +104,19 @@ export default function RecordingsPage() {
                                             >
                                                 <Link2 className="h-3.5 w-3.5" />
                                             </a>
-                                            <button
-                                                onClick={async () => {
-                                                    if (confirm("Delete?")) {
-                                                        await deleteRecording(r.id)
-                                                        load()
-                                                    }
-                                                }}
-                                                className="p-1.5 text-destructive hover:bg-destructive/10 rounded"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </button>
+                                            {canDelete && (
+                                                <button
+                                                    onClick={async () => {
+                                                        if (confirm("Delete?")) {
+                                                            await deleteRecording(r.id)
+                                                            load()
+                                                        }
+                                                    }}
+                                                    className="p-1.5 text-destructive hover:bg-destructive/10 rounded"
+                                                >
+                                                    <Trash2 className="h-3.5 w-3.5" />
+                                                </button>
+                                            )}
                                         </div>
                                     </td>
                                 </tr>

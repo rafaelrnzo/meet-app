@@ -3,300 +3,320 @@
 import React, { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Plus, X, Pencil, Trash2 } from "lucide-react"
+import { Plus, Trash2, Eye, Search, Calendar, Users, Hash, Globe, Lock, LayoutGrid, MonitorPlay, ArrowUpDown, Clock, Copy } from "lucide-react"
 import {
     fetchDbRooms,
-    createDbRoom,
-    updateDbRoom,
     deleteDbRoom,
     fetchGroups,
+    fetchActiveRooms,
     type DbRoom,
     type Group as GroupDto,
+    type ActiveRoom,
 } from "@/lib/api/admin-api"
 import { useAuth } from "../../../hooks/use-auth"
+import { RoomFormModal } from "@/components/admin/RoomFormModal"
+import { RoomDetailSheet } from "@/components/admin/RoomDetailSheet"
+import { cn } from "@/lib/utils"
 
 export default function RoomsPage() {
-    const { isAdmin } = useAuth()
+    const { hasPermission } = useAuth({ requirePermission: "room:read" })
     const [rooms, setRooms] = useState<DbRoom[]>([])
+    const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
     const [groups, setGroups] = useState<GroupDto[]>([])
-    const [isOpen, setIsOpen] = useState(false)
+    const [searchQuery, setSearchQuery] = useState("")
+    const [filterType, setFilterType] = useState<"all" | "live" | "public" | "private" | "group">("all")
+    const [sortBy, setSortBy] = useState<"newest" | "oldest" | "alpha">("newest")
+
+    // Modal State
+    const [isFormOpen, setIsFormOpen] = useState(false)
     const [editingRoom, setEditingRoom] = useState<DbRoom | null>(null)
-    const [formData, setFormData] = useState({
-        name: "",
-        description: "",
-        maxParticipants: 20,
-        assignedToInput: "",
-        startDate: "",
-        endDate: "",
-        groupId: "",
-    })
+
+    // Detail Sheet State
+    const [selectedRoom, setSelectedRoom] = useState<DbRoom | null>(null)
+    const [isDetailOpen, setIsDetailOpen] = useState(false)
+
+    const canCreate = hasPermission("room:create")
+    const canUpdate = hasPermission("room:update")
+    const canDelete = hasPermission("room:delete")
 
     useEffect(() => {
-        if (isAdmin) loadData()
-    }, [isAdmin])
+        loadData()
+    }, [])
 
     const loadData = async () => {
-        const [r, g] = await Promise.all([fetchDbRooms(), fetchGroups()])
-        setRooms(r || [])
-        setGroups(g || [])
+        try {
+            const [r, g, ar] = await Promise.all([
+                fetchDbRooms(),
+                fetchGroups(),
+                fetchActiveRooms().catch(() => [])
+            ])
+            setRooms(r || [])
+            setGroups(g || [])
+            setActiveRooms(ar || [])
+        } catch (error) {
+            console.error("Failed to load data", error)
+        }
     }
 
-    const formatDateForInput = (iso?: string) =>
-        iso
-            ? new Date(new Date(iso).getTime() - new Date(iso).getTimezoneOffset() * 60000)
-                .toISOString()
-                .slice(0, 16)
-            : ""
-
-    const openModal = (room?: DbRoom) => {
-        setEditingRoom(room || null)
-        setFormData(
-            room
-                ? {
-                    name: room.name,
-                    description: room.description,
-                    maxParticipants: room.max_participants,
-                    assignedToInput: room.assigned_to?.join(", ") || "",
-                    startDate: formatDateForInput(room.start_date),
-                    endDate: formatDateForInput(room.end_date),
-                    groupId: room.group_id ? String(room.group_id) : "",
-                }
-                : {
-                    name: "",
-                    description: "",
-                    maxParticipants: 20,
-                    assignedToInput: "",
-                    startDate: "",
-                    endDate: "",
-                    groupId: "",
-                }
-        )
-        setIsOpen(true)
-    }
-
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        if (!formData.name || !formData.startDate || !formData.endDate) return
-
-        const payload = {
-            name: formData.name,
-            description: formData.description,
-            maxParticipants: formData.maxParticipants,
-            assignedTo: formData.assignedToInput
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean),
-            groupId: formData.groupId,
-            startDate: formData.startDate,
-            endDate: formData.endDate,
-        }
-
-        if (editingRoom) {
-            await updateDbRoom(editingRoom.id, payload)
-        } else {
-            await createDbRoom(payload)
-        }
-        setIsOpen(false)
-        loadData()
+    const handleCreate = () => {
+        setEditingRoom(null)
+        setIsFormOpen(true)
     }
 
     const handleDelete = async (id: number) => {
         if (confirm("Delete this room?")) {
             await deleteDbRoom(id)
+            if (selectedRoom?.id === id) setIsDetailOpen(false)
             loadData()
         }
     }
 
-    if (!isAdmin) return <div className="p-8 text-center text-muted-foreground">Unauthorized</div>
+    const handleViewDetails = (room: DbRoom) => {
+        setSelectedRoom(room)
+        setIsDetailOpen(true)
+    }
+
+    const getActiveRoomData = (roomName: string) => {
+        return activeRooms.find(ar => ar.name === roomName)
+    }
+
+    // Filter rooms based on search and filters
+    const filteredRooms = rooms
+        .filter(room => {
+            const matchesSearch = room.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                room.room_code.toLowerCase().includes(searchQuery.toLowerCase())
+
+            if (!matchesSearch) return false
+
+            switch (filterType) {
+                case "live":
+                    return !!getActiveRoomData(room.name)
+                case "public":
+                    return !room.group && (!room.assigned_to || room.assigned_to.length === 0)
+                case "private":
+                    return !room.group && room.assigned_to && room.assigned_to.length > 0
+                case "group":
+                    return !!room.group
+                default:
+                    return true
+            }
+        })
+        .sort((a, b) => {
+            switch (sortBy) {
+                case "alpha":
+                    return a.name.localeCompare(b.name)
+                case "oldest":
+                    return new Date(a.start_date).getTime() - new Date(b.start_date).getTime()
+                case "newest":
+                default:
+                    return new Date(b.start_date).getTime() - new Date(a.start_date).getTime()
+            }
+        })
+
+    // Helper for random-looking gradients based on id
+    const getRoomGradient = (id: number) => {
+        const gradients = [
+            "from-blue-500/20 to-indigo-500/20 text-blue-600",
+            "from-emerald-500/20 to-teal-500/20 text-emerald-600",
+            "from-orange-500/20 to-red-500/20 text-orange-600",
+            "from-violet-500/20 to-purple-500/20 text-violet-600",
+            "from-pink-500/20 to-rose-500/20 text-pink-600",
+        ]
+        return gradients[id % gradients.length]
+    }
+
+    const formatDate = (dateStr: string) => {
+        return new Date(dateStr).toLocaleDateString('en-US', {
+            month: 'short',
+            day: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit'
+        })
+    }
+
+    const formatTime = (dateStr: string) => {
+        return new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
 
     return (
-        <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                <h2 className="text-base font-semibold">Rooms</h2>
-                <Button onClick={() => openModal()} size="sm" className="h-8">
-                    <Plus className="h-3 w-3 mr-1.5" /> New Room
-                </Button>
+        <div className="space-y-6 max-w-[1600px] mx-auto">
+            {/* Header Section */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                    <h2 className="text-2xl font-bold tracking-tight">Rooms</h2>
+                    <p className="text-muted-foreground text-sm mt-1">
+                        Manage your virtual meeting spaces and schedules.
+                    </p>
+                </div>
+                {canCreate && (
+                    <Button onClick={handleCreate} className="shadow-lg shadow-primary/20 transition-all hover:scale-105">
+                        <Plus className="h-4 w-4 mr-2" /> Create Room
+                    </Button>
+                )}
             </div>
 
-            {isOpen && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-                    <div className="bg-card rounded-lg shadow-2xl w-full max-w-xl border border-border animate-in zoom-in-95">
-                        <div className="flex justify-between items-center px-5 py-4 border-b border-border">
-                            <h3 className="font-semibold text-sm">{editingRoom ? "Update Room" : "Create Room"}</h3>
-                            <button
-                                onClick={() => setIsOpen(false)}
-                                className="text-muted-foreground hover:text-foreground"
-                            >
-                                <X className="h-4 w-4" />
-                            </button>
-                        </div>
-                        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="col-span-2 space-y-1">
-                                    <label className="text-xs font-medium text-muted-foreground">Name</label>
-                                    <Input
-                                        className="h-9"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                                        autoFocus
-                                    />
-                                </div>
-                                <div className="col-span-2 space-y-1">
-                                    <label className="text-xs font-medium text-muted-foreground">Description</label>
-                                    <Input
-                                        className="h-9"
-                                        value={formData.description}
-                                        onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                                    />
-                                </div>
-                                {/* Assigned To input */}
-                                <div className="col-span-2 space-y-1">
-                                    <label className="text-xs font-medium text-muted-foreground">
-                                        Assigned To (usernames, comma separated, optional)
-                                    </label>
-                                    <Input
-                                        className="h-9"
-                                        placeholder="contoh: rafael, budi, siti"
-                                        value={formData.assignedToInput}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, assignedToInput: e.target.value })
-                                        }
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-medium text-muted-foreground">Start Date</label>
-                                    <Input
-                                        type="datetime-local"
-                                        className="h-9"
-                                        value={formData.startDate}
-                                        onChange={(e) => setFormData({ ...formData, startDate: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-medium text-muted-foreground">End Date</label>
-                                    <Input
-                                        type="datetime-local"
-                                        className="h-9"
-                                        value={formData.endDate}
-                                        onChange={(e) => setFormData({ ...formData, endDate: e.target.value })}
-                                    />
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-medium text-muted-foreground">Group</label>
-                                    <select
-                                        className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                        value={formData.groupId}
-                                        onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
-                                    >
-                                        <option value="">Public / Individual</option>
-                                        {groups.map((g) => (
-                                            <option key={g.id} value={g.id}>
-                                                {g.name}
-                                            </option>
-                                        ))}
-                                    </select>
-                                </div>
-                                <div className="space-y-1">
-                                    <label className="text-xs font-medium text-muted-foreground">Max Participants</label>
-                                    <Input
-                                        type="number"
-                                        className="h-9"
-                                        value={formData.maxParticipants}
-                                        onChange={(e) =>
-                                            setFormData({ ...formData, maxParticipants: Number(e.target.value) })
-                                        }
-                                    />
-                                </div>
-                            </div>
-                            <div className="flex justify-end gap-2 pt-4 border-t border-border">
-                                <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setIsOpen(false)}
-                                    className="text-muted-foreground"
-                                >
-                                    Cancel
-                                </Button>
-                                <Button type="submit" size="sm" className="bg-primary text-primary-foreground">
-                                    Save
-                                </Button>
-                            </div>
-                        </form>
+            {/* Filters & Search */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-card/50 p-1.5 rounded-xl border border-border/50 backdrop-blur-sm w-full">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search rooms..."
+                        className="pl-9 h-10 bg-transparent border-0 focus-visible:ring-0 focus-visible:ring-offset-0 placeholder:text-muted-foreground/50"
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                    />
+                </div>
+
+                <div className="flex items-center gap-2">
+                    {/* Status Filter */}
+                    <div className="relative">
+                        <select
+                            className="h-9 pl-3 pr-8 rounded-lg border border-border/50 bg-background/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer hover:bg-muted/50 transition-colors"
+                            value={filterType}
+                            onChange={(e) => setFilterType(e.target.value as any)}
+                        >
+                            <option value="all">All Rooms</option>
+                            <option value="live">Live Now</option>
+                            <option value="public">Public</option>
+                            <option value="private">Private</option>
+                            <option value="group">Group</option>
+                        </select>
+                        <LayoutGrid className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
+                    </div>
+
+                    {/* Sort Order */}
+                    <div className="relative">
+                        <select
+                            className="h-9 pl-3 pr-8 rounded-lg border border-border/50 bg-background/50 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 appearance-none cursor-pointer hover:bg-muted/50 transition-colors"
+                            value={sortBy}
+                            onChange={(e) => setSortBy(e.target.value as any)}
+                        >
+                            <option value="newest">Newest First</option>
+                            <option value="oldest">Oldest First</option>
+                            <option value="alpha">Name (A-Z)</option>
+                        </select>
+                        <ArrowUpDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                     </div>
                 </div>
-            )}
+            </div>
 
-            <div className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
-                <table className="w-full text-sm text-left">
-                    <thead className="bg-muted border-b border-border text-xs uppercase text-muted-foreground font-medium">
-                        <tr>
-                            <th className="px-5 py-3">Room</th>
-                            <th className="px-5 py-3">Access</th>
-                            <th className="px-5 py-3">Schedule</th>
-                            <th className="px-5 py-3 text-right">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border/70">
-                        {rooms.length === 0 ? (
-                            <tr>
-                                <td colSpan={4} className="px-5 py-8 text-center text-muted-foreground">
-                                    No rooms found
-                                </td>
-                            </tr>
-                        ) : (
-                            rooms.map((room) => (
-                                <tr key={room.id} className="hover:bg-muted/50 transition-colors">
-                                    <td className="px-5 py-3.5">
-                                        <div className="font-medium">{room.name}</div>
-                                        <div className="text-xs text-muted-foreground font-mono mt-0.5">
-                                            {room.room_code}
+            {/* Rooms Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {filteredRooms.length === 0 ? (
+                    <div className="col-span-full flex flex-col items-center justify-center p-16 text-muted-foreground border border-dashed border-border rounded-xl bg-card/50">
+                        <div className="h-16 w-16 rounded-full bg-muted/50 flex items-center justify-center mb-4">
+                            <Search className="h-8 w-8 opacity-40" />
+                        </div>
+                        <p className="text-xl font-medium">No rooms found</p>
+                        <p className="text-sm opacity-70 mt-1">Try adjusting your filters or search</p>
+                    </div>
+                ) : (
+                    filteredRooms.map((room) => {
+                        const now = new Date()
+                        const start = new Date(room.start_date)
+                        const end = new Date(room.end_date)
+                        const status = now < start ? "upcoming" : now > end ? "ended" : "open"
+                        const isActive = !!getActiveRoomData(room.name)
+
+                        return (
+                            <div
+                                key={room.id}
+                                onClick={() => handleViewDetails(room)}
+                                className="group bg-card border border-border rounded-lg p-4 hover:border-primary/50 transition-all relative cursor-pointer"
+                            >
+                                {isActive && (
+                                    <span
+                                        className="absolute top-4 right-4 h-2.5 w-2.5 rounded-full bg-red-500 animate-pulse"
+                                        title="Live Now"
+                                    />
+                                )}
+
+                                <div className="mb-3">
+                                    <h4 className="text-sm font-semibold truncate pr-6">{room.name}</h4>
+                                    <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">
+                                        {room.description || "No description"}
+                                    </p>
+                                </div>
+
+                                <div className="flex items-center justify-between bg-muted rounded px-3 py-2 border border-border mb-3" onClick={e => e.stopPropagation()}>
+                                    <code className="text-xs font-mono text-primary font-medium">{room.room_code}</code>
+                                    <button
+                                        onClick={() => navigator.clipboard.writeText(room.room_code)}
+                                        className="text-muted-foreground hover:text-foreground transition-colors p-1"
+                                        title="Copy Code"
+                                    >
+                                        <Copy className="h-3 w-3" />
+                                    </button>
+                                </div>
+
+                                <div className="flex flex-col gap-2 text-xs text-muted-foreground mb-4">
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-1.5">
+                                            <Calendar className="h-3 w-3" />
+                                            {start.toLocaleDateString()}
                                         </div>
-                                    </td>
-                                    <td className="px-5 py-3.5">
+                                        <div className="flex items-center gap-1.5">
+                                            <Clock className="h-3 w-3" />
+                                            <span>{formatTime(room.start_date)} - {formatTime(room.end_date)}</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="flex items-center gap-1.5">
                                         {room.group ? (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-secondary text-secondary-foreground border border-border">
-                                                GROUP: {room.group.name}
+                                            <span className="flex items-center gap-1 text-indigo-500">
+                                                <Users className="h-3 w-3" /> {room.group.name}
                                             </span>
                                         ) : room.assigned_to?.length ? (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300 border border-amber-200/60 dark:border-amber-900/60">
-                                                PRIVATE
+                                            <span className="flex items-center gap-1 text-amber-500">
+                                                <Lock className="h-3 w-3" /> Private
                                             </span>
                                         ) : (
-                                            <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-medium bg-primary/10 text-primary border border-primary/20">
-                                                PUBLIC
+                                            <span className="flex items-center gap-1 text-emerald-500">
+                                                <Globe className="h-3 w-3" /> Public
                                             </span>
                                         )}
-                                    </td>
-                                    <td className="px-5 py-3.5 text-xs text-muted-foreground">
-                                        <div>{new Date(room.start_date).toLocaleString()}</div>
-                                    </td>
-                                    <td className="px-5 py-3.5 text-right">
-                                        <div className="flex justify-end gap-1">
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => openModal(room)}
-                                                className="h-7 w-7 p-0 text-muted-foreground hover:text-primary hover:bg-primary/10"
-                                            >
-                                                <Pencil className="h-3.5 w-3.5" />
-                                            </Button>
-                                            <Button
-                                                variant="ghost"
-                                                size="sm"
-                                                onClick={() => handleDelete(room.id)}
-                                                className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                            >
-                                                <Trash2 className="h-3.5 w-3.5" />
-                                            </Button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
-                        )}
-                    </tbody>
-                </table>
+                                    </div>
+                                </div>
+
+                                <Button
+                                    variant="outline"
+                                    className={cn(
+                                        "w-full h-8 text-xs font-medium border-border/50",
+                                        status === "open" ? "bg-primary/5 text-primary border-primary/20 hover:bg-primary/10" :
+                                            status === "ended" ? "text-muted-foreground bg-muted/50" :
+                                                "text-blue-600 bg-blue-500/5 border-blue-500/20"
+                                    )}
+                                    disabled={true} // Just a label basically, clickable card does the action
+                                >
+                                    {status === "ended"
+                                        ? "Ended"
+                                        : status === "upcoming"
+                                            ? "Scheduled"
+                                            : "Open / Active"}
+                                </Button>
+                            </div>
+                        )
+                    })
+                )}
             </div>
+
+            <RoomFormModal
+                isOpen={isFormOpen}
+                onClose={() => setIsFormOpen(false)}
+                onSuccess={loadData}
+                editingRoom={editingRoom}
+                groups={groups}
+            />
+
+            <RoomDetailSheet
+                isOpen={isDetailOpen}
+                onClose={() => setIsDetailOpen(false)}
+                room={selectedRoom}
+                activeRoom={selectedRoom ? getActiveRoomData(selectedRoom.name) : undefined}
+                onDelete={handleDelete}
+                onEditSuccess={loadData}
+                groups={groups}
+            />
         </div>
     )
 }

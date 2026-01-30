@@ -400,7 +400,8 @@ export default function RoomContainer({
         const userStr = localStorage.getItem("vc_user");
         if (userStr) {
           const user = JSON.parse(userStr);
-          if (user.role === "admin") {
+          const role = user.role;
+          if (role === "admin" || (typeof role === "object" && role?.name === "admin")) {
             setIsAdmin(true);
           }
         }
@@ -469,6 +470,13 @@ export default function RoomContainer({
       <RoomAudioRenderer />
       <StartAudio label="Klik untuk mengaktifkan audio" />
       <Toaster position="top-center" />
+
+      {typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && (
+        <div className="bg-destructive/90 text-destructive-foreground p-2 text-center text-sm font-medium">
+          Warning: Media devices (Camera/Mic) are blocked by the browser on insecure connections (HTTP).
+          Please use HTTPS or localhost, or configure your browser flags.
+        </div>
+      )}
 
       <PollingProvider>
         <PollListener onPollCreated={(question, pollId) => {

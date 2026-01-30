@@ -1,11 +1,11 @@
-// components/meeting/MeetingClient.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchToken } from "@/lib/api/api";
-import { Loader } from "@/components/livekit/Loader";
 import RoomContainer from "@/components/livekit/RoomContainer";
+import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export default function MeetingClient({ room }: { room: string }) {
   const searchParams = useSearchParams();
@@ -38,7 +38,7 @@ export default function MeetingClient({ room }: { room: string }) {
           const msg = e.message.split("-").pop()?.trim() || "Anda sedang berada di room lain.";
           setError(msg);
         } else {
-          alert("Gagal mengambil token. Cek backend /token & env (LIVEKIT_SERVER_URL).");
+          setError("Gagal mengambil token. Cek backend /token & env (LIVEKIT_SERVER_URL).");
         }
       }
     })();
@@ -49,23 +49,64 @@ export default function MeetingClient({ room }: { room: string }) {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center h-screen bg-neutral-900 text-white p-4">
-        <div className="bg-red-900/50 border border-red-500 p-6 rounded-lg max-w-md text-center">
-          <h2 className="text-xl font-bold mb-2 text-red-200">Akses Ditolak</h2>
-          <p className="text-red-100 mb-4">{error}</p>
-          <button
-            onClick={() => window.location.href = '/'} // Or back to home
-            className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded transition-colors"
-          >
-            Kembali ke Beranda
-          </button>
+      <div className="flex flex-col items-center justify-center h-screen w-full bg-background text-foreground p-4">
+        <div className="flex flex-col items-center max-w-md w-full gap-6 p-8 rounded-2xl bg-card border border-border shadow-2xl animate-in fade-in zoom-in duration-300">
+          <div className="h-16 w-16 rounded-full bg-destructive/10 flex items-center justify-center text-destructive mb-2">
+            <AlertCircle className="h-8 w-8" />
+          </div>
+          <div className="text-center space-y-2">
+            <h2 className="text-xl font-bold tracking-tight">Access Denied</h2>
+            <p className="text-muted-foreground text-sm leading-relaxed">{error}</p>
+          </div>
+          <div className="flex gap-3 w-full">
+            <Button
+              className="flex-1"
+              variant="outline"
+              onClick={() => window.location.reload()}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" /> Try Again
+            </Button>
+            <Button
+              className="flex-1"
+              onClick={() => window.location.href = '/rooms'}
+            >
+              Back to Lobby
+            </Button>
+          </div>
         </div>
       </div>
     );
   }
 
   if (!token || !serverUrl) {
-    return <Loader text="🔄 Connecting to meeting..." />;
+    return (
+      <div className="flex flex-col items-center justify-center h-screen w-full bg-background relative overflow-hidden">
+        {/* Ambient Background */}
+        <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
+        <div className="absolute h-full w-full bg-background [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
+
+        <div className="relative z-10 flex flex-col items-center gap-8 animate-in fade-in duration-700">
+          <div className="relative">
+            <div className="absolute inset-0 rounded-full bg-primary/20 blur-xl animate-pulse" />
+            <div className="relative h-20 w-20 rounded-2xl bg-card border border-border flex items-center justify-center shadow-xl">
+              <Loader2 className="h-10 w-10 text-primary animate-spin" />
+            </div>
+          </div>
+
+          <div className="flex flex-col items-center gap-2 text-center">
+            <h3 className="text-xl font-semibold tracking-tight">Connecting to Room</h3>
+            <p className="text-sm text-muted-foreground animate-pulse">
+              Securing connection to <span className="text-foreground font-medium">{room}</span>...
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 text-xs text-muted-foreground/50 mt-8">
+            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Establishing media channels</span>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (

@@ -689,7 +689,7 @@ export function MeetingChat({
       // 1. I sent it to them (mine=true, to=activeTab)
       // 2. They sent it to me (from=activeTab, to=me)
       if (i.mine && i.to === activeTab) return true;
-      if (!i.mine && i.from === activeTab) return true;
+      if (!i.mine && i.from === activeTab && i.to === me) return true;
       return false;
     });
   }, [items, activeTab]);

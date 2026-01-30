@@ -51,6 +51,7 @@ export type DbRoom = {
   group?: { id: number; name: string }
   created_at?: string
   updated_at?: string
+  banned_users?: string[]
 }
 
 export async function fetchDbRooms(): Promise<DbRoom[]> {
@@ -164,10 +165,74 @@ export async function closeActiveRoom(name: string): Promise<void> {
   })
 }
 
+export type Permission = {
+  id: number
+  key: string
+  description: string
+}
+
+export type Role = {
+  id: number
+  name: string
+  description: string
+  permissions?: Permission[]
+}
+
+export async function fetchRoles(): Promise<Role[]> {
+  return apiRequest<Role[]>("/admin/roles", {
+    method: "GET",
+    cache: "no-store",
+  })
+}
+
+export async function createRole(payload: { name: string; description: string }): Promise<Role> {
+  return apiRequest<Role>("/admin/roles", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function updateRole(
+  id: number,
+  payload: { name: string; description: string }
+): Promise<Role> {
+  return apiRequest<Role>(`/admin/roles/${id}`, {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function deleteRole(id: number): Promise<void> {
+  await apiRequest(`/admin/roles/${id}`, {
+    method: "DELETE",
+  })
+}
+
+export async function fetchPermissions(): Promise<Permission[]> {
+  return apiRequest<Permission[]>("/admin/roles/permissions", {
+    method: "GET",
+    cache: "no-store",
+  })
+}
+
+export async function addRolePermission(roleId: number, permId: number): Promise<void> {
+  await apiRequest(`/admin/roles/${roleId}/permissions`, {
+    method: "POST",
+    body: JSON.stringify({ permission_id: permId }),
+  })
+}
+
+export async function removeRolePermission(roleId: number, permId: number): Promise<void> {
+  await apiRequest(`/admin/roles/${roleId}/permissions/${permId}`, {
+    method: "DELETE",
+  })
+}
+
 export type User = {
   id: number
   username: string
-  role: string
+  role?: Role
+  role_id: number
 }
 
 export async function fetchUsers(): Promise<User[]> {
@@ -180,7 +245,7 @@ export async function fetchUsers(): Promise<User[]> {
 export async function createUser(payload: {
   username: string
   password: string
-  role: string
+  role_id: number
 }): Promise<User> {
   return apiRequest<User>("/admin/users", {
     method: "POST",
@@ -188,10 +253,10 @@ export async function createUser(payload: {
   })
 }
 
-export async function updateUserRole(id: number, role: string): Promise<User> {
+export async function updateUserRole(id: number, role_id: number): Promise<User> {
   return apiRequest<User>(`/admin/users/${id}`, {
     method: "PATCH",
-    body: JSON.stringify({ role }),
+    body: JSON.stringify({ role_id }),
   })
 }
 
@@ -258,5 +323,19 @@ export async function muteParticipant(roomCode: string, identity: string, muteAu
   await apiRequest<void>("/admin/livekit/participants/mute", {
     method: "POST",
     body: JSON.stringify({ room_code: roomCode, identity, mute_audio: muteAudio, mute_video: muteVideo }),
+  })
+}
+
+export async function banParticipant(roomCode: string, identity: string): Promise<void> {
+  await apiRequest<void>("/api/livekit/ban", {
+    method: "POST",
+    body: JSON.stringify({ room_code: roomCode, identity }),
+  })
+}
+
+export async function unbanParticipant(roomCode: string, identity: string): Promise<void> {
+  await apiRequest<void>("/api/livekit/unban", {
+    method: "POST",
+    body: JSON.stringify({ room_code: roomCode, identity }),
   })
 }

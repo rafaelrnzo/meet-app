@@ -13,6 +13,7 @@ import {
   Sun,
   PlayCircle,
   Briefcase,
+  Shield,
 } from "lucide-react"
 import { getUser, type StoredUser } from "@/lib/api/auth-client"
 import { cn } from "@/lib/utils"
@@ -54,12 +55,13 @@ function useTheme() {
 
 // --- SIDEBAR DATA ---
 const sidebarItems = [
-  { id: "home", href: "/", icon: Home, label: "Home" },
-  { id: "rooms", href: "/rooms", icon: Video, label: "Rooms" },
-  { id: "groups", href: "/groups", icon: Briefcase, label: "Groups" },
-  { id: "users", href: "/users", icon: Users, label: "Users" },
-  { id: "recordings", href: "/recordings", icon: PlayCircle, label: "Recordings" },
-  { id: "settings", href: "/settings", icon: Settings, label: "Settings" },
+  { id: "home", href: "/", icon: Home, label: "Home", permission: null },
+  { id: "rooms", href: "/rooms", icon: Video, label: "Rooms", permission: "room:read" },
+  { id: "groups", href: "/groups", icon: Briefcase, label: "Groups", permission: "group:manage" },
+  { id: "users", href: "/users", icon: Users, label: "Users", permission: "user:read" },
+  { id: "roles", href: "/roles", icon: Shield, label: "Roles", permission: "role:read" },
+  { id: "recordings", href: "/recordings", icon: PlayCircle, label: "Recordings", permission: "recording:read" },
+  { id: "settings", href: "/settings", icon: Settings, label: "Settings", permission: null },
 ]
 
 
@@ -79,7 +81,7 @@ export default function ProtectedLayout({
 function ProtectedContent({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
-  const { loading, isAuthenticated, isAdmin, logout } = useAuth()
+  const { loading, isAuthenticated, isAdmin, hasPermission, logout } = useAuth()
   const { theme, toggleTheme } = useTheme()
   const [user, setUser] = useState<StoredUser | null>(null)
 
@@ -117,7 +119,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
             const Icon = item.icon
             // Simple active check: strictly equal or starts with for subroutes
             const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
-            const disabled = !isAdmin && ["/rooms", "/groups", "/users", "/recordings"].includes(item.href)
+            const disabled = item.permission ? !hasPermission(item.permission) : false
 
             if (disabled) {
               return (

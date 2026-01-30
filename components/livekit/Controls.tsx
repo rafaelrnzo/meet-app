@@ -242,8 +242,8 @@ export function Controls({
       setBusy(true);
       await localParticipant.setMicrophoneEnabled(!isMicrophoneEnabled);
     } catch (e) {
-      console.error("toggle mic error:", e, lastMicrophoneError);
-      alert("Gagal mengaktifkan/mematikan mic. Cek permission & device.");
+      console.error("toggle mic error:", e, { lastMicrophoneError, isMicrophoneEnabled, allowAudio, isAdmin });
+      toast.error(`Gagal mic: ${e instanceof Error ? e.message : "Unknown error"}`);
     } finally {
       setBusy(false);
     }
@@ -259,8 +259,8 @@ export function Controls({
       setBusy(true);
       await localParticipant.setCameraEnabled(!isCameraEnabled, { resolution: videoQuality });
     } catch (e) {
-      console.error("toggle camera error:", e, lastCameraError);
-      toast.error("Gagal mengaktifkan/mematikan kamera. Cek permission & device.");
+      console.error("toggle camera error:", e, { lastCameraError, isCameraEnabled, allowVideo, isAdmin });
+      toast.error(`Gagal kamera: ${e instanceof Error ? e.message : "Unknown error"}`);
     } finally {
       setBusy(false);
     }
@@ -273,7 +273,7 @@ export function Controls({
       await localParticipant.setScreenShareEnabled(!isScreenShareEnabled);
     } catch (e) {
       console.error("toggle screen share error:", e);
-      toast.error("Gagal mulai/berhenti screen share. Cek permission browser.");
+      toast.error(`Gagal share screen: ${e instanceof Error ? e.message : "Unknown error"}`);
     } finally {
       setBusy(false);
     }

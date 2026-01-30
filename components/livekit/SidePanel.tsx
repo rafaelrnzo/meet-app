@@ -1,9 +1,9 @@
 "use client";
 
 import { useParticipants, useLocalParticipant } from "@livekit/components-react";
-import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft, MicOff, Mic, MoreVertical } from "lucide-react";
+import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft, MicOff, Mic, MoreVertical, Ban, Unlock } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
-import { muteParticipant } from "@/lib/api/admin-api";
+import { muteParticipant, banParticipant, unbanParticipant, fetchUserDbRooms, DbRoom } from "@/lib/api/admin-api";
 import { toast } from "sonner";
 import { Track } from "livekit-client";
 import { MeetingChat } from "./MeetingChat";
@@ -228,6 +228,7 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
     const { localParticipant } = useLocalParticipant();
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+    const [bannedUsers, setBannedUsers] = useState<string[]>([]);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Close menu when clicking outside
@@ -240,6 +241,24 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
         document.addEventListener("mousedown", handleClickOutside);
         return () => document.removeEventListener("mousedown", handleClickOutside);
     }, []);
+
+    useEffect(() => {
+        if (isAdmin) {
+            loadBannedUsers();
+        }
+    }, [isAdmin, roomName]);
+
+    const loadBannedUsers = async () => {
+        try {
+            const rooms = await fetchUserDbRooms();
+            const room = rooms.find(r => r.name === roomName || r.room_code === roomName);
+            if (room && room.banned_users) {
+                setBannedUsers(room.banned_users);
+            }
+        } catch (e) {
+            console.error("Failed to load banned users", e);
+        }
+    };
 
     const API_BASE =
         process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
@@ -274,6 +293,34 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
         }
     };
 
+    const handleBan = async (identity: string) => {
+        if (!confirm(`Are you sure you want to ban ${identity}? They will be removed and unable to join.`)) return;
+        setActionLoading(identity);
+        try {
+            await banParticipant(roomName, identity);
+            toast.success(`Banned ${identity}`);
+            loadBannedUsers();
+        } catch (err: any) {
+            toast.error("Failed to ban: " + err.message);
+        } finally {
+            setActionLoading(null);
+            setOpenMenuId(null);
+        }
+    };
+
+    const handleUnban = async (identity: string) => {
+        setActionLoading(identity);
+        try {
+            await unbanParticipant(roomName, identity);
+            toast.success(`Unbanned ${identity}`);
+            loadBannedUsers();
+        } catch (err: any) {
+            toast.error("Failed to unban: " + err.message);
+        } finally {
+            setActionLoading(null);
+        }
+    };
+
     const handleAdmit = async (identity: string) => {
         setActionLoading(identity);
         try {
@@ -299,12 +346,8 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
 
     const handleMute = async (identity: string, isMuted: boolean) => {
         const action = isMuted ? "Unmute" : "Mute";
-        // if (!confirm(`${action} ${identity}?`)) return; // Removed confirm for better UX, or keep if critical
-
         setActionLoading(identity);
         try {
-            // If they are currently muted (isMuted = true), we want to UNMUTE (false)
-            // If they are not muted (isMuted = false), we want to MUTE (true)
             await muteParticipant(roomName, identity, !isMuted, !isMuted);
             toast.success(`${action}d ${identity}`);
         } catch (err: any) {
@@ -422,6 +465,14 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
                                                     <UserMinus className="w-3.5 h-3.5" />
                                                     Kick
                                                 </button>
+                                                <button
+                                                    onClick={() => handleBan(p.identity)}
+                                                    disabled={!!actionLoading}
+                                                    className="w-full text-left px-3 py-2 text-xs flex items-center gap-2 hover:bg-red-500/10 text-destructive hover:text-destructive transition-colors"
+                                                >
+                                                    <Ban className="w-3.5 h-3.5" />
+                                                    Ban User
+                                                </button>
                                             </div>
                                         )}
                                     </div>
@@ -431,6 +482,37 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
                     })}
                 </div>
             </div>
+
+            {/* Banned Users Section */}
+            {isAdmin && bannedUsers.length > 0 && (
+                <div className="space-y-2 pt-2 border-t border-border">
+                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2">Banned Users ({bannedUsers.length})</h4>
+                    <div className="space-y-1">
+                        {bannedUsers.map((identity) => (
+                            <div key={identity} className="flex items-center justify-between p-2 rounded-md bg-destructive/5 hover:bg-destructive/10 transition-colors border border-destructive/20">
+                                <div className="flex items-center gap-2 overflow-hidden">
+                                    <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center text-xs font-bold text-destructive shrink-0">
+                                        <Ban className="w-4 h-4" />
+                                    </div>
+                                    <div className="flex flex-col min-w-0">
+                                        <span className="text-sm font-medium truncate">{identity}</span>
+                                        <span className="text-[10px] text-destructive">Banned</span>
+                                    </div>
+                                </div>
+                                <button
+                                    onClick={() => handleUnban(identity)}
+                                    disabled={!!actionLoading}
+                                    className="p-1.5 text-xs font-medium bg-background border border-border rounded hover:bg-muted transition-colors flex items-center gap-1"
+                                    title="Unban"
+                                >
+                                    <Unlock className="w-3 h-3" />
+                                    Unban
+                                </button>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

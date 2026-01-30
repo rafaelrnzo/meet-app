@@ -10,9 +10,10 @@ interface Tokens {
 
 export const authService = {
     login: () => {
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
         const params = new URLSearchParams({
             client_id: keycloakConfig.clientId,
-            redirect_uri: keycloakConfig.routes.callback,
+            redirect_uri: `${origin}${keycloakConfig.routes.callback}`,
             response_type: 'code',
             scope: 'openid profile email',
         });
@@ -20,10 +21,11 @@ export const authService = {
     },
 
     exchangeToken: async (code: string): Promise<Tokens> => {
+        const origin = typeof window !== 'undefined' ? window.location.origin : '';
         const params = new URLSearchParams({
             grant_type: 'authorization_code',
             client_id: keycloakConfig.clientId,
-            redirect_uri: keycloakConfig.routes.callback,
+            redirect_uri: `${origin}${keycloakConfig.routes.callback}`,
             code,
         });
 
@@ -50,7 +52,13 @@ export const authService = {
             const username = payload.preferred_username || payload.name || payload.sub;
             const email = payload.email || "";
 
-            const apiRes = await axios.post("http://localhost:8080/sso-login", {
+            const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
+            // Assuming backend is on port 8080 and same hostname
+            const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
+            const protocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
+            const backendUrl = `${protocol}//${hostname}:8080`;
+
+            const apiRes = await axios.post(`${backendUrl}/sso-login`, {
                 username,
                 email
             });

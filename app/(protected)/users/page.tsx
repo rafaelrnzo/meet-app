@@ -9,42 +9,59 @@ import {
     createUser,
     updateUserRole,
     deleteUser,
+    fetchRoles,
     type User as UserDto,
+    type Role as RoleDto,
 } from "@/lib/api/admin-api"
 import { useAuth } from "../../../hooks/use-auth"
 
 export default function UsersPage() {
-    const { isAdmin } = useAuth()
+    const { hasPermission } = useAuth({ requirePermission: "user:read" })
     const [users, setUsers] = useState<UserDto[]>([])
+    const [roles, setRoles] = useState<RoleDto[]>([])
     const [isOpen, setIsOpen] = useState(false)
-    const [formData, setFormData] = useState({ username: "", password: "", role: "user" })
+    const [formData, setFormData] = useState({ username: "", password: "", role_id: 0 })
+
+    const canCreate = hasPermission("user:create")
+    const canUpdate = hasPermission("user:update")
+    const canDelete = hasPermission("user:delete")
 
     useEffect(() => {
-        if (isAdmin) loadData()
-    }, [isAdmin])
+        loadData()
+        loadRoles()
+    }, [])
 
     const loadData = async () => {
         const d = await fetchUsers()
         setUsers(d || [])
     }
 
+    const loadRoles = async () => {
+        const r = await fetchRoles()
+        setRoles(r || [])
+        // Set default role to the first one if available
+        if (r && r.length > 0) {
+            setFormData(prev => ({ ...prev, role_id: r[0].id }))
+        }
+    }
+
     const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault()
         await createUser(formData)
         setIsOpen(false)
-        setFormData({ username: "", password: "", role: "user" })
+        setFormData({ username: "", password: "", role_id: roles[0]?.id || 0 })
         loadData()
     }
-
-    if (!isAdmin) return <div className="p-8 text-center text-muted-foreground">Unauthorized</div>
 
     return (
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                 <h2 className="text-base font-semibold">Users</h2>
-                <Button onClick={() => setIsOpen(true)} size="sm" className="h-8">
-                    <Plus className="h-3 w-3 mr-1.5" /> New User
-                </Button>
+                {canCreate && (
+                    <Button onClick={() => setIsOpen(true)} size="sm" className="h-8">
+                        <Plus className="h-3 w-3 mr-1.5" /> New User
+                    </Button>
+                )}
             </div>
 
             {isOpen && (
@@ -67,11 +84,12 @@ export default function UsersPage() {
                             />
                             <select
                                 className="flex h-9 w-full rounded-md border border-border bg-background px-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-                                value={formData.role}
-                                onChange={(e) => setFormData({ ...formData, role: e.target.value })}
+                                value={formData.role_id}
+                                onChange={(e) => setFormData({ ...formData, role_id: Number(e.target.value) })}
                             >
-                                <option value="user">User</option>
-                                <option value="admin">Admin</option>
+                                {roles.map(r => (
+                                    <option key={r.id} value={r.id}>{r.name}</option>
+                                ))}
                             </select>
                             <div className="flex justify-end gap-2 pt-2">
                                 <Button
@@ -108,30 +126,34 @@ export default function UsersPage() {
                                 <td className="px-5 py-3">
                                     <select
                                         className="h-6 text-xs bg-transparent border-none focus:ring-0 text-muted-foreground cursor-pointer"
-                                        value={u.role}
+                                        value={u.role_id || u.role?.id}
                                         onChange={async (e) => {
-                                            await updateUserRole(u.id, e.target.value)
+                                            await updateUserRole(u.id, Number(e.target.value))
                                             loadData()
                                         }}
+                                        disabled={!canUpdate}
                                     >
-                                        <option value="user">User</option>
-                                        <option value="admin">Admin</option>
+                                        {roles.map(r => (
+                                            <option key={r.id} value={r.id}>{r.name}</option>
+                                        ))}
                                     </select>
                                 </td>
                                 <td className="px-5 py-3 text-right">
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        onClick={async () => {
-                                            if (confirm("Are you sure you want to delete this user? This will remove them from all groups and cannot be undone.")) {
-                                                await deleteUser(u.id)
-                                                loadData()
-                                            }
-                                        }}
-                                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                                    >
-                                        <Trash2 className="h-3.5 w-3.5" />
-                                    </Button>
+                                    {canDelete && (
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={async () => {
+                                                if (confirm("Are you sure you want to delete this user? This will remove them from all groups and cannot be undone.")) {
+                                                    await deleteUser(u.id)
+                                                    loadData()
+                                                }
+                                            }}
+                                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </Button>
+                                    )}
                                 </td>
                             </tr>
                         ))}
