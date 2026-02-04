@@ -70,6 +70,26 @@ export function HostControls({ roomName }: { roomName: string }) {
 
                 <div className="space-y-4">
                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                        Waiting Room
+                    </h4>
+                    <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/60">
+                        <div className="space-y-0.5">
+                            <label className="text-sm font-medium leading-none">
+                                Enable Waiting Room
+                            </label>
+                            <p className="text-[10px] text-muted-foreground">
+                                If enabled, new participants must be admitted by an admin.
+                            </p>
+                        </div>
+                        <Switch
+                            checked={metadata.waiting_room_enabled !== false}
+                            onCheckedChange={(checked) => updatePermission("waiting_room_enabled", checked)}
+                        />
+                    </div>
+                </div>
+
+                <div className="space-y-4">
+                    <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                         Allow Participants
                     </h4>
 

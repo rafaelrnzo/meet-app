@@ -2,7 +2,7 @@
 
 import React from "react"
 import { X } from "lucide-react"
-import type { DbRoom, Group } from "@/lib/api/admin-api"
+import type { DbRoom, Group, User } from "@/lib/api/admin-api"
 import { RoomForm } from "./RoomForm"
 
 interface RoomFormModalProps {
@@ -11,9 +11,10 @@ interface RoomFormModalProps {
     onSuccess: () => void
     editingRoom?: DbRoom | null
     groups: Group[]
+    users: User[]
 }
 
-export function RoomFormModal({ isOpen, onClose, onSuccess, editingRoom, groups }: RoomFormModalProps) {
+export function RoomFormModal({ isOpen, onClose, onSuccess, editingRoom, groups, users }: RoomFormModalProps) {
     if (!isOpen) return null
 
     return (
@@ -32,6 +33,7 @@ export function RoomFormModal({ isOpen, onClose, onSuccess, editingRoom, groups 
                     <RoomForm
                         initialData={editingRoom}
                         groups={groups}
+                        users={users}
                         onSuccess={() => {
                             onSuccess()
                             onClose()

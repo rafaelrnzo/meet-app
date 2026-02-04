@@ -3,22 +3,25 @@
 import React, { useEffect, useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import type { DbRoom, Group } from "@/lib/api/admin-api"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import type { DbRoom, Group, User } from "@/lib/api/admin-api"
 import { createDbRoom, updateDbRoom } from "@/lib/api/admin-api"
 
 interface RoomFormProps {
     initialData?: DbRoom | null
     groups: Group[]
+    users: User[]
     onSuccess: () => void
     onCancel: () => void
 }
 
-export function RoomForm({ initialData, groups, onSuccess, onCancel }: RoomFormProps) {
+export function RoomForm({ initialData, groups, users, onSuccess, onCancel }: RoomFormProps) {
     const [formData, setFormData] = useState({
         name: "",
         description: "",
         maxParticipants: 20,
-        assignedToInput: "",
+        assignedTo: [] as string[],
         startDate: "",
         endDate: "",
         groupId: "",
@@ -31,7 +34,7 @@ export function RoomForm({ initialData, groups, onSuccess, onCancel }: RoomFormP
                 name: initialData.name,
                 description: initialData.description,
                 maxParticipants: initialData.max_participants,
-                assignedToInput: initialData.assigned_to?.join(", ") || "",
+                assignedTo: initialData.assigned_to || [],
                 startDate: formatDateForInput(initialData.start_date),
                 endDate: formatDateForInput(initialData.end_date),
                 groupId: initialData.group_id ? String(initialData.group_id) : "",
@@ -42,7 +45,7 @@ export function RoomForm({ initialData, groups, onSuccess, onCancel }: RoomFormP
                 name: "",
                 description: "",
                 maxParticipants: 20,
-                assignedToInput: "",
+                assignedTo: [],
                 startDate: "",
                 endDate: "",
                 groupId: "",
@@ -66,10 +69,7 @@ export function RoomForm({ initialData, groups, onSuccess, onCancel }: RoomFormP
             name: formData.name,
             description: formData.description,
             maxParticipants: formData.maxParticipants,
-            assignedTo: formData.assignedToInput
-                .split(",")
-                .map((s) => s.trim())
-                .filter(Boolean),
+            assignedTo: formData.assignedTo,
             groupId: formData.groupId,
             startDate: formData.startDate,
             endDate: formData.endDate,
@@ -90,11 +90,22 @@ export function RoomForm({ initialData, groups, onSuccess, onCancel }: RoomFormP
         }
     }
 
+    const toggleUser = (userId: string) => {
+        setFormData(prev => {
+            const current = prev.assignedTo
+            if (current.includes(userId)) {
+                return { ...prev, assignedTo: current.filter(id => id !== userId) }
+            } else {
+                return { ...prev, assignedTo: [...current, userId] }
+            }
+        })
+    }
+
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Name</label>
+                    <Label className="text-xs font-medium text-muted-foreground">Name</Label>
                     <Input
                         className="h-9"
                         value={formData.name}
@@ -103,29 +114,44 @@ export function RoomForm({ initialData, groups, onSuccess, onCancel }: RoomFormP
                     />
                 </div>
                 <div className="col-span-2 space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Description</label>
+                    <Label className="text-xs font-medium text-muted-foreground">Description</Label>
                     <Input
                         className="h-9"
                         value={formData.description}
                         onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     />
                 </div>
-                {/* Assigned To input */}
+
+                {/* Assigned Users Selection */}
                 <div className="col-span-2 space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">
-                        Assigned To (usernames, comma separated, optional)
-                    </label>
-                    <Input
-                        className="h-9"
-                        placeholder="e.g. rafael, budi, siti"
-                        value={formData.assignedToInput}
-                        onChange={(e) =>
-                            setFormData({ ...formData, assignedToInput: e.target.value })
-                        }
-                    />
+                    <Label className="text-xs font-medium text-muted-foreground">
+                        Assigned Users (Optional)
+                    </Label>
+                    <div className="h-32 rounded-md border border-border p-2 overflow-y-auto space-y-2 bg-background">
+                        {users.length === 0 ? (
+                            <p className="text-xs text-muted-foreground p-2">No users available</p>
+                        ) : (
+                            users.map(user => (
+                                <div key={user.id} className="flex items-center space-x-2">
+                                    <Checkbox
+                                        id={`user-${user.id}`}
+                                        checked={formData.assignedTo.includes(user.id.toString())}
+                                        onCheckedChange={() => toggleUser(user.id.toString())}
+                                    />
+                                    <Label
+                                        htmlFor={`user-${user.id}`}
+                                        className="text-sm font-normal cursor-pointer w-full"
+                                    >
+                                        {user.username}
+                                    </Label>
+                                </div>
+                            ))
+                        )}
+                    </div>
                 </div>
+
                 <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Start Date</label>
+                    <Label className="text-xs font-medium text-muted-foreground">Start Date</Label>
                     <Input
                         type="datetime-local"
                         className="h-9"
@@ -134,7 +160,7 @@ export function RoomForm({ initialData, groups, onSuccess, onCancel }: RoomFormP
                     />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">End Date</label>
+                    <Label className="text-xs font-medium text-muted-foreground">End Date</Label>
                     <Input
                         type="datetime-local"
                         className="h-9"
@@ -143,7 +169,7 @@ export function RoomForm({ initialData, groups, onSuccess, onCancel }: RoomFormP
                     />
                 </div>
                 <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Group</label>
+                    <Label className="text-xs font-medium text-muted-foreground">Group</Label>
                     <select
                         className="flex h-9 w-full rounded-md border border-border bg-background px-3 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                         value={formData.groupId}
@@ -158,7 +184,7 @@ export function RoomForm({ initialData, groups, onSuccess, onCancel }: RoomFormP
                     </select>
                 </div>
                 <div className="space-y-1">
-                    <label className="text-xs font-medium text-muted-foreground">Max Participants</label>
+                    <Label className="text-xs font-medium text-muted-foreground">Max Participants</Label>
                     <Input
                         type="number"
                         className="h-9"

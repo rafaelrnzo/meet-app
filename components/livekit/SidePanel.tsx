@@ -1,7 +1,7 @@
 "use client";
 
 import { useParticipants, useLocalParticipant } from "@livekit/components-react";
-import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft, MicOff, Mic, MoreVertical, Ban, Unlock } from "lucide-react";
+import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft, MicOff, Mic, MoreVertical, Ban, Unlock, RefreshCw, FileText } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { muteParticipant, banParticipant, unbanParticipant, fetchUserDbRooms, DbRoom } from "@/lib/api/admin-api";
 import { toast } from "sonner";
@@ -12,7 +12,7 @@ import { PollingTool } from "./Polling";
 
 import { HostControls } from "./HostControls";
 
-type SidebarTab = "chat" | "participants" | "tools" | "settings" | "host_controls" | null;
+type SidebarTab = "chat" | "participants" | "tools" | "settings" | "host_controls" | "presentation" | null;
 
 interface SidePanelProps {
     activeTab: SidebarTab;
@@ -20,10 +20,15 @@ interface SidePanelProps {
     roomName: string;
     onToggleWhiteboard: () => void;
     isWhiteboardOpen: boolean;
+    onTogglePresentation: () => void;
+    isPresentationOpen: boolean;
+    hasPresentation: boolean;
     isAdmin: boolean;
     toolsView?: "menu" | "polling";
     onToolsViewChange?: (view: "menu" | "polling") => void;
-    width?: number;
+    presentationUrl?: string | null;
+    onUndockPresentation?: () => void;
+    width?: number | string;
     onWidthChange?: (w: number) => void;
 }
 
@@ -33,9 +38,14 @@ export function SidePanel({
     roomName,
     onToggleWhiteboard,
     isWhiteboardOpen,
+    onTogglePresentation,
+    isPresentationOpen,
+    hasPresentation,
     isAdmin,
     toolsView = "menu",
     onToolsViewChange,
+    presentationUrl,
+    onUndockPresentation,
     width: controlledWidth,
     onWidthChange
 }: SidePanelProps) {
@@ -45,15 +55,29 @@ export function SidePanel({
 
     const [isResizing, setIsResizing] = useState(false);
 
+    const animationFrame = useRef<number | undefined>(undefined);
+
     useEffect(() => {
         const handleMouseMove = (e: MouseEvent) => {
             if (!isResizing) return;
-            const newWidth = window.innerWidth - e.clientX;
-            setWidth(Math.max(280, Math.min(600, newWidth)));
+
+            // Throttle updates using requestAnimationFrame to prevent UI lag
+            if (animationFrame.current) return;
+
+            animationFrame.current = requestAnimationFrame(() => {
+                const newWidth = window.innerWidth - e.clientX;
+                const maxWidth = window.innerWidth * 0.9;
+                setWidth(Math.max(280, Math.min(maxWidth, newWidth)));
+                animationFrame.current = undefined;
+            });
         };
 
         const handleMouseUp = () => {
             setIsResizing(false);
+            if (animationFrame.current) {
+                cancelAnimationFrame(animationFrame.current);
+                animationFrame.current = undefined;
+            }
         };
 
         if (isResizing) {
@@ -61,6 +85,12 @@ export function SidePanel({
             document.addEventListener("mouseup", handleMouseUp);
             document.body.style.cursor = "ew-resize";
             document.body.style.userSelect = "none";
+            // Add overlay to iframe if exists to prevent capturing mouse events during drag
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(el => el.style.pointerEvents = 'none');
+        } else {
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(el => el.style.pointerEvents = 'auto');
         }
 
         return () => {
@@ -68,6 +98,11 @@ export function SidePanel({
             document.removeEventListener("mouseup", handleMouseUp);
             document.body.style.cursor = "";
             document.body.style.userSelect = "";
+            if (animationFrame.current) {
+                cancelAnimationFrame(animationFrame.current);
+            }
+            const iframes = document.querySelectorAll('iframe');
+            iframes.forEach(el => el.style.pointerEvents = 'auto');
         };
     }, [isResizing, setWidth]);
 
@@ -76,22 +111,27 @@ export function SidePanel({
 
     return (
         <div
-            className="flex flex-col h-full bg-card/60 border-l border-border backdrop-blur-xl relative"
-            style={{ width: `${width}px` }}
+            className="flex flex-col h-full bg-card/80 border-l border-border backdrop-blur-md relative"
+            style={{ width: typeof width === 'number' ? `${width}px` : width, willChange: 'width' }}
         >
-            {/* Resize Handle */}
-            <div
-                onMouseDown={(e) => { e.preventDefault(); setIsResizing(true); }}
-                className={`absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-primary/50 transition-colors z-50 ${isResizing ? "bg-primary" : "bg-transparent"}`}
-            >
-                <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-12 bg-border rounded-full" />
-            </div>
+
 
             {/* HEADER */}
             <div className="p-3 border-b border-border flex items-center justify-between bg-card/40">
-                <h3 className="font-semibold text-sm capitalize">
-                    {activeTab === "tools" ? "Meeting Tools" : activeTab === "host_controls" ? "Host Controls" : activeTab}
-                </h3>
+                <div className="flex items-center gap-2">
+                    <h3 className="font-semibold text-sm capitalize">
+                        {activeTab === "tools" ? "Meeting Tools" : activeTab === "host_controls" ? "Host Controls" : activeTab}
+                    </h3>
+                    {activeTab === "presentation" && onUndockPresentation && (
+                        <button
+                            onClick={onUndockPresentation}
+                            className="p-1 rounded hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
+                            title="Undock to Overlay"
+                        >
+                            <svg width="14" height="14" viewBox="0 0 15 15" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M13.5 13.5H1.5V1.5h6V.5h-6a.5.5 0 0 0-.5.5v13a.5.5 0 0 0 .5.5h13a.5.5 0 0 0 .5-.5v-6h-1v6zM10 1v1h2.293l-4.147 4.146.708.708L13 2.707V5h1V1h-4z" fill="currentColor" /></svg>
+                        </button>
+                    )}
+                </div>
                 <button onClick={onClose} className="p-1 hover:bg-muted rounded-md transition-colors">
                     <X className="w-4 h-4 text-muted-foreground" />
                 </button>
@@ -113,6 +153,9 @@ export function SidePanel({
                         isAdmin={isAdmin}
                         onToggleWhiteboard={onToggleWhiteboard}
                         isWhiteboardOpen={isWhiteboardOpen}
+                        onTogglePresentation={onTogglePresentation}
+                        isPresentationOpen={isPresentationOpen}
+                        hasPresentation={hasPresentation}
                         view={toolsView}
                         setView={onToolsViewChange || (() => { })}
                     />
@@ -120,6 +163,16 @@ export function SidePanel({
 
                 {activeTab === "host_controls" && (
                     <HostControls roomName={roomName} />
+                )}
+
+                {activeTab === "presentation" && presentationUrl && (
+                    <div className="w-full h-full bg-white relative">
+                        <iframe
+                            src={presentationUrl}
+                            className="absolute inset-0 w-full h-full border-0"
+                            title="Presentation Side View"
+                        />
+                    </div>
                 )}
             </div>
         </div>
@@ -131,6 +184,9 @@ function ToolsListContent({
     isAdmin,
     onToggleWhiteboard,
     isWhiteboardOpen,
+    onTogglePresentation,
+    isPresentationOpen,
+    hasPresentation,
     view,
     setView
 }: {
@@ -138,6 +194,9 @@ function ToolsListContent({
     isAdmin: boolean;
     onToggleWhiteboard: () => void;
     isWhiteboardOpen: boolean;
+    onTogglePresentation: () => void;
+    isPresentationOpen: boolean;
+    hasPresentation: boolean;
     view: "menu" | "polling";
     setView: (v: "menu" | "polling") => void;
 }) {
@@ -202,6 +261,30 @@ function ToolsListContent({
                 </button>
             </div>
 
+            {/* Presentation Item */}
+            {hasPresentation && (
+                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50 hover:bg-muted/50 transition-colors">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-md bg-orange-500/10 text-orange-500">
+                            <FileText className="w-5 h-5" />
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-sm font-medium">Presentation</span>
+                            <span className="text-[10px] text-muted-foreground">View uploaded PDF</span>
+                        </div>
+                    </div>
+                    <button
+                        onClick={onTogglePresentation}
+                        className={`px-3 py-1.5 rounded text-xs font-medium transition-colors border ${isPresentationOpen
+                            ? "bg-primary border-primary text-primary-foreground"
+                            : "bg-background border-border hover:bg-muted"
+                            }`}
+                    >
+                        {isPresentationOpen ? "Close" : "Open"}
+                    </button>
+                </div>
+            )}
+
             {/* Recording Item */}
             {isAdmin && (
                 <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50 hover:bg-muted/50 transition-colors">
@@ -229,6 +312,7 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
     const [actionLoading, setActionLoading] = useState<string | null>(null);
     const [openMenuId, setOpenMenuId] = useState<string | null>(null);
     const [bannedUsers, setBannedUsers] = useState<string[]>([]);
+    const [isCreator, setIsCreator] = useState(false);
     const menuRef = useRef<HTMLDivElement>(null);
 
     // Close menu when clicking outside
@@ -243,17 +327,24 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
     }, []);
 
     useEffect(() => {
-        if (isAdmin) {
-            loadBannedUsers();
-        }
-    }, [isAdmin, roomName]);
+        loadBannedUsers();
+    }, [roomName]);
 
     const loadBannedUsers = async () => {
         try {
+            const userStr = localStorage.getItem("vc_user");
+            const currentUserId = userStr ? JSON.parse(userStr).id : null;
+
             const rooms = await fetchUserDbRooms();
             const room = rooms.find(r => r.name === roomName || r.room_code === roomName);
-            if (room && room.banned_users) {
-                setBannedUsers(room.banned_users);
+
+            if (room) {
+                if (room.banned_users) {
+                    setBannedUsers(room.banned_users);
+                }
+                if (currentUserId && room.createdById === currentUserId) {
+                    setIsCreator(true);
+                }
             }
         } catch (e) {
             console.error("Failed to load banned users", e);
@@ -484,33 +575,51 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
             </div>
 
             {/* Banned Users Section */}
-            {isAdmin && bannedUsers.length > 0 && (
+            {(isAdmin || isCreator) && (
                 <div className="space-y-2 pt-2 border-t border-border">
-                    <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider px-2">Banned Users ({bannedUsers.length})</h4>
-                    <div className="space-y-1">
-                        {bannedUsers.map((identity) => (
-                            <div key={identity} className="flex items-center justify-between p-2 rounded-md bg-destructive/5 hover:bg-destructive/10 transition-colors border border-destructive/20">
-                                <div className="flex items-center gap-2 overflow-hidden">
-                                    <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center text-xs font-bold text-destructive shrink-0">
-                                        <Ban className="w-4 h-4" />
-                                    </div>
-                                    <div className="flex flex-col min-w-0">
-                                        <span className="text-sm font-medium truncate">{identity}</span>
-                                        <span className="text-[10px] text-destructive">Banned</span>
-                                    </div>
-                                </div>
-                                <button
-                                    onClick={() => handleUnban(identity)}
-                                    disabled={!!actionLoading}
-                                    className="p-1.5 text-xs font-medium bg-background border border-border rounded hover:bg-muted transition-colors flex items-center gap-1"
-                                    title="Unban"
-                                >
-                                    <Unlock className="w-3 h-3" />
-                                    Unban
-                                </button>
-                            </div>
-                        ))}
+                    <div className="flex items-center justify-between px-2">
+                        <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                            Banned Users ({bannedUsers.length})
+                        </h4>
+                        <button
+                            onClick={() => loadBannedUsers()}
+                            className="p-1 hover:bg-muted rounded transition-colors text-muted-foreground hover:text-foreground"
+                            title="Refresh banned list"
+                        >
+                            <RefreshCw className="w-3 h-3" />
+                        </button>
                     </div>
+
+                    {bannedUsers.length === 0 ? (
+                        <div className="px-2 py-4 text-center border border-dashed border-border rounded-md">
+                            <p className="text-xs text-muted-foreground italic">No banned users</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-1">
+                            {bannedUsers.map((identity) => (
+                                <div key={identity} className="flex items-center justify-between p-2 rounded-md bg-destructive/5 hover:bg-destructive/10 transition-colors border border-destructive/20">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        <div className="w-8 h-8 rounded-full bg-destructive/10 flex items-center justify-center text-xs font-bold text-destructive shrink-0">
+                                            <Ban className="w-4 h-4" />
+                                        </div>
+                                        <div className="flex flex-col min-w-0">
+                                            <span className="text-sm font-medium truncate">{identity}</span>
+                                            <span className="text-[10px] text-destructive">Banned</span>
+                                        </div>
+                                    </div>
+                                    <button
+                                        onClick={() => handleUnban(identity)}
+                                        disabled={!!actionLoading}
+                                        className="p-1.5 text-xs font-medium bg-background border border-border rounded hover:bg-muted transition-colors flex items-center gap-1"
+                                        title="Unban"
+                                    >
+                                        <Unlock className="w-3 h-3" />
+                                        Unban
+                                    </button>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             )}
         </div>

@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { motion, AnimatePresence } from "framer-motion"
-import { X, Users, Shield, Clock, Trash2, Edit2, Copy, BarChart3, Settings, ChevronLeft, Ban, Unlock } from "lucide-react"
-import type { DbRoom, ActiveRoom, Group } from "@/lib/api/admin-api"
-import { unbanParticipant } from "@/lib/api/admin-api"
+import { X, Users, Shield, Clock, Trash2, Edit2, Copy, BarChart3, Settings, ChevronLeft, Ban, Unlock, FileText, Upload } from "lucide-react"
+import type { DbRoom, ActiveRoom, Group, User } from "@/lib/api/admin-api"
+import { unbanParticipant, uploadRoomPresentation, updateRoomPermissions } from "@/lib/api/admin-api"
 import { toast } from "sonner"
 import { cn } from "@/lib/utils"
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
@@ -18,9 +18,10 @@ interface RoomDetailSheetProps {
     onDelete: (id: number) => void
     onEditSuccess: () => void // Callback to refresh data
     groups: Group[]
+    users: User[]
 }
 
-export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, onEditSuccess, groups }: RoomDetailSheetProps) {
+export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, onEditSuccess, groups, users }: RoomDetailSheetProps) {
     const [activeTab, setActiveTab] = useState<"overview" | "participants" | "settings">("overview")
     const [isEditing, setIsEditing] = useState(false)
 
@@ -109,6 +110,7 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
                                 <RoomForm
                                     initialData={room}
                                     groups={groups}
+                                    users={users}
                                     onSuccess={() => {
                                         setIsEditing(false)
                                         onEditSuccess()
@@ -161,69 +163,154 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
                                 {/* Tab Content */}
                                 <div className="flex-1 overflow-y-auto p-6 space-y-6">
                                     {activeTab === "overview" && (
-                                        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
-                                            {/* Status Card */}
-                                            <div className={cn(
-                                                "p-4 rounded-xl border flex items-center justify-between",
-                                                activeRoom
-                                                    ? "bg-green-500/5 border-green-500/20"
-                                                    : "bg-muted/30 border-border"
-                                            )}>
-                                                <div className="flex items-center gap-3">
-                                                    <div className={cn(
-                                                        "h-10 w-10 rounded-full flex items-center justify-center",
-                                                        activeRoom ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"
-                                                    )}>
-                                                        <BarChart3 className="h-5 w-5" />
+                                        <>
+                                            <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-300">
+                                                {/* Status Card */}
+                                                <div className={cn(
+                                                    "p-4 rounded-xl border flex items-center justify-between",
+                                                    activeRoom
+                                                        ? "bg-green-500/5 border-green-500/20"
+                                                        : "bg-muted/30 border-border"
+                                                )}>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className={cn(
+                                                            "h-10 w-10 rounded-full flex items-center justify-center",
+                                                            activeRoom ? "bg-green-500/10 text-green-600" : "bg-muted text-muted-foreground"
+                                                        )}>
+                                                            <BarChart3 className="h-5 w-5" />
+                                                        </div>
+                                                        <div>
+                                                            <h3 className="font-semibold text-sm">
+                                                                {activeRoom ? "Session Active" : "Room Idle"}
+                                                            </h3>
+                                                            <p className="text-xs text-muted-foreground">
+                                                                {activeRoom
+                                                                    ? `Started ${new Date(activeRoom.creation_time * 1000).toLocaleTimeString()}`
+                                                                    : "No active meeting session"}
+                                                            </p>
+                                                        </div>
                                                     </div>
-                                                    <div>
-                                                        <h3 className="font-semibold text-sm">
-                                                            {activeRoom ? "Session Active" : "Room Idle"}
-                                                        </h3>
-                                                        <p className="text-xs text-muted-foreground">
-                                                            {activeRoom
-                                                                ? `Started ${new Date(activeRoom.creation_time * 1000).toLocaleTimeString()}`
-                                                                : "No active meeting session"}
+                                                    {activeRoom && (
+                                                        <div className="text-right">
+                                                            <span className="text-2xl font-bold text-green-600">{activeRoom.num_participants}</span>
+                                                            <p className="text-[10px] uppercase text-muted-foreground font-semibold">Online</p>
+                                                        </div>
+                                                    )}
+                                                </div>
+
+                                                {/* Info Grid */}
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    <div className="p-4 rounded-xl bg-card border border-border space-y-1">
+                                                        <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                                                            <Clock className="h-4 w-4" />
+                                                            <span className="text-xs font-semibold uppercase">Created</span>
+                                                        </div>
+                                                        <p className="text-sm font-medium">
+                                                            {room.created_at ? new Date(room.created_at).toLocaleString() : "-"}
+                                                        </p>
+                                                    </div>
+                                                    <div className="p-4 rounded-xl bg-card border border-border space-y-1">
+                                                        <div className="flex items-center gap-2 text-muted-foreground mb-2">
+                                                            <Users className="h-4 w-4" />
+                                                            <span className="text-xs font-semibold uppercase">Max Capacity</span>
+                                                        </div>
+                                                        <p className="text-sm font-medium">
+                                                            {room.max_participants} Participants
                                                         </p>
                                                     </div>
                                                 </div>
-                                                {activeRoom && (
-                                                    <div className="text-right">
-                                                        <span className="text-2xl font-bold text-green-600">{activeRoom.num_participants}</span>
-                                                        <p className="text-[10px] uppercase text-muted-foreground font-semibold">Online</p>
-                                                    </div>
-                                                )}
-                                            </div>
 
-                                            {/* Info Grid */}
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div className="p-4 rounded-xl bg-card border border-border space-y-1">
-                                                    <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                                                        <Clock className="h-4 w-4" />
-                                                        <span className="text-xs font-semibold uppercase">Created</span>
+                                                <div className="space-y-2">
+                                                    <h3 className="text-sm font-semibold text-foreground">Description</h3>
+                                                    <div className="p-4 rounded-xl bg-muted/30 border border-border text-sm text-muted-foreground">
+                                                        {room.description || "No description set for this room."}
                                                     </div>
-                                                    <p className="text-sm font-medium">
-                                                        {room.created_at ? new Date(room.created_at).toLocaleString() : "-"}
-                                                    </p>
-                                                </div>
-                                                <div className="p-4 rounded-xl bg-card border border-border space-y-1">
-                                                    <div className="flex items-center gap-2 text-muted-foreground mb-2">
-                                                        <Users className="h-4 w-4" />
-                                                        <span className="text-xs font-semibold uppercase">Max Capacity</span>
-                                                    </div>
-                                                    <p className="text-sm font-medium">
-                                                        {room.max_participants} Participants
-                                                    </p>
                                                 </div>
                                             </div>
 
                                             <div className="space-y-2">
-                                                <h3 className="text-sm font-semibold text-foreground">Description</h3>
-                                                <div className="p-4 rounded-xl bg-muted/30 border border-border text-sm text-muted-foreground">
-                                                    {room.description || "No description set for this room."}
+                                                <h3 className="text-sm font-semibold text-foreground">Presentation</h3>
+                                                <div className="p-4 rounded-xl bg-card border border-border space-y-3">
+                                                    {room.presentation_path ? (
+                                                        <div className="flex items-center justify-between p-3 bg-muted/50 rounded-lg border border-border/50">
+                                                            <div className="flex items-center gap-3 overflow-hidden">
+                                                                <div className="h-8 w-8 rounded bg-red-500/10 text-red-600 flex items-center justify-center flex-shrink-0">
+                                                                    <FileText className="h-4 w-4" />
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="text-sm font-medium truncate max-w-[200px]">
+                                                                        {room.presentation_path.split('/').pop()}
+                                                                    </p>
+                                                                    <a
+                                                                        href={room.presentation_path}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        className="text-xs text-primary hover:underline"
+                                                                    >
+                                                                        View PDF
+                                                                    </a>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                    ) : (
+                                                        <div className="p-4 text-center border border-dashed border-border rounded-lg bg-muted/30">
+                                                            <p className="text-sm text-muted-foreground">No presentation uploaded</p>
+                                                        </div>
+                                                    )}
+
+                                                    <div className="pt-2">
+                                                        <label className="flex flex-col gap-2">
+                                                            <span className="text-xs font-semibold uppercase text-muted-foreground">Update Presentation (PDF)</span>
+                                                            <input
+                                                                type="file"
+                                                                accept="application/pdf"
+                                                                className="text-sm file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-primary/10 file:text-primary hover:file:bg-primary/20 cursor-pointer"
+                                                                onChange={async (e) => {
+                                                                    const file = e.target.files?.[0]
+                                                                    if (!file) return
+
+                                                                    if (file.type !== "application/pdf") {
+                                                                        toast.error("Please upload a valid PDF file")
+                                                                        return
+                                                                    }
+
+                                                                    try {
+                                                                        toast.loading("Uploading presentation...")
+                                                                        const { path } = await uploadRoomPresentation(room.id, file)
+
+                                                                        // If room is active, update metadata to sync immediately
+                                                                        if (activeRoom) {
+                                                                            try {
+                                                                                const currentMeta = activeRoom.metadata ? JSON.parse(activeRoom.metadata) : {}
+                                                                                const newMeta = {
+                                                                                    ...currentMeta,
+                                                                                    presentation: {
+                                                                                        isOpen: true,
+                                                                                        url: path
+                                                                                    }
+                                                                                }
+                                                                                await updateRoomPermissions(room.name, newMeta)
+                                                                                toast.success("Presentation synced to active meeting")
+                                                                            } catch (err) {
+                                                                                console.error("Failed to sync metadata", err)
+                                                                            }
+                                                                        }
+
+                                                                        toast.dismiss()
+                                                                        toast.success("Presentation uploaded successfully")
+                                                                        onEditSuccess()
+                                                                    } catch (error) {
+                                                                        toast.dismiss()
+                                                                        toast.error("Failed to upload presentation")
+                                                                        console.error(error)
+                                                                    }
+                                                                }}
+                                                            />
+                                                        </label>
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
+                                        </>
                                     )}
 
                                     {activeTab === "participants" && (
@@ -243,14 +330,20 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
                                                         </div>
                                                     ) : (
                                                         <div className="divide-y divide-border">
-                                                            {room.assigned_to.map((user, idx) => (
-                                                                <div key={idx} className="p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors">
-                                                                    <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
-                                                                        {user.charAt(0).toUpperCase()}
+                                                            {room.assigned_to.map((userIdOrName, idx) => {
+                                                                // Try to find user if it's an ID
+                                                                const user = users.find(u => u.id.toString() === userIdOrName || u.username === userIdOrName)
+                                                                const displayName = user ? user.username : userIdOrName
+
+                                                                return (
+                                                                    <div key={idx} className="p-3 flex items-center gap-3 hover:bg-muted/50 transition-colors">
+                                                                        <div className="h-8 w-8 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold">
+                                                                            {displayName.charAt(0).toUpperCase()}
+                                                                        </div>
+                                                                        <span className="text-sm font-medium">{displayName}</span>
                                                                     </div>
-                                                                    <span className="text-sm font-medium">{user}</span>
-                                                                </div>
-                                                            ))}
+                                                                )
+                                                            })}
                                                         </div>
                                                     )}
                                                 </div>
@@ -346,7 +439,8 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
                         )}
                     </motion.div>
                 </>
-            )}
-        </AnimatePresence>
+            )
+            }
+        </AnimatePresence >
     )
 }

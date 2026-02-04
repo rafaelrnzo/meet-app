@@ -9,9 +9,11 @@ import {
     deleteDbRoom,
     fetchGroups,
     fetchActiveRooms,
+    fetchUsers,
     type DbRoom,
     type Group as GroupDto,
     type ActiveRoom,
+    type User,
 } from "@/lib/api/admin-api"
 import { useAuth } from "../../../hooks/use-auth"
 import { RoomFormModal } from "@/components/admin/RoomFormModal"
@@ -23,6 +25,7 @@ export default function RoomsPage() {
     const [rooms, setRooms] = useState<DbRoom[]>([])
     const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
     const [groups, setGroups] = useState<GroupDto[]>([])
+    const [users, setUsers] = useState<User[]>([])
     const [searchQuery, setSearchQuery] = useState("")
     const [filterType, setFilterType] = useState<"all" | "live" | "public" | "private" | "group">("all")
     const [sortBy, setSortBy] = useState<"newest" | "oldest" | "alpha">("newest")
@@ -45,14 +48,16 @@ export default function RoomsPage() {
 
     const loadData = async () => {
         try {
-            const [r, g, ar] = await Promise.all([
+            const [r, g, ar, u] = await Promise.all([
                 fetchDbRooms(),
                 fetchGroups(),
-                fetchActiveRooms().catch(() => [])
+                fetchActiveRooms().catch(() => []),
+                fetchUsers().catch(() => [])
             ])
             setRooms(r || [])
             setGroups(g || [])
             setActiveRooms(ar || [])
+            setUsers(u || [])
         } catch (error) {
             console.error("Failed to load data", error)
         }
@@ -306,6 +311,7 @@ export default function RoomsPage() {
                 onSuccess={loadData}
                 editingRoom={editingRoom}
                 groups={groups}
+                users={users}
             />
 
             <RoomDetailSheet
@@ -316,6 +322,7 @@ export default function RoomsPage() {
                 onDelete={handleDelete}
                 onEditSuccess={loadData}
                 groups={groups}
+                users={users}
             />
         </div>
     )

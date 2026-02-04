@@ -57,7 +57,7 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
 
       // Legacy admin check
       if (options?.requireAdmin && !admin) {
-        router.replace("/not-authorized")
+        router.replace("/")
         return
       }
 
@@ -65,7 +65,7 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
       if (options?.requirePermission) {
         const has = admin || userPerms.includes(options.requirePermission)
         if (!has) {
-          router.replace("/not-authorized")
+          router.replace("/")
         }
       }
     }

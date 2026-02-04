@@ -8,7 +8,7 @@ export default async function MeetingPage({
   searchParams,
 }: {
   params: Promise<{ room: string }>;
-  searchParams?: { identity?: string };
+  searchParams: Promise<{ identity?: string }>;
 }) {
   const { room } = await params;
 

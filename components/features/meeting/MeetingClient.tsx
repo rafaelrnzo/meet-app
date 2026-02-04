@@ -6,13 +6,13 @@ import { fetchToken } from "@/lib/api/api";
 import RoomContainer from "@/components/livekit/RoomContainer";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PreJoin, { MediaChoices } from "./PreJoin";
 
 export default function MeetingClient({ room }: { room: string }) {
   const searchParams = useSearchParams();
 
   const identity = useMemo(() => {
     const q = searchParams.get("identity");
-    if (q && q.trim()) return q.trim();
     return `user-${Math.random().toString(36).slice(2, 8)}`;
   }, [searchParams]);
 
@@ -20,6 +20,8 @@ export default function MeetingClient({ room }: { room: string }) {
   const [serverUrl, setServerUrl] = useState<string>("");
   const [tokenParams, setTokenParams] = useState<{ roomName?: string; isWaiting?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  const [preJoinChoices, setPreJoinChoices] = useState<MediaChoices | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -109,6 +111,17 @@ export default function MeetingClient({ room }: { room: string }) {
     );
   }
 
+  // Show PreJoin screen if no choices made yet
+  if (!preJoinChoices) {
+    return (
+      <PreJoin
+        roomName={tokenParams?.roomName || room}
+        initialUsername={identity}
+        onJoin={setPreJoinChoices}
+      />
+    );
+  }
+
   return (
     <RoomContainer
       token={token}
@@ -116,6 +129,7 @@ export default function MeetingClient({ room }: { room: string }) {
       roomName={room}
       roomTitle={tokenParams?.roomName}
       initialIsWaiting={tokenParams?.isWaiting}
+      initialMediaState={preJoinChoices}
     />
   );
 }

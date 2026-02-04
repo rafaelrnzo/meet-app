@@ -52,6 +52,8 @@ export type DbRoom = {
   created_at?: string
   updated_at?: string
   banned_users?: string[]
+  presentation_path?: string
+  createdById?: number
 }
 
 export async function fetchDbRooms(): Promise<DbRoom[]> {
@@ -63,6 +65,13 @@ export async function fetchDbRooms(): Promise<DbRoom[]> {
 
 export async function fetchUserDbRooms(): Promise<DbRoom[]> {
   return apiRequest<DbRoom[]>("/api/rooms", {
+    method: "GET",
+    cache: "no-store",
+  })
+}
+
+export async function fetchRoomByCode(code: string): Promise<DbRoom> {
+  return apiRequest<DbRoom>(`/api/rooms/${code}`, {
     method: "GET",
     cache: "no-store",
   })
@@ -102,6 +111,30 @@ export async function deleteDbRoom(id: number): Promise<void> {
   await apiRequest(`/admin/rooms/${id}`, {
     method: "DELETE",
   })
+}
+
+export async function uploadRoomPresentation(id: number, file: File): Promise<{ path: string }> {
+  const formData = new FormData()
+  formData.append("file", file)
+
+  const token = getToken()
+  const headers: Record<string, string> = {}
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`
+  }
+
+  const res = await fetch(`${API_BASE}/admin/rooms/${id}/presentation`, {
+    method: "POST",
+    headers,
+    body: formData,
+  })
+
+  if (!res.ok) {
+    const text = await res.text()
+    throw new Error(text || "Failed to upload presentation")
+  }
+
+  return res.json()
 }
 
 export type Group = {
@@ -150,6 +183,7 @@ export type ActiveRoom = {
   name: string
   num_participants: number
   creation_time: number
+  metadata?: string
 }
 
 export async function fetchActiveRooms(): Promise<ActiveRoom[]> {

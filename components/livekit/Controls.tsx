@@ -24,22 +24,29 @@ import {
   Copy,
   Check,
   LayoutGrid,
-  ChevronUp
+  ChevronUp,
+  FileText
 } from "lucide-react";
 import { toast } from "sonner";
 import { Switch } from "@/components/ui/switch";
 import { VideoPresets, VideoPreset, Track, TrackPublication, Participant } from "livekit-client";
 
-type SidebarTab = "chat" | "participants" | "tools" | "settings" | "host_controls" | null;
+type SidebarTab = "chat" | "participants" | "tools" | "settings" | "host_controls" | "presentation" | null;
 
 export function Controls({
   roomName,
   activeSidebar,
   onSidebarChange,
+  onTogglePresentation,
+  isPresentationOpen,
+  hasPresentation
 }: {
   roomName: string;
   activeSidebar: SidebarTab;
   onSidebarChange: (tab: SidebarTab) => void;
+  onTogglePresentation?: () => void;
+  isPresentationOpen?: boolean;
+  hasPresentation?: boolean;
 }) {
   const room = useRoomContext();
   const {
@@ -104,7 +111,8 @@ export function Controls({
         const userStr = localStorage.getItem("vc_user");
         if (userStr) {
           const user = JSON.parse(userStr);
-          if (user.role === "admin") {
+          const role = user.role;
+          if (role === "admin" || (typeof role === "object" && role?.name === "admin")) {
             setIsAdmin(true);
           }
         }
@@ -444,6 +452,17 @@ export function Controls({
         >
           <LayoutGrid className="w-5 h-5" />
         </button>
+
+        {/* Presentation Toggle (If available) */}
+        {hasPresentation && (
+          <button
+            onClick={onTogglePresentation}
+            className={minimalBtn(isPresentationOpen ?? false, busy)}
+            title="View Presentation"
+          >
+            <FileText className="w-5 h-5" />
+          </button>
+        )}
 
         {/* Participants */}
         <button

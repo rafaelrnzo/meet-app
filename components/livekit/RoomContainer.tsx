@@ -12,7 +12,7 @@ import {
 } from "@livekit/components-react";
 import { useRouter, useSearchParams } from "next/navigation";
 
-import { Track, type Participant, type LocalParticipant, RoomEvent, DataPacket_Kind, ParticipantEvent, DisconnectReason } from "livekit-client";
+import { Track, type Participant, type LocalParticipant, RoomEvent, DataPacket_Kind, ParticipantEvent, DisconnectReason, Room } from "livekit-client";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
 import { Video, Users, ChevronLeft, ChevronRight, BarChart2, UserMinus } from "lucide-react";
 import * as React from "react";
@@ -23,7 +23,10 @@ import { VirtualBackgroundSelector } from "./VirtualBackgroundSelector";
 import { ReactionOverlay } from "./ReactionOverlay";
 import { SidePanel } from "./SidePanel";
 import { Toaster, toast } from "sonner";
+import { MediaChoices } from "@/components/features/meeting/PreJoin";
 import { PollingProvider } from "./Polling";
+import { fetchUserDbRooms, fetchRoomByCode, updateRoomPermissions } from "@/lib/api/admin-api";
+import { PresentationViewer } from "./PresentationViewer";
 
 
 type TrackRef = any;
@@ -192,7 +195,17 @@ function CustomParticipantTile({
 }
 
 function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
-  const participants = useParticipants();
+  const allParticipants = useParticipants();
+  const participants = useMemo(() => {
+    return allParticipants.filter((p) => {
+      try {
+        const md = p.metadata ? JSON.parse(p.metadata) : {};
+        return md.status !== "waiting";
+      } catch (e) {
+        return true;
+      }
+    });
+  }, [allParticipants]);
   const trackRefs = useTracks(undefined, { onlySubscribed: false });
 
   const cameraTracksBySid = useMemo(() => {
@@ -371,12 +384,14 @@ export default function RoomContainer({
   roomName,
   roomTitle,
   initialIsWaiting = false,
+  initialMediaState,
 }: {
   token: string;
   serverUrl: string;
   roomName: string;
   roomTitle?: string;
   initialIsWaiting?: boolean;
+  initialMediaState?: MediaChoices;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -388,11 +403,12 @@ export default function RoomContainer({
 
   const [showWb, setShowWb] = useState(false);
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("auto");
-  const [activeSidebar, setActiveSidebar] = useState<"chat" | "participants" | "tools" | "settings" | "host_controls" | null>(null);
+  const [activeSidebar, setActiveSidebar] = useState<"chat" | "participants" | "tools" | "settings" | "host_controls" | "presentation" | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(320);
   const [toolsView, setToolsView] = useState<"menu" | "polling">("menu");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isKicked, setIsKicked] = useState(false);
+  const [room, setRoom] = useState<Room | null>(null);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -410,6 +426,86 @@ export default function RoomContainer({
       }
     }
   }, []);
+
+  const [presentationPath, setPresentationPath] = useState<string | null>(null);
+  const [roomId, setRoomId] = useState<number | null>(null);
+  const [showPresentation, setShowPresentation] = useState(false);
+  const [presentationMode, setPresentationMode] = useState<"overlay" | "sidebar">("overlay");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const currentRoom = await fetchRoomByCode(roomName);
+        if (currentRoom) {
+          setRoomId(currentRoom.id);
+          if (currentRoom.presentation_path) {
+            setPresentationPath(currentRoom.presentation_path);
+          }
+        }
+      } catch (e) {
+        console.error("Failed to fetch room info for presentation", e);
+      }
+    })();
+  }, [roomName]);
+
+  // Construct full presentation URL
+  const fullPresentationPath = useMemo(() => {
+    if (!presentationPath) return null;
+    if (presentationPath.startsWith("http")) return presentationPath;
+
+    // If we have a path but it's not absolute, we assume it's served via our proxy
+    // Route: /api/presentations/:id
+    if (!roomId) return null;
+
+    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") || "http://localhost:8080";
+    return `${baseUrl}/api/presentations/${roomId}`;
+  }, [presentationPath, roomId]);
+
+  // Sync Presentation State from Metadata
+  useEffect(() => {
+    if (!room) return;
+
+    const checkMetadata = () => {
+      const md = room.metadata ? JSON.parse(room.metadata) : {};
+      if (md.presentation) {
+        if (md.presentation.url) setPresentationPath(md.presentation.url);
+        if (typeof md.presentation.isOpen === "boolean") setShowPresentation(md.presentation.isOpen);
+      }
+    };
+
+    checkMetadata();
+    room.on(RoomEvent.RoomMetadataChanged, checkMetadata);
+    return () => {
+      room.off(RoomEvent.RoomMetadataChanged, checkMetadata);
+    };
+  }, [room]);
+
+  const handleTogglePresentation = async () => {
+    if (isAdmin) {
+      // Toggle for everyone
+      try {
+        const currentMeta = room?.metadata ? JSON.parse(room.metadata) : {};
+        const newState = !showPresentation;
+        const newMeta = {
+          ...currentMeta,
+          presentation: {
+            isOpen: newState,
+            url: presentationPath // Ensure URL is preserved or updated if needed
+          }
+        };
+        await updateRoomPermissions(roomName, newMeta);
+        // Explicitly update local state in case metadata event is suppressed (same value) or slow
+        setShowPresentation(newState);
+      } catch (e) {
+        toast.error("Failed to sync presentation state");
+        // Fallback to local
+        setShowPresentation(!showPresentation);
+      }
+    } else {
+      // Local toggle for non-admins
+      setShowPresentation(!showPresentation);
+    }
+  };
 
   const handleLayoutChange = (mode: LayoutMode) => setLayoutMode(mode);
 
@@ -440,11 +536,21 @@ export default function RoomContainer({
     <LiveKitRoom
       token={token}
       serverUrl={wsUrl}
-      connect
-      audio
-      video
+      connect={true}
+      audio={initialMediaState?.audioEnabled ?? false}
+      video={initialMediaState?.videoEnabled ?? false}
       connectOptions={{ autoSubscribe: true }}
-      options={{ adaptiveStream: true, dynacast: true }}
+      options={{
+        adaptiveStream: true,
+        dynacast: true,
+        audioCaptureDefaults: {
+          deviceId: initialMediaState?.audioDeviceId
+        },
+        videoCaptureDefaults: {
+          deviceId: initialMediaState?.videoDeviceId,
+          resolution: { width: 1280, height: 720 }
+        }
+      }}
       onConnected={() => console.log("[LiveKit] connected to room:", roomName)}
       onDisconnected={(reason) => {
         console.log("[LiveKit] disconnected", reason);
@@ -467,6 +573,7 @@ export default function RoomContainer({
       }}
       data-lk-theme="default"
     >
+      <RoomContextHelper onRoomReady={setRoom} />
       <RoomAudioRenderer />
       <StartAudio label="Klik untuk mengaktifkan audio" />
       <Toaster position="top-center" />
@@ -479,6 +586,7 @@ export default function RoomContainer({
       )}
 
       <PollingProvider>
+        {isAdmin && <WaitingRoomListener isAdmin={isAdmin} roomName={roomName} />}
         <PollListener onPollCreated={(question, pollId) => {
           toast.custom((t) => (
             <div className="w-[340px] p-4 rounded-xl bg-card border border-border shadow-2xl flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300">
@@ -517,7 +625,7 @@ export default function RoomContainer({
           ), { id: `poll-${pollId}`, duration: 10000 });
         }} />
 
-        {/* <WaitingRoomOverlay initialIsWaiting={initialIsWaiting} /> */}
+        <WaitingRoomOverlay initialIsWaiting={initialIsWaiting} />
 
         {/* <DebugTracks /> */}
 
@@ -570,21 +678,47 @@ export default function RoomContainer({
                 roomName={roomName}
                 onToggleWhiteboard={() => setShowWb(v => !v)}
                 isWhiteboardOpen={showWb}
+                onTogglePresentation={handleTogglePresentation}
+                isPresentationOpen={showPresentation}
+                hasPresentation={!!fullPresentationPath}
                 isAdmin={isAdmin}
                 toolsView={toolsView}
                 onToolsViewChange={setToolsView}
                 width={sidebarWidth}
                 onWidthChange={setSidebarWidth}
+                presentationUrl={fullPresentationPath}
+                onUndockPresentation={() => {
+                  setPresentationMode("overlay");
+                  // Optional: Close sidebar or switch to another tab? usually we just undock, sidebar stays open or closes?
+                  // Providing better UX: Switch sidebar safely
+                  setActiveSidebar(null);
+                }}
               />
             </div>
           </div>
         </div>
+
+        {fullPresentationPath && presentationMode === "overlay" && (
+          <PresentationViewer
+            url={fullPresentationPath}
+            isOpen={showPresentation}
+            onClose={() => setShowPresentation(false)}
+            onDock={() => {
+              setPresentationMode("sidebar");
+              setActiveSidebar("presentation");
+              setSidebarWidth(Math.min(window.innerWidth * 1, 800)); // Auto-expand to 60% or 800px
+            }}
+          />
+        )}
 
         <div className="border-t border-border bg-card/60 backdrop-blur-md">
           <Controls
             roomName={roomName}
             activeSidebar={activeSidebar}
             onSidebarChange={setActiveSidebar}
+            onTogglePresentation={handleTogglePresentation}
+            isPresentationOpen={showPresentation}
+            hasPresentation={!!fullPresentationPath}
           />
         </div>
       </PollingProvider>
@@ -638,19 +772,45 @@ function KickedState() {
 
 function WaitingRoomOverlay({ initialIsWaiting }: { initialIsWaiting: boolean }) {
   const { localParticipant } = useLocalParticipant();
-
-  // Parse metadata safely
-  const metadata = useMemo(() => {
+  const [metadata, setMetadata] = useState<any>(() => {
     try {
       return localParticipant?.metadata ? JSON.parse(localParticipant.metadata) : {};
     } catch {
       return {};
     }
-  }, [localParticipant?.metadata]);
+  });
+
+  useEffect(() => {
+    if (!localParticipant) return;
+
+    const updateMetadata = () => {
+      try {
+        const md = localParticipant.metadata ? JSON.parse(localParticipant.metadata) : {};
+        setMetadata(md);
+      } catch (e) {
+        // ignore json error
+      }
+    };
+
+    // Initial update in case it changed before effect ran
+    updateMetadata();
+
+    const onMetadataChanged = () => {
+      updateMetadata();
+    };
+
+    localParticipant.on(ParticipantEvent.ParticipantMetadataChanged, onMetadataChanged);
+
+    return () => {
+      localParticipant.off(ParticipantEvent.ParticipantMetadataChanged, onMetadataChanged);
+    };
+  }, [localParticipant]);
 
   const isWaiting = metadata.status === "waiting" || (metadata.status === undefined && initialIsWaiting);
 
   if (!isWaiting) return null;
+
+  // ... (previous code)
 
   return (
     <div className="absolute inset-0 z-[100] bg-background/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center animate-in fade-in duration-500">
@@ -663,4 +823,80 @@ function WaitingRoomOverlay({ initialIsWaiting }: { initialIsWaiting: boolean })
       </p>
     </div>
   );
+}
+
+function WaitingRoomListener({ isAdmin, roomName }: { isAdmin: boolean; roomName: string }) {
+  const room = useRoomContext();
+
+  useEffect(() => {
+    if (!room || !isAdmin) return;
+
+    const onParticipantConnected = (participant: any) => {
+      const metadata = participant.metadata ? JSON.parse(participant.metadata) : {};
+      if (metadata.status === "waiting") {
+        toast.custom((t) => (
+          <div className="w-[340px] p-4 rounded-xl bg-card border border-border shadow-2xl flex flex-col gap-3 animate-in slide-in-from-top-2 duration-300">
+            <div className="flex items-start gap-3">
+              <div className="p-2.5 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                <Users className="w-5 h-5" />
+              </div>
+              <div className="flex flex-col gap-1 min-w-0">
+                <h4 className="text-sm font-semibold text-foreground">Pending Join Request</h4>
+                <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
+                  <span className="font-medium text-foreground">{participant.identity}</span> is waiting to join the meeting.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => toast.dismiss(t)}
+                className="flex-1 py-2 px-3 bg-muted hover:bg-muted/80 text-foreground text-xs font-medium rounded-lg transition-colors"
+              >
+                Dismiss
+              </button>
+              <button
+                onClick={async () => {
+                  // Optimistic UI update could go here
+                  toast.dismiss(t);
+                  try {
+                    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") || "http://localhost:8080";
+                    const token = localStorage.getItem("vc_token");
+                    await fetch(`${API_BASE}/api/livekit/admit`, {
+                      method: "POST",
+                      headers: {
+                        "Content-Type": "application/json",
+                        Authorization: `Bearer ${token}`,
+                      },
+                      body: JSON.stringify({ room_code: roomName, identity: participant.identity }),
+                    });
+                    toast.success(`Admitted ${participant.identity}`);
+                  } catch (e) {
+                    toast.error("Failed to admit user");
+                  }
+                }}
+                className="flex-1 py-2 px-3 bg-primary hover:bg-primary/90 text-primary-foreground text-xs font-bold rounded-lg transition-colors"
+              >
+                Admit
+              </button>
+            </div>
+          </div>
+        ), { duration: 10000 });
+      }
+    };
+
+    room.on(RoomEvent.ParticipantConnected, onParticipantConnected);
+    return () => {
+      room.off(RoomEvent.ParticipantConnected, onParticipantConnected);
+    };
+  }, [room, isAdmin, roomName]);
+
+  return null;
+}
+
+function RoomContextHelper({ onRoomReady }: { onRoomReady: (room: Room) => void }) {
+  const room = useRoomContext();
+  useEffect(() => {
+    if (room) onRoomReady(room);
+  }, [room, onRoomReady]);
+  return null;
 }
