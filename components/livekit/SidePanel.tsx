@@ -66,7 +66,7 @@ export function SidePanel({
 
             animationFrame.current = requestAnimationFrame(() => {
                 const newWidth = window.innerWidth - e.clientX;
-                const maxWidth = window.innerWidth * 0.9;
+                const maxWidth = Math.min(window.innerWidth * 0.8, 800); // Max 80% or 800px
                 setWidth(Math.max(280, Math.min(maxWidth, newWidth)));
                 animationFrame.current = undefined;
             });
@@ -111,10 +111,22 @@ export function SidePanel({
 
     return (
         <div
-            className="flex flex-col h-full bg-card/80 border-l border-border backdrop-blur-md relative"
+            className="flex flex-col h-full bg-card/80 border-l border-border backdrop-blur-md relative group/sidebar"
             style={{ width: typeof width === 'number' ? `${width}px` : width, willChange: 'width' }}
         >
 
+
+            {/* Resize Handle */}
+            <div
+                className="absolute left-0 top-0 bottom-0 w-1.5 cursor-ew-resize hover:bg-primary/10 z-50 transition-colors flex items-center justify-center -translate-x-1/2"
+                onMouseDown={(e) => {
+                    e.preventDefault();
+                    setIsResizing(true);
+                }}
+            >
+                {/* Visual Grip Indicator */}
+                <div className="h-12 w-1 rounded-full bg-muted-foreground/30 group-hover/sidebar:bg-primary/50 transition-colors" />
+            </div>
 
             {/* HEADER */}
             <div className="p-3 border-b border-border flex items-center justify-between bg-card/40">

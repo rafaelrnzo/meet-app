@@ -481,11 +481,21 @@ export default function RoomContainer({
   }, [room]);
 
   const handleTogglePresentation = async () => {
+    const newState = !showPresentation;
+
+    // Ensure sidebar is closed if it was showing the presentation to avoid duplication/confusion
+    if (activeSidebar === "presentation") {
+      setActiveSidebar(null);
+    }
+
+    if (newState) {
+      setPresentationMode("overlay");
+    }
+
     if (isAdmin) {
       // Toggle for everyone
       try {
         const currentMeta = room?.metadata ? JSON.parse(room.metadata) : {};
-        const newState = !showPresentation;
         const newMeta = {
           ...currentMeta,
           presentation: {

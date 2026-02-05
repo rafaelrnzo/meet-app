@@ -31,7 +31,7 @@ export function PresentationViewer({ url, isOpen, onClose, onDock }: Presentatio
                     top: isMinimized ? "auto" : "10%",
                 }}
                 exit={{ opacity: 0, scale: 0.95 }}
-                transition={{ type: "spring", damping: 25, stiffness: 200 }}
+                transition={{ duration: 0.2, ease: "easeInOut" }}
                 className="fixed z-[60] bg-background border border-border rounded-xl shadow-2xl flex flex-col overflow-hidden"
             >
                 <div className="flex items-center justify-between px-4 py-2 bg-muted/50 border-b border-border">

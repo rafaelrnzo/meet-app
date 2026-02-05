@@ -70,7 +70,7 @@ export default function MeetingClient({ room }: { room: string }) {
             </Button>
             <Button
               className="flex-1"
-              onClick={() => window.location.href = '/rooms'}
+              onClick={() => window.location.href = '/'}
             >
               Back to Lobby
             </Button>

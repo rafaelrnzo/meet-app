@@ -17,7 +17,7 @@ import { useAuth } from "../../hooks/use-auth"
 
 export default function HomePage() {
     const router = useRouter()
-    const { isAdmin } = useAuth()
+    const { isAdmin, loading: authLoading } = useAuth()
     const [roomCodeInput, setRoomCodeInput] = useState("")
     const [dbRooms, setDbRooms] = useState<DbRoom[]>([])
     const [dbUserRooms, setUserDbRooms] = useState<DbRoom[]>([])
@@ -25,9 +25,11 @@ export default function HomePage() {
     const [loading, setLoading] = useState(false)
 
     useEffect(() => {
-        loadData()
+        if (!authLoading) {
+            loadData()
+        }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
+    }, [authLoading, isAdmin])
 
     const loadData = async () => {
         setLoading(true)
