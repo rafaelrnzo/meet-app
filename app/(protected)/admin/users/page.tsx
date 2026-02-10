@@ -29,7 +29,7 @@ export default function AdminUsersPage() {
 
   const [newUsername, setNewUsername] = useState("")
   const [newPassword, setNewPassword] = useState("")
-  const [newRole, setNewRole] = useState("") // Defaults to first available
+  const [newRole, setNewRole] = useState<number>(0) // Defaults to first available ID
   const [creating, setCreating] = useState(false)
 
   const [updatingId, setUpdatingId] = useState<number | null>(null)
@@ -51,7 +51,7 @@ export default function AdminUsersPage() {
       setUsers(usersData)
       setRoles(rolesData)
       if (rolesData.length > 0) {
-        setNewRole(rolesData[0].name) // Default to first role
+        setNewRole(rolesData[0].id) // Default to first role
       }
     } catch (err: any) {
       console.error(err)
@@ -70,7 +70,7 @@ export default function AdminUsersPage() {
       const user = await createUser({
         username: newUsername.trim(),
         password: newPassword,
-        role: newRole,
+        role_id: newRole,
       })
       setUsers((prev) => [...prev, user])
       setNewUsername("")
@@ -84,12 +84,12 @@ export default function AdminUsersPage() {
     }
   }
 
-  const handleRoleChange = async (id: number, role: string) => {
+  const handleRoleChange = async (id: number, roleId: number) => {
     setUpdatingId(id)
     try {
-      const updated = await updateUserRole(id, role)
+      const updated = await updateUserRole(id, roleId)
       setUsers((prev) =>
-        prev.map((u) => (u.id === id ? { ...u, role: updated.role } : u))
+        prev.map((u) => (u.id === id ? { ...u, role: updated.role, role_id: roleId } : u))
       )
     } catch (err: any) {
       console.error(err)
@@ -187,11 +187,11 @@ export default function AdminUsersPage() {
             />
             <select
               value={newRole}
-              onChange={(e) => setNewRole(e.target.value)}
+              onChange={(e) => setNewRole(Number(e.target.value))}
               className="bg-background border border-input rounded-md px-3 py-2 text-sm text-foreground md:col-span-1"
             >
               {roles.map(r => (
-                <option key={r.id} value={r.name}>{r.name}</option>
+                <option key={r.id} value={r.id}>{r.name}</option>
               ))}
             </select>
             <Button
@@ -246,18 +246,13 @@ export default function AdminUsersPage() {
                 </thead>
                 <tbody>
                   {users.map((u) => {
-                    // Try to match current role name or object
-                    // The backend might return role as object now, but updateUserRole expects name?
-                    // Wait, fetchUsers returns User which has Role field... 
-                    // Previously I saw User struct having RoleID and Role relation.
-                    // The frontend User type in admin-api.ts likely needs update too if it was just string.
-                    // But here I'll assume u.role is the role name (which my backend auth handler returns in JSON)
-                    // Wait, backend ListUsers returns list of users.
-                    // My backend user struct json tags: Role *Role `json:"role,omitempty"`
-                    // So u.role will be an object {id, name...}
-                    // I need to handle that.
-
-                    const roleName = typeof u.role === 'object' && u.role ? (u.role as any).name : u.role;
+                    // Determine role ID safely
+                    let currentRoleId = u.role_id;
+                    if (!currentRoleId && u.role && typeof u.role === 'object') {
+                      currentRoleId = u.role.id;
+                    }
+                    // Fallback to finding role name in roles list if needed (legacy), 
+                    // but for now relying on id is cleaner.
 
                     return (
                       <tr
@@ -270,15 +265,15 @@ export default function AdminUsersPage() {
                         </td>
                         <td className="px-2 py-2">
                           <select
-                            value={roleName}
+                            value={currentRoleId}
                             disabled={updatingId === u.id}
                             onChange={(e) =>
-                              handleRoleChange(u.id, e.target.value)
+                              handleRoleChange(u.id, Number(e.target.value))
                             }
                             className="bg-background border border-input rounded-md px-2 py-1 text-xs"
                           >
                             {roles.map(r => (
-                              <option key={r.id} value={r.name}>{r.name}</option>
+                              <option key={r.id} value={r.id}>{r.name}</option>
                             ))}
                           </select>
                         </td>

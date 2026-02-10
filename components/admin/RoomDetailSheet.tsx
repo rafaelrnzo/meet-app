@@ -25,6 +25,22 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
     const [activeTab, setActiveTab] = useState<"overview" | "participants" | "settings">("overview")
     const [isEditing, setIsEditing] = useState(false)
 
+    // Helper to construct full URL for presentations
+    const getPresentationUrl = (path: string | undefined): string => {
+        if (!path) return "";
+
+        // If already a full URL (http/https), return as-is (backward compatibility)
+        if (path.startsWith("http://") || path.startsWith("https://")) {
+            return path;
+        }
+
+        // If relative path, prepend backend URL
+        const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
+            (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8080` : "http://localhost:8080");
+
+        return `${API_BASE}${path.startsWith('/') ? path : '/' + path}`;
+    }
+
     // Reset tab and editing state when room changes
     useEffect(() => {
         if (isOpen) {
@@ -242,7 +258,7 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
                                                                         {room.presentation_path.split('/').pop()}
                                                                     </p>
                                                                     <a
-                                                                        href={room.presentation_path}
+                                                                        href={getPresentationUrl(room.presentation_path)}
                                                                         target="_blank"
                                                                         rel="noopener noreferrer"
                                                                         className="text-xs text-primary hover:underline"

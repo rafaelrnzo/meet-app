@@ -2,52 +2,134 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { fetchToken } from "@/lib/api/api";
+import { fetchToken, fetchPublicRoom, joinPublicRoom } from "@/lib/api/api";
 import RoomContainer from "@/components/livekit/RoomContainer";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PreJoin, { MediaChoices } from "./PreJoin";
+import { toast } from "sonner";
 
-export default function MeetingClient({ room }: { room: string }) {
+export default function MeetingClient({ room: encodedRoom }: { room: string }) {
+  const room = decodeURIComponent(encodedRoom);
   const searchParams = useSearchParams();
 
-  const identity = useMemo(() => {
+  const [identity, setIdentity] = useState(() => {
     const q = searchParams.get("identity");
-    return `user-${Math.random().toString(36).slice(2, 8)}`;
-  }, [searchParams]);
+    return q || `Guest-${Math.random().toString(36).slice(2, 6)}`;
+  });
 
   const [token, setToken] = useState<string | null>(null);
   const [serverUrl, setServerUrl] = useState<string>("");
   const [tokenParams, setTokenParams] = useState<{ roomName?: string; isWaiting?: boolean } | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Guest State
+  const [isGuest, setIsGuest] = useState(false);
+  const [roomInfo, setRoomInfo] = useState<{ name: string; is_password_protected: boolean } | null>(null);
 
   const [preJoinChoices, setPreJoinChoices] = useState<MediaChoices | null>(null);
 
   useEffect(() => {
     let active = true;
-    (async () => {
+
+    const init = async () => {
       try {
-        setError(null); // Reset error before fetching
-        const data = await fetchToken(room, identity);
+        setError(null);
+        setLoading(true);
+
+        // 1. Check Auth Check
+        const authToken = typeof window !== 'undefined' ? localStorage.getItem("vc_token") : null;
+
+        if (authToken) {
+          try {
+            // Try fetching as authenticated user
+            // Pass current identity just in case, but backend might override with real user identity
+            const data = await fetchToken(room, identity);
+            if (!active) return;
+            setToken(data.token);
+            setServerUrl(data.serverUrl);
+            setTokenParams({ roomName: data.roomName, isWaiting: data.isWaiting });
+
+            // IMPORTANT: specific logic for logged in user
+            if (data.identity) {
+              setIdentity(data.identity);
+            }
+
+            setIsGuest(false);
+            setLoading(false);
+            return;
+          } catch (e: any) {
+            console.warn("Auth token present but fetch failed, falling back to public check", e);
+            // Show toast to debug why auth failed
+            if (e.message) {
+              toast.error(`Auth Error: ${e.message}`);
+            }
+            // If 401, maybe we should clear token?
+            if (e.message?.includes("401")) {
+              localStorage.removeItem("vc_token");
+            }
+          }
+        }
+
+        // 2. If no auth or auth failed, check if public room
+        const info = await fetchPublicRoom(room);
         if (!active) return;
-        setToken(data.token);
-        setServerUrl(data.serverUrl);
-        setTokenParams({ roomName: data.roomName, isWaiting: data.isWaiting });
+
+        if (info) {
+          setRoomInfo(info);
+          setIsGuest(true);
+          // Don't set token yet, wait for PreJoin
+          setLoading(false);
+        } else {
+          throw new Error("Room not found");
+        }
 
       } catch (e: any) {
-        console.error("fetchToken error:", e);
+        if (!active) return;
+        console.error("Join error:", e);
         if (e.message && e.message.includes("409")) {
           const msg = e.message.split("-").pop()?.trim() || "Anda sedang berada di room lain.";
           setError(msg);
         } else {
-          setError("Gagal mengambil token. Cek backend /token & env (LIVEKIT_SERVER_URL).");
+          setError(e.message || "Gagal memuat room. Pastikan room ada dan Anda memiliki akses.");
         }
+        setLoading(false);
       }
-    })();
+    };
+
+    init();
+
     return () => {
       active = false;
     };
   }, [room, identity]);
+
+  const handleJoin = async (choices: MediaChoices) => {
+    if (!isGuest) {
+      // Already have token, just proceed
+      setPreJoinChoices(choices);
+      return;
+    }
+
+    // If Guest, exchange password for token
+    try {
+      setLoading(true);
+      const data = await joinPublicRoom(room, choices.username, choices.password);
+
+      setToken(data.token);
+      setServerUrl(data.serverUrl);
+      setTokenParams({ roomName: data.roomName, isWaiting: data.isWaiting });
+      setPreJoinChoices(choices);
+      setLoading(false);
+
+    } catch (e: any) {
+      console.error("Guest join failed", e);
+      toast.error("Gagal masuk: " + e.message);
+      setLoading(false);
+      // Stay on PreJoin
+    }
+  };
 
   if (error) {
     return (
@@ -80,7 +162,8 @@ export default function MeetingClient({ room }: { room: string }) {
     );
   }
 
-  if (!token || !serverUrl) {
+  // Loading State (Initial or Joining)
+  if (loading || (!token && !roomInfo)) {
     return (
       <div className="flex flex-col items-center justify-center h-screen w-full bg-background relative overflow-hidden">
         {/* Ambient Background */}
@@ -101,25 +184,30 @@ export default function MeetingClient({ room }: { room: string }) {
               Securing connection to <span className="text-foreground font-medium">{room}</span>...
             </p>
           </div>
-
-          <div className="flex items-center gap-2 text-xs text-muted-foreground/50 mt-8">
-            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
-            <span>Establishing media channels</span>
-          </div>
         </div>
       </div>
     );
   }
 
-  // Show PreJoin screen if no choices made yet
+  // Show PreJoin if we haven't made choices yet
+  // Condition: We have token (Auth user) OR We have roomInfo (Guest)
   if (!preJoinChoices) {
     return (
       <PreJoin
-        roomName={tokenParams?.roomName || room}
+        roomName={tokenParams?.roomName || roomInfo?.name || room}
         initialUsername={identity}
-        onJoin={setPreJoinChoices}
+        onJoin={handleJoin}
+        passwordRequired={isGuest && roomInfo?.is_password_protected}
+        isLoading={loading}
+        disableNameInput={!isGuest}
       />
     );
+  }
+
+  // If we are here, we MUST have a token (either fetched initially or after guest join)
+  if (!token || !serverUrl) {
+    // Should not happen if logic is correct, but safe guard
+    return null;
   }
 
   return (

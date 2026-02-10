@@ -13,6 +13,7 @@ import {
   FieldSeparator,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { AlertCircle } from "lucide-react"
 
 export function LoginForm({
   className,
@@ -94,9 +95,10 @@ export function LoginForm({
         </div>
 
         {error && (
-          <p className="text-xs text-red-400 text-center bg-red-950/40 border border-red-900 px-3 py-2 rounded-lg">
-            {error}
-          </p>
+          <div className="flex items-center gap-2 rounded-lg border border-red-500/20 bg-red-500/10 p-3 text-sm text-red-400">
+            <AlertCircle className="h-4 w-4" />
+            <p>{error}</p>
+          </div>
         )}
 
         <Field>

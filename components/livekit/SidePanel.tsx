@@ -1,7 +1,7 @@
 "use client";
 
 import { useParticipants, useLocalParticipant } from "@livekit/components-react";
-import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft, MicOff, Mic, MoreVertical, Ban, Unlock, RefreshCw, FileText } from "lucide-react";
+import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft, MicOff, Mic, MoreVertical, Ban, Unlock, RefreshCw, FileText, ChevronRight, Presentation } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { muteParticipant, banParticipant, unbanParticipant, fetchUserDbRooms, DbRoom } from "@/lib/api/admin-api";
 import { toast } from "sonner";
@@ -9,6 +9,7 @@ import { Track } from "livekit-client";
 import { MeetingChat } from "./MeetingChat";
 import { ServerRecordingControls } from "./ServerRecordingControls";
 import { PollingTool } from "./Polling";
+import { SharedNotes } from "./SharedNotes";
 
 import { HostControls } from "./HostControls";
 
@@ -24,8 +25,8 @@ interface SidePanelProps {
     isPresentationOpen: boolean;
     hasPresentation: boolean;
     isAdmin: boolean;
-    toolsView?: "menu" | "polling";
-    onToolsViewChange?: (view: "menu" | "polling") => void;
+    toolsView?: "menu" | "polling" | "notes";
+    onToolsViewChange?: (view: "menu" | "polling" | "notes") => void;
     presentationUrl?: string | null;
     onUndockPresentation?: () => void;
     width?: number | string;
@@ -190,7 +191,6 @@ export function SidePanel({
         </div>
     );
 }
-
 function ToolsListContent({
     roomName,
     isAdmin,
@@ -209,8 +209,8 @@ function ToolsListContent({
     onTogglePresentation: () => void;
     isPresentationOpen: boolean;
     hasPresentation: boolean;
-    view: "menu" | "polling";
-    setView: (v: "menu" | "polling") => void;
+    view: "menu" | "polling" | "notes";
+    setView: (v: "menu" | "polling" | "notes") => void;
 }) {
     if (view === "polling") {
         return (
@@ -230,92 +230,120 @@ function ToolsListContent({
         );
     }
 
+    if (view === "notes") {
+        return <SharedNotes isAdmin={isAdmin} onBack={() => setView("menu")} roomName={roomName} />;
+    }
+
     return (
-        <div className="p-4 space-y-4">
-            {/* Polling Item */}
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50 hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-md bg-blue-500/10 text-blue-500">
-                        <BarChart2 className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium">Polling</span>
-                        <span className="text-xs text-muted-foreground">Create and manage polls</span>
-                    </div>
-                </div>
-                <button
-                    onClick={() => setView("polling")}
-                    className="px-3 py-1.5 rounded text-xs font-medium bg-background border border-border hover:bg-muted transition-colors"
-                >
-                    Open
-                </button>
-            </div>
+        <div className="p-4 space-y-2">
+            <h4 className="text-[11px] font-semibold text-muted-foreground uppercase mb-3 px-1 tracking-wider">Collaboration</h4>
 
-            {/* Whiteboard Item */}
-            <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50 hover:bg-muted/50 transition-colors">
-                <div className="flex items-center gap-3">
-                    <div className="p-2 rounded-md bg-primary/10 text-primary">
-                        <PencilRuler className="w-5 h-5" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-sm font-medium">Whiteboard</span>
-                        <span className="text-[10px] text-muted-foreground">Collaborative drawing</span>
-                    </div>
-                </div>
-                <button
-                    onClick={onToggleWhiteboard}
-                    className={`px-3 py-1.5 rounded text-xs font-medium transition-colors border ${isWhiteboardOpen
-                        ? "bg-primary border-primary text-primary-foreground"
-                        : "bg-background border-border hover:bg-muted"
-                        }`}
-                >
-                    {isWhiteboardOpen ? "Open" : "Start"}
-                </button>
-            </div>
+            <ToolItem
+                icon={<FileText className="w-4.5 h-4.5 text-emerald-500" />}
+                title="Shared Notes"
+                description="Real-time collaborative notes"
+                onClick={() => setView("notes")}
+            />
 
-            {/* Presentation Item */}
+            <ToolItem
+                icon={<BarChart2 className="w-4.5 h-4.5 text-blue-500" />}
+                title="Polling"
+                description="Create and manage polls"
+                onClick={() => setView("polling")}
+            />
+
+            <ToolItem
+                icon={<PencilRuler className="w-4.5 h-4.5 text-violet-500" />}
+                title="Whiteboard"
+                description="Collaborative drawing canvas"
+                onClick={onToggleWhiteboard}
+                actionLabel={isWhiteboardOpen ? "Open" : "Start"}
+                isActive={isWhiteboardOpen}
+            />
+
             {hasPresentation && (
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-md bg-orange-500/10 text-orange-500">
-                            <FileText className="w-5 h-5" />
-                        </div>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-medium">Presentation</span>
-                            <span className="text-[10px] text-muted-foreground">View uploaded PDF</span>
-                        </div>
-                    </div>
-                    <button
+                <div className="pt-2">
+                    <h4 className="text-[11px] font-semibold text-muted-foreground uppercase mb-3 px-1 tracking-wider">Content</h4>
+                    <ToolItem
+                        icon={<FileText className="w-4.5 h-4.5 text-orange-500" />}
+                        title="Presentation"
+                        description="View uploaded slides"
                         onClick={onTogglePresentation}
-                        className={`px-3 py-1.5 rounded text-xs font-medium transition-colors border ${isPresentationOpen
-                            ? "bg-primary border-primary text-primary-foreground"
-                            : "bg-background border-border hover:bg-muted"
-                            }`}
-                    >
-                        {isPresentationOpen ? "Close" : "Open"}
-                    </button>
+                        actionLabel={isPresentationOpen ? "Close" : "Open"}
+                        isActive={isPresentationOpen}
+                    />
                 </div>
             )}
 
-            {/* Recording Item */}
             {isAdmin && (
-                <div className="flex items-center justify-between p-3 rounded-lg border border-border bg-card/50 hover:bg-muted/50 transition-colors">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-md bg-red-500/10 text-red-500">
-                            <Disc className="w-5 h-5" />
+                <div className="pt-2">
+                    <h4 className="text-[11px] font-semibold text-muted-foreground uppercase mb-3 px-1 tracking-wider">Admin</h4>
+                    <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors group border border-transparent hover:border-border cursor-pointer">
+                        <div className="flex items-center gap-2.5">
+                            <div className="p-2 rounded-md bg-muted/60 group-hover:bg-background group-hover:shadow-sm transition-all">
+                                <Disc className="w-4.5 h-4.5 text-red-500" />
+                            </div>
+                            <div className="flex flex-col gap-0.5">
+                                <span className="text-sm font-semibold">Recording</span>
+                                <span className="text-[11px] text-muted-foreground font-medium">Record meeting</span>
+                            </div>
                         </div>
-                        <div className="flex flex-col">
-                            <span className="text-sm font-medium">Recording</span>
-                            <span className="text-[10px] text-muted-foreground">Record meeting to server</span>
+                        <div className="scale-90 origin-right">
+                            <ServerRecordingControls roomName={roomName} />
                         </div>
-                    </div>
-                    <div className="scale-90 origin-right">
-                        <ServerRecordingControls roomName={roomName} />
                     </div>
                 </div>
             )}
         </div>
     )
+}
+
+function ToolItem({
+    icon,
+    title,
+    description,
+    onClick,
+    actionLabel,
+    isActive
+}: {
+    icon: React.ReactNode;
+    title: string;
+    description: string;
+    onClick: () => void;
+    actionLabel?: string;
+    isActive?: boolean;
+}) {
+    return (
+        <button
+            onClick={onClick}
+            className={`w-full flex items-center justify-between p-2 rounded-lg border transition-all duration-200 group text-left ${isActive
+                ? "bg-primary/5 border-primary/20"
+                : "bg-card border-transparent hover:bg-accent hover:border-border"
+                }`}
+        >
+            <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-md transition-colors ${isActive ? "bg-background shadow-sm" : "bg-muted/60 group-hover:bg-background group-hover:shadow-sm"
+                    }`}>
+                    {icon}
+                </div>
+                <div className="flex flex-col gap-0.5">
+                    <span className="text-sm font-semibold text-foreground">{title}</span>
+                    <span className="text-[11px] text-muted-foreground font-medium">{description}</span>
+                </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+                {actionLabel && (
+                    <span className={`text-[10px] uppercase tracking-wide font-semibold px-2 py-0.5 rounded bg-background border border-border shadow-sm ${isActive ? "text-primary border-primary/20" : "text-muted-foreground"}`}>
+                        {actionLabel}
+                    </span>
+                )}
+                {!actionLabel && (
+                    <ChevronRight className="w-4 h-4 text-muted-foreground/50 group-hover:text-muted-foreground transition-all flex-shrink-0 -translate-x-1 group-hover:translate-x-0 opacity-0 group-hover:opacity-100" />
+                )}
+            </div>
+        </button>
+    );
 }
 
 function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdmin: boolean }) {
@@ -637,3 +665,5 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
         </div>
     );
 }
+
+

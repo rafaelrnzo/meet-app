@@ -63,7 +63,7 @@ function CustomParticipantTile({
   participant: Participant;
   fit?: "contain" | "cover";
 }) {
-  const [isAudioMuted, setIsAudioMuted] = useState(true);
+  const [isAudioMuted, setIsAudioMuted] = useState(() => !participant.isMicrophoneEnabled);
   const [isSpeaking, setIsSpeaking] = useState(false);
 
   const source: Track.Source | undefined =
@@ -77,25 +77,28 @@ function CustomParticipantTile({
     const lkParticipant = participant as any;
 
     const updateAudioMuted = () => {
-      const audioPubs: any[] = Array.from(
-        lkParticipant.audioTracks?.values?.() ?? [],
-      );
-      const first = audioPubs[0] as { isMuted?: boolean } | undefined;
-      setIsAudioMuted(first?.isMuted ?? true);
+      setIsAudioMuted(!lkParticipant.isMicrophoneEnabled);
     };
 
     const handleSpeakingChanged = (speaking: boolean) => setIsSpeaking(speaking);
 
     updateAudioMuted();
 
-    lkParticipant.on?.("isSpeakingChanged", handleSpeakingChanged);
-    lkParticipant.on?.("trackMuted", updateAudioMuted);
-    lkParticipant.on?.("trackUnmuted", updateAudioMuted);
+    const events = [
+      ParticipantEvent.TrackMuted,
+      ParticipantEvent.TrackUnmuted,
+      ParticipantEvent.TrackPublished,
+      ParticipantEvent.TrackUnpublished,
+      ParticipantEvent.LocalTrackPublished,
+      ParticipantEvent.LocalTrackUnpublished,
+    ];
+
+    events.forEach((evt) => lkParticipant.on?.(evt, updateAudioMuted));
+    lkParticipant.on?.(ParticipantEvent.IsSpeakingChanged, handleSpeakingChanged);
 
     return () => {
-      lkParticipant.off?.("isSpeakingChanged", handleSpeakingChanged);
-      lkParticipant.off?.("trackMuted", updateAudioMuted);
-      lkParticipant.off?.("trackUnmuted", updateAudioMuted);
+      events.forEach((evt) => lkParticipant.off?.(evt, updateAudioMuted));
+      lkParticipant.off?.(ParticipantEvent.IsSpeakingChanged, handleSpeakingChanged);
     };
   }, [participant]);
 
@@ -405,10 +408,17 @@ export default function RoomContainer({
   const [layoutMode, setLayoutMode] = useState<LayoutMode>("auto");
   const [activeSidebar, setActiveSidebar] = useState<"chat" | "participants" | "tools" | "settings" | "host_controls" | "presentation" | null>(null);
   const [sidebarWidth, setSidebarWidth] = useState(320);
-  const [toolsView, setToolsView] = useState<"menu" | "polling">("menu");
+  const [toolsView, setToolsView] = useState<"menu" | "polling" | "notes">("menu");
   const [isAdmin, setIsAdmin] = useState(false);
   const [isKicked, setIsKicked] = useState(false);
   const [room, setRoom] = useState<Room | null>(null);
+  const [canPublish, setCanPublish] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && navigator.mediaDevices) {
+      setCanPublish(true);
+    }
+  }, []);
 
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -451,15 +461,18 @@ export default function RoomContainer({
   // Construct full presentation URL
   const fullPresentationPath = useMemo(() => {
     if (!presentationPath) return null;
-    if (presentationPath.startsWith("http")) return presentationPath;
 
-    // If we have a path but it's not absolute, we assume it's served via our proxy
-    // Route: /api/presentations/:id
-    if (!roomId) return null;
+    // If already a full URL (backward compatibility with old direct S3 URLs)
+    if (presentationPath.startsWith("http://") || presentationPath.startsWith("https://")) {
+      return presentationPath;
+    }
 
-    const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") || "http://localhost:8080";
-    return `${baseUrl}/api/presentations/${roomId}`;
-  }, [presentationPath, roomId]);
+    // If relative path (new proxy URL format like "/api/presentations/:id")
+    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
+      (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8080` : "http://localhost:8080");
+
+    return `${API_BASE}${presentationPath.startsWith('/') ? presentationPath : '/' + presentationPath}`;
+  }, [presentationPath]);
 
   // Sync Presentation State from Metadata
   useEffect(() => {
@@ -547,8 +560,8 @@ export default function RoomContainer({
       token={token}
       serverUrl={wsUrl}
       connect={true}
-      audio={initialMediaState?.audioEnabled ?? false}
-      video={initialMediaState?.videoEnabled ?? false}
+      audio={(initialMediaState?.audioEnabled ?? false) && canPublish}
+      video={(initialMediaState?.videoEnabled ?? false) && canPublish}
       connectOptions={{ autoSubscribe: true }}
       options={{
         adaptiveStream: true,

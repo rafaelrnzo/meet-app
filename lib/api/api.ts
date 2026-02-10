@@ -94,3 +94,60 @@ export async function leaveRoomBackend(): Promise<void> {
     cache: "no-store",
   })
 }
+
+export async function fetchPublicRoom(code: string): Promise<{
+  name: string
+  description: string
+  is_password_protected: boolean
+  start_date: string
+  end_date: string
+  is_public: boolean
+}> {
+  const res = await fetch(`${BASE}/public/rooms/${code}`, {
+    method: "GET",
+    cache: "no-store",
+  })
+  if (!res.ok) {
+    throw new Error("Failed to fetch public room info")
+  }
+  return res.json()
+}
+
+export async function joinPublicRoom(
+  roomCode: string,
+  username: string,
+  password?: string
+): Promise<{
+  token: string
+  serverUrl: string
+  identity: string
+  roomName: string
+  isWaiting: boolean
+}> {
+  const res = await fetch(`${BASE}/public/join`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      room_code: roomCode,
+      username,
+      password,
+    }),
+  })
+
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}))
+    const errorMessage = errorData.error || await res.text()
+    throw new Error(errorMessage || "Failed to join room")
+  }
+
+  const data = await res.json()
+  return {
+    token: data.token,
+    serverUrl: normalizeServerUrl(data.host),
+    identity: data.identity,
+    roomName: data.room_name,
+    isWaiting: data.is_waiting,
+  }
+}

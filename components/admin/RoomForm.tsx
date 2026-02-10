@@ -25,6 +25,7 @@ export function RoomForm({ initialData, groups, users, onSuccess, onCancel }: Ro
         startDate: "",
         endDate: "",
         groupId: "",
+        password: "",
     })
     const [isSubmitting, setIsSubmitting] = useState(false)
 
@@ -38,6 +39,7 @@ export function RoomForm({ initialData, groups, users, onSuccess, onCancel }: Ro
                 startDate: formatDateForInput(initialData.start_date),
                 endDate: formatDateForInput(initialData.end_date),
                 groupId: initialData.group_id ? String(initialData.group_id) : "",
+                password: initialData.password || "",
             })
         } else {
             // Reset form for new room
@@ -49,6 +51,7 @@ export function RoomForm({ initialData, groups, users, onSuccess, onCancel }: Ro
                 startDate: "",
                 endDate: "",
                 groupId: "",
+                password: "",
             })
         }
     }, [initialData])
@@ -73,6 +76,7 @@ export function RoomForm({ initialData, groups, users, onSuccess, onCancel }: Ro
             groupId: formData.groupId,
             startDate: formData.startDate,
             endDate: formData.endDate,
+            password: formData.password,
         }
 
         try {
@@ -150,6 +154,16 @@ export function RoomForm({ initialData, groups, users, onSuccess, onCancel }: Ro
                     </div>
                 </div>
 
+                <div className="space-y-1">
+                    <Label className="text-xs font-medium text-muted-foreground">Password (Optional)</Label>
+                    <Input
+                        type="text"
+                        className="h-9"
+                        placeholder="Leave blank for open access"
+                        value={formData.password}
+                        onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+                    />
+                </div>
                 <div className="space-y-1">
                     <Label className="text-xs font-medium text-muted-foreground">Start Date</Label>
                     <Input

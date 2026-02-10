@@ -40,6 +40,7 @@ export interface MediaChoices {
     audioDeviceId: string;
     videoDeviceId: string;
     username: string;
+    password?: string;
 }
 
 interface PreJoinProps {
@@ -49,11 +50,14 @@ interface PreJoinProps {
     isAdmin?: boolean;
     onJoin: (choices: MediaChoices) => void;
     isLoading?: boolean;
+    passwordRequired?: boolean;
+    disableNameInput?: boolean;
 }
 
-export default function PreJoin({ roomName, initialUsername, onJoin, isLoading }: PreJoinProps) {
+export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, passwordRequired, disableNameInput }: PreJoinProps) {
     const router = useRouter();
     const [username, setUsername] = useState(initialUsername);
+    const [password, setPassword] = useState("");
     const [audioEnabled, setAudioEnabled] = useState(true);
     const [videoEnabled, setVideoEnabled] = useState(true);
 
@@ -93,8 +97,8 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading }
 
                 // Now enumerate devices (labels should be available if permission granted)
                 const devices = await navigator.mediaDevices.enumerateDevices();
-                const audios = devices.filter(d => d.kind === "audioinput");
-                const videos = devices.filter(d => d.kind === "videoinput");
+                const audios = devices.filter(d => d.kind === "audioinput" && d.deviceId !== "");
+                const videos = devices.filter(d => d.kind === "videoinput" && d.deviceId !== "");
 
                 if (mounted) {
                     setAudioDevices(audios);
@@ -182,7 +186,8 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading }
             videoEnabled,
             audioDeviceId: selectedAudioDevice,
             videoDeviceId: selectedVideoDevice,
-            username
+            username,
+            password: passwordRequired ? password : ""
         });
     };
 
@@ -205,74 +210,83 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading }
                 </Button>
             </div>
 
-            <div className="relative z-10 w-full max-w-4xl grid lg:grid-cols-[1.5fr,1fr] gap-6 md:gap-8 items-center">
+            <div className="relative z-10 w-full max-w-md flex flex-col gap-4">
 
-                {/* Left: Preview */}
-                <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-left-4 duration-500">
-                    <div className="relative aspect-video rounded-3xl overflow-hidden bg-muted/30 border border-white/10 shadow-2xl ring-1 ring-white/10 group">
+                {/* Main Card */}
+                <div className="flex flex-col gap-4 p-4 rounded-3xl bg-card/40 backdrop-blur-xl border border-white/10 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
+
+                    {/* Header */}
+                    <div className="text-center space-y-1">
+                        <h1 className="text-xl font-bold tracking-tight">Ready to join?</h1>
+                        <p className="text-muted-foreground text-xs">
+                            <span className="text-foreground font-semibold">{roomName}</span>
+                        </p>
+                    </div>
+
+                    {/* Video Preview */}
+                    <div className="relative aspect-video rounded-xl overflow-hidden bg-muted/30 border border-white/10 shadow-inner group">
                         {videoEnabled && videoTrack ? (
                             <LocalVideoPreview track={videoTrack} />
                         ) : (
-                            <div className="w-full h-full flex flex-col items-center justify-center bg-card/50 text-muted-foreground gap-3">
-                                <div className="p-4 rounded-full bg-background/50 backdrop-blur-sm">
-                                    <VideoOff className="w-8 h-8 opacity-50" />
+                            <div className="w-full h-full flex flex-col items-center justify-center bg-card/50 text-muted-foreground gap-2">
+                                <div className="p-3 rounded-full bg-background/50 backdrop-blur-sm">
+                                    <VideoOff className="w-6 h-6 opacity-50" />
                                 </div>
-                                <p className="text-sm font-medium">Camera is off</p>
+                                <p className="text-xs font-medium">Camera is off</p>
                             </div>
                         )}
 
                         {/* Overlay Controls */}
-                        <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 p-2 rounded-full bg-black/60 backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
+                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
                             <Button
                                 variant={audioEnabled ? "secondary" : "destructive"}
                                 size="icon"
-                                className="rounded-full h-10 w-10 transition-all"
+                                className="rounded-full h-8 w-8 transition-all"
                                 onClick={toggleAudio}
                             >
-                                {audioEnabled ? <Mic className="h-4 w-4" /> : <MicOff className="h-4 w-4" />}
+                                {audioEnabled ? <Mic className="h-3.5 w-3.5" /> : <MicOff className="h-3.5 w-3.5" />}
                             </Button>
                             <Button
                                 variant={videoEnabled ? "secondary" : "destructive"}
                                 size="icon"
-                                className="rounded-full h-10 w-10 transition-all"
+                                className="rounded-full h-8 w-8 transition-all"
                                 onClick={toggleVideo}
                             >
-                                {videoEnabled ? <Video className="h-4 w-4" /> : <VideoOff className="h-4 w-4" />}
+                                {videoEnabled ? <Video className="h-3.5 w-3.5" /> : <VideoOff className="h-3.5 w-3.5" />}
                             </Button>
                         </div>
                     </div>
 
-                    <div className="flex gap-2">
-                        <div className="flex-1">
-                            <label className="text-xs text-muted-foreground font-medium mb-1.5 block ml-1">Microphone</label>
+                    {/* Device Selectors */}
+                    <div className="grid grid-cols-2 gap-2">
+                        <div className="space-y-1">
+                            {/* <label className="text-[10px] text-muted-foreground font-medium ml-1">Microphone</label> */}
                             <Select value={selectedAudioDevice} onValueChange={setSelectedAudioDevice} disabled={audioDevices.length === 0}>
-                                <SelectTrigger className="h-9 text-xs">
+                                <SelectTrigger className="h-8 text-xs bg-background/50 border-white/10">
                                     <span className="truncate">
-                                        {audioDevices.find(d => d.deviceId === selectedAudioDevice)?.label ||
-                                            (selectedAudioDevice ? `Microphone ${audioDevices.findIndex(d => d.deviceId === selectedAudioDevice) + 1}` : "Default Microphone")}
+                                        {audioDevices.find(d => d.deviceId === selectedAudioDevice)?.label || "Mic"}
                                     </span>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {audioDevices.map((d, i) => (
-                                        <SelectItem key={d.deviceId} value={d.deviceId}>
-                                            {d.label || `Microphone ${i + 1}`}
+                                        <SelectItem key={d.deviceId} value={d.deviceId} className="text-xs">
+                                            {d.label || `Mic ${i + 1}`}
                                         </SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
                         </div>
-                        <div className="flex-1">
-                            <label className="text-xs text-muted-foreground font-medium mb-1.5 block ml-1">Camera</label>
+                        <div className="space-y-1">
+                            {/* <label className="text-[10px] text-muted-foreground font-medium ml-1">Camera</label> */}
                             <Select value={selectedVideoDevice} onValueChange={changeVideoDevice} disabled={videoDevices.length === 0}>
-                                <SelectTrigger className="h-9 text-xs">
+                                <SelectTrigger className="h-8 text-xs bg-background/50 border-white/10">
                                     <span className="truncate">
-                                        {videoDevices.find(d => d.deviceId === selectedVideoDevice)?.label ||
-                                            (selectedVideoDevice ? `Camera ${videoDevices.findIndex(d => d.deviceId === selectedVideoDevice) + 1}` : "Default Camera")}
+                                        {videoDevices.find(d => d.deviceId === selectedVideoDevice)?.label || "Camera"}
                                     </span>
                                 </SelectTrigger>
                                 <SelectContent>
                                     {videoDevices.map((d, i) => (
-                                        <SelectItem key={d.deviceId} value={d.deviceId}>
+                                        <SelectItem key={d.deviceId} value={d.deviceId} className="text-xs">
                                             {d.label || `Camera ${i + 1}`}
                                         </SelectItem>
                                     ))}
@@ -280,50 +294,57 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading }
                             </Select>
                         </div>
                     </div>
-                </div>
 
-                {/* Right: Join Info */}
-                <div className="flex flex-col gap-6 p-6 rounded-3xl bg-card/40 backdrop-blur-xl border border-white/10 shadow-xl animate-in fade-in slide-in-from-right-4 duration-500 delay-100">
-                    <div className="space-y-2 text-center md:text-left">
-                        <div className="inline-flex items-center justify-center p-3 rounded-xl bg-primary/10 text-primary mb-2">
-                            <Users className="w-6 h-6" />
-                        </div>
-                        <h1 className="text-2xl font-bold tracking-tight">Ready to join?</h1>
-                        <p className="text-muted-foreground text-sm">
-                            You are about to enter <span className="text-foreground font-semibold">{roomName}</span>.
-                            Please verify your audio and video settings.
-                        </p>
+                    {/* Form & Actions */}
+                    <div className="space-y-3 pt-1">
+                        {!disableNameInput ? (
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium ml-1">Display Name</label>
+                                <input
+                                    type="text"
+                                    value={username}
+                                    onChange={(e) => setUsername(e.target.value)}
+                                    className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter your name"
+                                />
+                            </div>
+                        ) : (
+                            <div className="flex items-center justify-center gap-2 py-1">
+                                <span className="text-xs text-muted-foreground">Joining as</span>
+                                <div className="flex items-center gap-1.5 px-2 py-1 rounded-full bg-primary/10 text-primary text-xs font-medium">
+                                    <div className="h-4 w-4 rounded-full bg-primary/20 flex items-center justify-center text-[10px]">
+                                        {username.charAt(0).toUpperCase()}
+                                    </div>
+                                    {username}
+                                </div>
+                            </div>
+                        )}
+
+                        {passwordRequired && (
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium ml-1">Room Password</label>
+                                <input
+                                    type="password"
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="flex h-9 w-full rounded-md border border-input bg-background/50 px-3 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                                    placeholder="Enter password"
+                                />
+                            </div>
+                        )}
+
+                        <Button
+                            size="lg"
+                            className="w-full text-sm h-10 gap-2 mt-2"
+                            onClick={handleJoin}
+                            disabled={isLoading || !username.trim()}
+                        >
+                            {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
+                            Join Now
+                        </Button>
                     </div>
 
-                    <div className="space-y-4">
-                        {/* <div className="space-y-2">
-                            <label className="text-sm font-medium">Display Name</label>
-                            <input
-                                type="text"
-                                value={username}
-                                onChange={(e) => setUsername(e.target.value)}
-                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                                placeholder="Enter your name"
-                            />
-                        </div> */}
-
-                        <div className="pt-2">
-                            <Button
-                                size="lg"
-                                className="w-full text-base gap-2"
-                                onClick={handleJoin}
-                                disabled={isLoading || !username.trim()}
-                            >
-                                {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <ArrowRight className="w-4 h-4" />}
-                                Join Meeting
-                            </Button>
-                            <p className="text-xs text-center text-muted-foreground mt-4">
-                                By joining, you agree to our Terms of Service and Privacy Policy.
-                            </p>
-                        </div>
-                    </div>
                 </div>
-
             </div>
         </div>
     );

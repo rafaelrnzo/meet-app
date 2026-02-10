@@ -54,6 +54,7 @@ export type DbRoom = {
   banned_users?: string[]
   presentation_path?: string
   createdById?: number
+  password?: string
 }
 
 export async function fetchDbRooms(): Promise<DbRoom[]> {
@@ -88,6 +89,7 @@ export async function createDbRoom(payload: any): Promise<DbRoom> {
       group_id: payload.groupId ? Number(payload.groupId) : 0,
       start_date: new Date(payload.startDate).toISOString(),
       end_date: new Date(payload.endDate).toISOString(),
+      password: payload.password,
     }),
   })
 }
@@ -103,6 +105,7 @@ export async function updateDbRoom(id: number, payload: any): Promise<DbRoom> {
       group_id: payload.groupId ? Number(payload.groupId) : 0,
       start_date: new Date(payload.startDate).toISOString(),
       end_date: new Date(payload.endDate).toISOString(),
+      password: payload.password,
     }),
   })
 }
