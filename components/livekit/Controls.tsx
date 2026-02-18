@@ -3,7 +3,7 @@
 import { useLocalParticipant, useRoomContext } from "@livekit/components-react";
 import { leaveRoomBackend } from "@/lib/api/api";
 import { muteAllParticipants } from "@/lib/api/admin-api";
-import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useEffect, useMemo, useRef } from "react";
 import { RoomEvent } from "livekit-client";
 import {
@@ -58,6 +58,7 @@ export function Controls({
     lastCameraError,
   } = useLocalParticipant();
 
+  const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [isAdmin, setIsAdmin] = useState(false);
   const [showReactions, setShowReactions] = useState(false);
@@ -289,10 +290,14 @@ export function Controls({
 
   const leaveRoom = async () => {
     try {
+      if (room) {
+        await room.disconnect();
+      }
       await leaveRoomBackend();
-      await room?.disconnect();
+      router.push("/");
     } catch (e) {
       console.error("leave error:", e);
+      router.push("/"); // Fallback
     }
   };
 
@@ -341,7 +346,7 @@ export function Controls({
       </div>
 
       {/* CENTER: Media Controls */}
-      <div className="flex items-center justify-center gap-3 sm:gap-4 flex-1">
+      <div className="flex items-center justify-center gap-2 sm:gap-4 flex-shrink-0">
         {/* MIC */}
         <button
           onClick={toggleMic}
@@ -434,74 +439,74 @@ export function Controls({
         )}
 
         {/* LEAVE */}
-        <Link href="/" onClick={leaveRoom}>
-          <button className={`${baseBtn(false, false, "destructive")} bg-red-600 border-red-600 hover:bg-red-700`} title="Leave">
-            <Phone className="w-5 h-5 rotate-135" />
-          </button>
-        </Link>
+        <button onClick={leaveRoom} className={`${baseBtn(false, false, "destructive")} bg-red-600 border-red-600 hover:bg-red-700`} title="Leave">
+          <Phone className="w-5 h-5 rotate-135" />
+        </button>
       </div>
 
       {/* RIGHT: Tools & Sidebars */}
-      <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-end">
+      <div className="flex items-center gap-1 sm:gap-2 flex-1 justify-end min-w-0 overflow-x-auto no-scrollbar mask-image-linear-to-l pl-2">
+        <div className="flex items-center gap-1 sm:gap-2 flex-nowrap">
 
-        {/* Tools Toggle (Whiteboard, Record, etc) */}
-        <button
-          onClick={() => onSidebarChange(activeSidebar === "tools" ? null : "tools")}
-          className={minimalBtn(activeSidebar === "tools", busy)}
-          title="Tools & Activities"
-        >
-          <LayoutGrid className="w-5 h-5" />
-        </button>
-
-        {/* Presentation Toggle (If available) */}
-        {hasPresentation && (
+          {/* Tools Toggle (Whiteboard, Record, etc) */}
           <button
-            onClick={onTogglePresentation}
-            className={minimalBtn(isPresentationOpen ?? false, busy)}
-            title="View Presentation"
+            onClick={() => onSidebarChange(activeSidebar === "tools" ? null : "tools")}
+            className={minimalBtn(activeSidebar === "tools", busy)}
+            title="Tools & Activities"
           >
-            <FileText className="w-5 h-5" />
+            <LayoutGrid className="w-5 h-5" />
           </button>
-        )}
 
-        {/* Participants */}
-        <button
-          onClick={() => onSidebarChange(activeSidebar === "participants" ? null : "participants")}
-          className={minimalBtn(activeSidebar === "participants", busy)}
-          title="Participants"
-        >
-          <Users className="w-5 h-5" />
-        </button>
+          {/* Presentation Toggle (If available) */}
+          {hasPresentation && (
+            <button
+              onClick={onTogglePresentation}
+              className={minimalBtn(isPresentationOpen ?? false, busy)}
+              title="View Presentation"
+            >
+              <FileText className="w-5 h-5" />
+            </button>
+          )}
 
-        {/* Chat */}
-        <button
-          onClick={() => onSidebarChange(activeSidebar === "chat" ? null : "chat")}
-          className={minimalBtn(activeSidebar === "chat", busy)}
-          title="Chat"
-        >
-          <MessageSquare className="w-5 h-5" />
-        </button>
-
-        {/* Effects */}
-        <button
-          onClick={() => onSidebarChange(activeSidebar === "settings" ? null : "settings")}
-          className={minimalBtn(activeSidebar === "settings", busy)}
-          title="Effects & Settings"
-        >
-          <Sparkles className="w-5 h-5" />
-        </button>
-
-        {/* Admin Permissions Menu */}
-        {isAdmin && (
+          {/* Participants */}
           <button
-            onClick={() => onSidebarChange(activeSidebar === "host_controls" ? null : "host_controls")}
-            className={minimalBtn(activeSidebar === "host_controls", busy)}
-            title="Host Controls"
+            onClick={() => onSidebarChange(activeSidebar === "participants" ? null : "participants")}
+            className={minimalBtn(activeSidebar === "participants", busy)}
+            title="Participants"
           >
-            <Settings className="w-5 h-5" />
+            <Users className="w-5 h-5" />
           </button>
-        )}
 
+          {/* Chat */}
+          <button
+            onClick={() => onSidebarChange(activeSidebar === "chat" ? null : "chat")}
+            className={minimalBtn(activeSidebar === "chat", busy)}
+            title="Chat"
+          >
+            <MessageSquare className="w-5 h-5" />
+          </button>
+
+          {/* Effects */}
+          <button
+            onClick={() => onSidebarChange(activeSidebar === "settings" ? null : "settings")}
+            className={minimalBtn(activeSidebar === "settings", busy)}
+            title="Effects & Settings"
+          >
+            <Sparkles className="w-5 h-5" />
+          </button>
+
+          {/* Admin Permissions Menu */}
+          {isAdmin && (
+            <button
+              onClick={() => onSidebarChange(activeSidebar === "host_controls" ? null : "host_controls")}
+              className={minimalBtn(activeSidebar === "host_controls", busy)}
+              title="Host Controls"
+            >
+              <Settings className="w-5 h-5" />
+            </button>
+          )}
+
+        </div>
       </div>
     </div>
   );

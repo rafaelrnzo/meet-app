@@ -4,20 +4,14 @@ import React, { createContext, useContext, useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import Link from "next/link"
 import {
-  Home,
-  Video,
-  Users,
-  Settings,
   LogOut,
   Moon,
   Sun,
-  PlayCircle,
-  Briefcase,
-  Shield,
 } from "lucide-react"
 import { getUser, type StoredUser } from "@/lib/api/auth-client"
 import { cn } from "@/lib/utils"
 import { useAuth } from "../../hooks/use-auth"
+import { MobileNav } from "@/components/ui/mobile-nav"
 
 // --- THEME CONTEXT ---
 type Theme = "dark" | "light"
@@ -54,15 +48,9 @@ function useTheme() {
 }
 
 // --- SIDEBAR DATA ---
-const sidebarItems = [
-  { id: "home", href: "/", icon: Home, label: "Home", permission: null },
-  { id: "rooms", href: "/rooms", icon: Video, label: "Rooms", permission: "room:read" },
-  { id: "groups", href: "/groups", icon: Briefcase, label: "Groups", permission: "group:manage" },
-  { id: "users", href: "/users", icon: Users, label: "Users", permission: "user:read" },
-  { id: "roles", href: "/roles", icon: Shield, label: "Roles", permission: "role:read" },
-  { id: "recordings", href: "/recordings", icon: PlayCircle, label: "Recordings", permission: "recording:read" },
-  { id: "settings", href: "/settings", icon: Settings, label: "Settings", permission: null },
-]
+// --- SIDEBAR DATA ---
+import { sidebarItems } from "@/lib/menu-items"
+
 
 
 
@@ -108,7 +96,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans transition-colors duration-200">
       {/* SIDEBAR */}
-      <aside className="w-16 bg-card border-r border-border flex flex-col items-center py-6 fixed h-full z-20 shadow-sm">
+      <aside className="w-16 bg-card border-r border-border hidden md:flex flex-col items-center py-6 fixed h-full z-20 shadow-sm">
         {/* Logo */}
         <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shadow-sm mb-8">
           V
@@ -171,7 +159,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 flex flex-col ml-16 min-w-0">
+      <main className="flex-1 flex flex-col ml-0 md:ml-16 min-w-0 pb-16 md:pb-0">
         <header className="h-14 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 sticky top-0 z-10">
           <div>
             <h1 className="text-sm font-semibold capitalize">
@@ -197,6 +185,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
           </div>
         </div>
       </main>
+      <MobileNav />
     </div>
   )
 }

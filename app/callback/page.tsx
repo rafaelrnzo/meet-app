@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { authService } from '@/src/services/auth';
 import { motion } from 'framer-motion';
@@ -13,7 +13,7 @@ import {
     CardTitle,
 } from '@/components/ui/card';
 
-export default function CallbackPage() {
+function CallbackContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
     const [status, setStatus] = useState('Processing login...');
@@ -101,5 +101,17 @@ export default function CallbackPage() {
                 </Card>
             </motion.div>
         </div>
+    );
+}
+
+export default function CallbackPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex min-h-screen items-center justify-center bg-slate-950 p-4">
+                <Loader2 className="h-8 w-8 animate-spin text-emerald-500" />
+            </div>
+        }>
+            <CallbackContent />
+        </Suspense>
     );
 }

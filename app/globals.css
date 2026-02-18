@@ -118,7 +118,29 @@
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+@utility pb-safe {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+@utility pt-safe {
+  padding-top: env(safe-area-inset-top);
+}
+
+@utility no-scrollbar {
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@utility mask-image-linear-to-l {
+  mask-image: linear-gradient(to left, transparent 0%, black 20px);
+  -webkit-mask-image: linear-gradient(to left, transparent 0%, black 20px);
 }

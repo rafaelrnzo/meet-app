@@ -246,6 +246,15 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
   // --- Grid Layout Calculation ---
   const PAGE_SIZE = 25;
   const [page, setPage] = useState(1);
+  const [isPortrait, setIsPortrait] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const check = () => setIsPortrait(window.innerHeight > window.innerWidth);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const totalParticipants = participants.length;
   const totalPages = Math.ceil(totalParticipants / PAGE_SIZE) || 1;
@@ -262,7 +271,7 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
     const sideParticipants = participants.filter((p) => p.sid !== primaryScreenSid);
 
     return (
-      <div className="flex flex-row h-full w-full gap-2 p-2 relative min-h-0 bg-black/90">
+      <div className="flex flex-col md:flex-row h-full w-full gap-2 p-2 relative min-h-0 bg-black/90">
         <div className="flex-1 min-h-0 relative rounded-lg overflow-hidden bg-black/20 border border-white/10">
           <CustomParticipantTile
             trackRef={primaryScreenTrack}
@@ -271,13 +280,13 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
           />
         </div>
         {sideParticipants.length > 0 && (
-          <div className="w-48 sm:w-56 md:w-64 flex flex-col gap-2 overflow-y-auto pr-1 shrink-0 pb-1">
+          <div className="w-full h-24 md:w-64 md:h-full flex flex-row md:flex-col gap-2 overflow-x-auto md:overflow-y-auto pr-1 shrink-0 pb-1 pt-safe-0">
             {sideParticipants.map((p) => {
               const camTrack = cameraTracksBySid.get(p.sid);
               const scrTrack = screenTracksBySid.get(p.sid);
               const trackForTile = camTrack ?? scrTrack;
               return (
-                <div key={p.sid} className="aspect-video w-full shrink-0 border border-border/20 rounded-lg overflow-hidden relative">
+                <div key={p.sid} className="aspect-video w-32 md:w-full shrink-0 border border-border/20 rounded-lg overflow-hidden relative">
                   <CustomParticipantTile trackRef={trackForTile} participant={p} />
                 </div>
               );
@@ -288,27 +297,35 @@ function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
     );
   }
 
-
-
   const startIndex = (page - 1) * PAGE_SIZE;
   const visibleParticipants = participants.slice(startIndex, startIndex + PAGE_SIZE);
   const count = visibleParticipants.length;
 
-  // Simple heuristic for Col/Row calculation for landscape-ish container
-  // Goal: maximize tile size while keeping them somewhat rectangular (landscape).
+  // Simple heuristic for Col/Row calculation
   let cols = 1;
   let rows = 1;
 
-  if (count === 0) { cols = 1; rows = 1; }
-  else if (count === 1) { cols = 1; rows = 1; }
-  else if (count === 2) { cols = 2; rows = 1; }
-  else if (count <= 4) { cols = 2; rows = 2; }
-  else if (count <= 6) { cols = 3; rows = 2; }
-  else if (count <= 9) { cols = 3; rows = 3; }
-  else if (count <= 12) { cols = 4; rows = 3; }
-  else if (count <= 16) { cols = 4; rows = 4; }
-  else if (count <= 20) { cols = 5; rows = 4; }
-  else { cols = 5; rows = 5; } // Max 25
+  if (isPortrait) {
+    if (count === 0) { cols = 1; rows = 1; }
+    else if (count === 1) { cols = 1; rows = 1; }
+    else if (count === 2) { cols = 1; rows = 2; }
+    else if (count <= 4) { cols = 2; rows = 2; }
+    else if (count <= 6) { cols = 2; rows = 3; } // 2x3 for 6
+    else if (count <= 8) { cols = 2; rows = 4; }
+    else { cols = 3; rows = Math.ceil(count / 3); }
+  } else {
+    // Landscape logic
+    if (count === 0) { cols = 1; rows = 1; }
+    else if (count === 1) { cols = 1; rows = 1; }
+    else if (count === 2) { cols = 2; rows = 1; }
+    else if (count <= 4) { cols = 2; rows = 2; }
+    else if (count <= 6) { cols = 3; rows = 2; }
+    else if (count <= 9) { cols = 3; rows = 3; }
+    else if (count <= 12) { cols = 4; rows = 3; }
+    else if (count <= 16) { cols = 4; rows = 4; }
+    else if (count <= 20) { cols = 5; rows = 4; }
+    else { cols = 5; rows = 5; }
+  }
 
   if (totalParticipants > 0) {
     return (
@@ -418,6 +435,34 @@ export default function RoomContainer({
     if (typeof window !== "undefined" && navigator.mediaDevices) {
       setCanPublish(true);
     }
+  }, []);
+
+  // Wake Lock Hook
+  useEffect(() => {
+    if (typeof navigator === "undefined" || !("wakeLock" in navigator)) return;
+
+    let wakeLock: WakeLockSentinel | null = null;
+    const requestWakeLock = async () => {
+      try {
+        wakeLock = await navigator.wakeLock.request('screen');
+      } catch (err) {
+        console.warn('Wake Lock request failed:', err);
+      }
+    };
+
+    requestWakeLock();
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        requestWakeLock();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      if (wakeLock) wakeLock.release();
+    };
   }, []);
 
   useEffect(() => {
@@ -588,7 +633,7 @@ export default function RoomContainer({
       }}
       onError={(e) => console.error("[LiveKit] onError:", e)}
       style={{
-        height: "100vh",
+        height: "100dvh", // Changed from 100vh to 100dvh for PWA
         display: "flex",
         flexDirection: "column",
         backgroundColor: "hsl(var(--background))",
@@ -734,7 +779,8 @@ export default function RoomContainer({
           />
         )}
 
-        <div className="border-t border-border bg-card/60 backdrop-blur-md">
+        <div className="border-t border-border bg-card/60 backdrop-blur-md pb-safe">
+
           <Controls
             roomName={roomName}
             activeSidebar={activeSidebar}
