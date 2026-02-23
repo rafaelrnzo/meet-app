@@ -4,8 +4,6 @@ import { motion } from "framer-motion"
 import { Users, Calendar, MoreVertical, PlayCircle, StopCircle } from "lucide-react"
 import type { DbRoom, ActiveRoom } from "@/lib/api/admin-api"
 import { cn } from "@/lib/utils"
-// We'll use basic HTML elements tailored with Tailwind since we want a custom "premium" look
-// rather than standard shadcn cards which might be too simple.
 
 interface RoomCardProps {
     room: DbRoom

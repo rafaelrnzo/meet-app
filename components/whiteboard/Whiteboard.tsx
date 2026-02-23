@@ -22,7 +22,7 @@ import {
 
 type Pt = { x: number; y: number };
 
-type Tool = "pen" | "rect" | "ellipse" | "line" | "arrow";
+type Tool = "pen" | "rect" | "ellipse" | "line" | "arrow" | "cursor";
 
 type Shape = {
   id: string;
@@ -207,9 +207,19 @@ export default function Whiteboard({
 
   useEffect(() => {
     resizeCanvas();
-    const on = () => resizeCanvas();
-    window.addEventListener("resize", on);
-    return () => window.removeEventListener("resize", on);
+
+    // Use ResizeObserver to handle container size changes (e.g. sidebar toggle)
+    const resizeObserver = new ResizeObserver(() => {
+      resizeCanvas();
+    });
+
+    if (wrapRef.current) {
+      resizeObserver.observe(wrapRef.current);
+    }
+
+    return () => {
+      resizeObserver.disconnect();
+    };
   }, []);
 
   useEffect(() => {
@@ -424,19 +434,29 @@ export default function Whiteboard({
   return (
     <div
       ref={wrapRef}
-      className={`absolute inset-0 z-30 transition-all duration-300 ${active ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"
+      className={`absolute inset-0 z-30 transition-all duration-300 ${active ? "opacity-100" : "opacity-0 pointer-events-none"} ${tool === "cursor" ? "pointer-events-none" : "pointer-events-auto"
         }`}
       style={{
-        background: active ? "rgba(0,0,0,0.4)" : "transparent",
-        backdropFilter: active ? "blur(4px)" : "none",
+        background: "transparent",
+        backdropFilter: "none",
       }}
     >
       {active && (
-        <div className="absolute top-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-4 animate-in fade-in slide-in-from-top-4 duration-300">
+        <div className="absolute top-1/2 left-4 -translate-y-1/2 flex flex-row items-center gap-4 animate-in fade-in slide-in-from-left-4 duration-300">
           {/* Toolbar Island */}
-          <div className="flex items-center p-2 rounded-2xl bg-background/95 backdrop-blur-md border border-border shadow-2xl ring-1 ring-black/5">
+          <div className="flex flex-col items-center p-2 rounded-2xl bg-background/95 backdrop-blur-md border border-border shadow-2xl ring-1 ring-black/5 pointer-events-auto">
             {/* Tools Group */}
-            <div className="flex items-center gap-1 pr-3 border-r border-border/50">
+            <div className="flex flex-col items-center gap-1 pb-3 border-b border-border/50">
+              <button
+                onClick={() => setTool("cursor")}
+                className={`p-2 rounded-xl transition-all ${tool === "cursor"
+                  ? "bg-primary text-primary-foreground shadow-sm"
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                title="Cursor (Interact)"
+              >
+                <MousePointer2 className="w-4 h-4" />
+              </button>
               <button
                 onClick={() => setTool("pen")}
                 className={`p-2 rounded-xl transition-all ${tool === "pen"
@@ -490,9 +510,9 @@ export default function Whiteboard({
             </div>
 
             {/* Config Group */}
-            <div className="flex items-center gap-3 px-3 border-r border-border/50">
+            <div className="flex flex-col items-center gap-3 py-3 border-b border-border/50">
               {/* Color Picker */}
-              <div className="flex items-center gap-1.5">
+              <div className="flex flex-col items-center gap-1.5">
                 {PRESET_COLORS.slice(0, 4).map((c) => (
                   <button
                     key={c}
@@ -502,7 +522,7 @@ export default function Whiteboard({
                     style={{ backgroundColor: c }}
                   />
                 ))}
-                <div className="relative group ml-1">
+                <div className="relative group mt-1">
                   <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-blue-500 to-pink-500 ring-1 ring-border cursor-pointer" />
                   <input
                     type="color"
@@ -513,22 +533,25 @@ export default function Whiteboard({
                 </div>
               </div>
 
-              {/* Width Slider */}
-              <div className="w-px h-8 bg-border/50 mx-1" />
+              {/* Width Slider (Vertical) */}
+              <div className="h-px w-8 bg-border/50 my-1" />
 
-              <input
-                type="range"
-                min={1}
-                max={20}
-                value={width}
-                onChange={(e) => setWidth(parseInt(e.target.value))}
-                className="w-20 accent-primary h-1.5 bg-muted rounded-full appearance-none cursor-pointer"
-                title={`Brush size: ${width}px`}
-              />
+              <div className="h-20 flex items-center justify-center">
+                <input
+                  type="range"
+                  min={1}
+                  max={20}
+                  value={width}
+                  onChange={(e) => setWidth(parseInt(e.target.value))}
+                  className="h-20 w-1.5 -rotate-180 accent-primary bg-muted rounded-full appearance-none cursor-pointer"
+                  style={{ writingMode: 'vertical-lr', direction: 'rtl' }}
+                  title={`Brush size: ${width}px`}
+                />
+              </div>
             </div>
 
             {/* Actions Group */}
-            <div className="flex items-center gap-1 pl-3">
+            <div className="flex flex-col items-center gap-1 pt-3">
               <button
                 onClick={undoLast}
                 className="p-2 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"
@@ -543,7 +566,7 @@ export default function Whiteboard({
               >
                 <Trash2 className="w-4 h-4" />
               </button>
-              <div className="w-px h-8 bg-border/50 mx-1" />
+              <div className="h-px w-8 bg-border/50 my-1" />
               <button
                 onClick={onClose}
                 className="p-2 rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-colors"

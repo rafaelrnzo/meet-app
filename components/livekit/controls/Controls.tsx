@@ -84,6 +84,7 @@ export function Controls({
       const trackPub = localParticipant.getTrackPublication(Track.Source.Camera);
       if (trackPub && trackPub.videoTrack) {
         try {
+          // @ts-ignore - restartTrack exists on LocalVideoTrack
           await trackPub.videoTrack.restartTrack({ resolution: preset });
           toast.success("Camera quality updated");
         } catch (error) {
@@ -105,6 +106,7 @@ export function Controls({
     }
   };
 
+  // Check Admin Role
   useEffect(() => {
     if (typeof window !== "undefined") {
       try {
@@ -122,6 +124,7 @@ export function Controls({
     }
   }, []);
 
+  // Sync Metadata
   useEffect(() => {
     if (!room) return;
     setMetadataStr(room.metadata || "{}");
@@ -150,6 +153,7 @@ export function Controls({
   const allowScreen = metadata.allow_screen !== false;
   const allowReaction = metadata.allow_reaction !== false;
 
+  // Local Participant Metadata (for Hard Mute)
   const [localMeta, setLocalMeta] = useState<any>({});
 
   useEffect(() => {
@@ -163,6 +167,7 @@ export function Controls({
       }
     };
 
+    // Initial parse
     parseMeta();
 
     const onMetaChanged = (_: string | undefined, p: any) => {
@@ -181,11 +186,15 @@ export function Controls({
   const adminMuteVideo = localMeta.admin_muted_video === true;
   const handRaised = localMeta.handRaised === true;
 
+  // Notification for remote mute/unmute
   useEffect(() => {
     if (!room) return;
 
     const onTrackMuted = (pub: TrackPublication, participant: Participant) => {
       if (participant.isLocal && pub.source === Track.Source.Microphone) {
+        // Only show toast if it wasn't triggered by our own metadata enforcement (to avoid double toast)
+        // But metadata update might happen after.
+        // For now, simple toast is fine.
         toast.info("Your microphone was muted by the host");
       }
     };
@@ -205,9 +214,11 @@ export function Controls({
     };
   }, [room]);
 
+  // Enforce Mute if permissions revoked (and not admin)
   useEffect(() => {
     if (isAdmin) return;
 
+    // Room-level permissions
     if (!allowAudio && isMicrophoneEnabled) {
       localParticipant.setMicrophoneEnabled(false);
     }
@@ -215,6 +226,7 @@ export function Controls({
       localParticipant.setCameraEnabled(false);
     }
 
+    // Individual Hard Mute (metadata)
     if (adminMuteAudio && isMicrophoneEnabled) {
       localParticipant.setMicrophoneEnabled(false);
     }
@@ -287,6 +299,7 @@ export function Controls({
       if (newHandState) {
         toast.success("Hand raised");
       } else {
+        // toast.info("Hand lowered");
       }
     } catch (e) {
       console.error("Failed to toggle hand raise", e);
@@ -302,7 +315,7 @@ export function Controls({
       router.push("/");
     } catch (e) {
       console.error("leave error:", e);
-      router.push("/");
+      router.push("/"); // Fallback
     }
   };
 
@@ -337,6 +350,7 @@ export function Controls({
   return (
     <div className="w-full flex items-center justify-between px-4 py-3 sm:px-6">
 
+      {/* LEFT: Room Info */}
       <div className="hidden md:flex items-center gap-4 flex-1 justify-start min-w-0">
         <div className="flex flex-col">
           <div className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Room Code</div>
@@ -349,6 +363,7 @@ export function Controls({
         </div>
       </div>
 
+      {/* CENTER: Media Controls */}
       <div className="flex items-center justify-center gap-2 sm:gap-4 flex-shrink-0">
         {/* MIC */}
         <button

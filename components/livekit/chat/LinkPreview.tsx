@@ -21,13 +21,12 @@ export function LinkPreview({ url }: { url: string }) {
         const fetchMeta = async () => {
             try {
                 setLoading(true);
-                // We use the existing admin-api wrapper which handles auth token
                 const res = await apiRequest<LinkMeta>(`/api/meta?url=${encodeURIComponent(url)}`);
                 if (mounted) {
                     if (res.title || res.image) {
                         setMeta(res);
                     } else {
-                        setError(true); // Empty valid response
+                        setError(true);
                     }
                 }
             } catch (e) {

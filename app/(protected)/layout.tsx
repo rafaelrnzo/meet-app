@@ -13,7 +13,6 @@ import { cn } from "@/lib/utils"
 import { useAuth } from "../../hooks/use-auth"
 import { MobileNav } from "@/components/ui/mobile-nav"
 
-// --- THEME CONTEXT ---
 type Theme = "dark" | "light"
 const ThemeContext = createContext<{ theme: Theme; toggleTheme: () => void } | undefined>(undefined)
 
@@ -47,8 +46,6 @@ function useTheme() {
   return context
 }
 
-// --- SIDEBAR DATA ---
-// --- SIDEBAR DATA ---
 import { sidebarItems } from "@/lib/menu-items"
 
 
@@ -86,7 +83,6 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
   }
 
   if (!isAuthenticated) {
-    // Optional: Redirect to login if not handled by middleware/useAuth
     return null
   }
 
@@ -95,9 +91,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex min-h-screen bg-background text-foreground font-sans transition-colors duration-200">
-      {/* SIDEBAR */}
       <aside className="w-16 bg-card border-r border-border hidden md:flex flex-col items-center py-6 fixed h-full z-20 shadow-sm">
-        {/* Logo */}
         <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-sm shadow-sm mb-8">
           V
         </div>
@@ -105,7 +99,6 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
         <div className="flex-1 flex flex-col items-center gap-3 w-full px-2">
           {sidebarItems.map((item) => {
             const Icon = item.icon
-            // Simple active check: strictly equal or starts with for subroutes
             const isActive = pathname === item.href || (item.href !== "/" && pathname.startsWith(item.href))
             const disabled = item.permission ? !hasPermission(item.permission) : false
 
@@ -158,7 +151,6 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
         </div>
       </aside>
 
-      {/* MAIN CONTENT */}
       <main className="flex-1 flex flex-col ml-0 md:ml-16 min-w-0 pb-16 md:pb-0">
         <header className="h-14 bg-background/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 sticky top-0 z-10">
           <div>

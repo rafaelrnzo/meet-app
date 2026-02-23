@@ -35,7 +35,6 @@ export default function DashboardPage() {
         setLoading(true);
         setError('');
         try {
-            // This endpoint will be implemented in the backend section
             const res = await api.get('/profile');
             setProfile(res.data);
         } catch (err) {
@@ -50,7 +49,6 @@ export default function DashboardPage() {
         <ProtectedRoute>
             <div className="min-h-screen bg-slate-950 text-slate-100 p-6 md:p-10">
                 <div className="max-w-4xl mx-auto space-y-8">
-                    {/* Header Section */}
                     <motion.div
                         initial={{ opacity: 0, y: -20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -75,14 +73,12 @@ export default function DashboardPage() {
                         </Button>
                     </motion.div>
 
-                    {/* Main Content Grid */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.5, delay: 0.1 }}
                         className="grid gap-6 md:grid-cols-2"
                     >
-                        {/* Profile Card */}
                         <Card className="border-slate-800 bg-slate-900/50 backdrop-blur-sm shadow-xl">
                             <CardHeader>
                                 <CardTitle className="flex items-center gap-2 text-xl text-slate-100">

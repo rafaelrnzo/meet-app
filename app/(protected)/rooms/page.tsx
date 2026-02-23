@@ -118,7 +118,6 @@ export default function RoomsPage() {
             }
         })
 
-    // Helper for random-looking gradients based on id
     const getRoomGradient = (id: number) => {
         const gradients = [
             "from-blue-500/20 to-indigo-500/20 text-blue-600",
@@ -291,7 +290,7 @@ export default function RoomsPage() {
                                             status === "ended" ? "text-muted-foreground bg-muted/50" :
                                                 "text-blue-600 bg-blue-500/5 border-blue-500/20"
                                     )}
-                                    disabled={true} // Just a label basically, clickable card does the action
+                                    disabled={true}
                                 >
                                     {status === "ended"
                                         ? "Ended"

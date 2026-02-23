@@ -16,17 +16,15 @@ export interface Poll {
     question: string;
     options: PollOption[];
     isActive: boolean;
-    createdBy: string; // identity
+    createdBy: string;
     roomId?: string;
-    hasVoted?: boolean; // local state helper
+    hasVoted?: boolean;
 }
 
 type PollPacket =
     | { type: "POLL_CREATE"; poll: Poll }
     | { type: "POLL_VOTE"; pollId: string; optionId: string; voterIdentity: string }
     | { type: "POLL_CLOSE"; pollId: string };
-
-// --- Context & Hook ---
 
 interface PollingState {
     activePoll: Poll | null;
@@ -53,7 +51,6 @@ export function PollingProvider({ children }: { children: React.ReactNode }) {
     const [activePoll, setActivePoll] = useState<Poll | null>(null);
     const roomName = room?.name || "default";
 
-    // Load voted state helper
     const getVotedPolls = () => {
         if (typeof window === "undefined") return [];
         try {
@@ -88,7 +85,6 @@ export function PollingProvider({ children }: { children: React.ReactNode }) {
                 if (data.type === "POLL_CREATE") {
                     const voted = getVotedPolls();
                     setActivePoll({ ...data.poll, hasVoted: voted.includes(data.poll.id) });
-                    // Dispatch a global event for notification
                     window.dispatchEvent(new CustomEvent("poll-created", { detail: data.poll }));
                 }
 

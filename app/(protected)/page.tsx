@@ -28,7 +28,6 @@ export default function HomePage() {
         if (!authLoading) {
             loadData()
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [authLoading, isAdmin])
 
     const loadData = async () => {
@@ -62,7 +61,6 @@ export default function HomePage() {
 
     return (
         <div className="space-y-6">
-            {/* Quick Join */}
             <div className="bg-card rounded-lg border border-border p-6 flex flex-col md:flex-row items-center gap-6 shadow-sm">
                 <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
                     <Video className="h-5 w-5 text-primary" />
@@ -84,7 +82,6 @@ export default function HomePage() {
                 </div>
             </div>
 
-            {/* Available Rooms */}
             <div>
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-sm font-semibold flex items-center gap-2">

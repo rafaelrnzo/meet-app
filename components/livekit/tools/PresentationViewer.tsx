@@ -8,13 +8,43 @@ interface PresentationViewerProps {
     url: string;
     isOpen: boolean;
     onClose: () => void;
-    onDock: () => void;
+    onDock?: () => void;
+    mode?: "overlay" | "embedded";
 }
 
-export function PresentationViewer({ url, isOpen, onClose, onDock }: PresentationViewerProps) {
+export function PresentationViewer({ url, isOpen, onClose, onDock, mode = "overlay" }: PresentationViewerProps) {
     const [isMinimized, setIsMinimized] = useState(false);
 
     if (!isOpen || !url) return null;
+
+    if (mode === "embedded") {
+        return (
+            <div className="w-full h-full flex flex-col bg-white rounded-lg overflow-hidden border border-border relative group">
+                {/* Header for Embedded Mode - simplified */}
+                <div className="absolute top-2 right-2 z-10 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                        onClick={() => window.open(url, "_blank")}
+                        className="p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors backdrop-blur-sm"
+                        title="Open in new tab"
+                    >
+                        <ExternalLink className="h-4 w-4" />
+                    </button>
+                    <button
+                        onClick={onClose}
+                        className="p-1.5 rounded-full bg-black/50 hover:bg-black/70 text-white transition-colors backdrop-blur-sm"
+                        title="Close Presentation"
+                    >
+                        <X className="h-4 w-4" />
+                    </button>
+                </div>
+                <iframe
+                    src={url}
+                    className="flex-1 w-full h-full border-0"
+                    title="Presentation"
+                />
+            </div>
+        );
+    }
 
     return (
         <AnimatePresence>

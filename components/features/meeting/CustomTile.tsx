@@ -16,7 +16,6 @@ import { useRoomContext } from "@livekit/components-react";
 type Pub = RemoteTrackPublication | LocalTrackPublication;
 
 function isRemotePublication(pub: Pub): pub is RemoteTrackPublication {
-  // RemoteTrackPublication punya setSubscribed(); Local tidak
   return typeof (pub as any).setSubscribed === "function";
 }
 
@@ -78,7 +77,6 @@ export default function CustomTile({ item }: { item: GridItem }) {
 
     const ensureSubAndAttach = () => {
       try {
-        // subscribe hanya untuk remote pub (sinkron, tidak perlu await)
         if (isRemotePublication(videoPub) && !videoPub.isSubscribed) {
           videoPub.setSubscribed(true);
         }
@@ -101,7 +99,6 @@ export default function CustomTile({ item }: { item: GridItem }) {
       setSubscribed(false);
     };
 
-    // pakai enum TrackEvent, bukan string
     (videoPub as any).on?.(TrackEvent.Subscribed, handleSubscribed);
     (videoPub as any).on?.(TrackEvent.Unsubscribed, handleUnsubscribed);
 
@@ -113,10 +110,9 @@ export default function CustomTile({ item }: { item: GridItem }) {
     };
   }, [videoPub]);
 
-  // ---------- AUDIO (mic) attach ke <audio> tersembunyi ----------
   useEffect(() => {
     if (!room) return;
-    if (participant.isLocal) return; // jangan play audio diri sendiri
+    if (participant.isLocal) return;
 
     const micPub = getMicPublication(participant);
     if (!micPub || !hasAudio) return;
@@ -129,7 +125,6 @@ export default function CustomTile({ item }: { item: GridItem }) {
         audioRef.current.autoplay = true;
         audioRef.current.volume = 1;
         audioRef.current.play().catch(() => {
-          /* ignore autoplay rejection */
         });
       }
     };
@@ -142,10 +137,6 @@ export default function CustomTile({ item }: { item: GridItem }) {
     };
 
     try {
-    //   // Add explicit check for micPub before using isRemotePublication
-    //   if (micPub && isRemotePublication(micPub) && !micPub.isSubscribed) {
-    //     micPub.setSubscribed(true); // sinkron
-    //   }
       attach();
     } catch (e) {
       console.error("[Tile] subscribe audio error:", e);
@@ -175,7 +166,7 @@ export default function CustomTile({ item }: { item: GridItem }) {
         ref={videoRef}
         autoPlay
         playsInline
-        muted={participant.isLocal} // cegah echo
+        muted={participant.isLocal}
         className="w-full h-full object-cover bg-black"
       />
       <audio ref={audioRef} className="hidden" />

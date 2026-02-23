@@ -4,7 +4,6 @@ import { useEffect, useMemo, useRef } from "react";
 import type { Participant, RemoteTrackPublication, LocalTrackPublication } from "livekit-client";
 import { Track } from "livekit-client";
 
-/** tipe minimal trackRef dari useTracks() yang kita butuhkan */
 type TrackRefLite = {
   participant: Participant;
   source?: Track.Source;
@@ -12,11 +11,8 @@ type TrackRefLite = {
 };
 
 type Props = {
-  /** jika ada, tile akan coba render video/screen share dari trackRef */
   trackRef?: TrackRefLite;
-  /** alternatif: pakai participant untuk placeholder saat tidak ada video */
   participant?: Participant;
-  /** label tambahan (mis. “screen”) */
   secondaryLabel?: string;
   className?: string;
 };
@@ -27,7 +23,6 @@ export default function CustomTile({ trackRef, participant: pAlt, secondaryLabel
   const participant = trackRef?.participant ?? pAlt;
   const pub = trackRef?.publication ?? null;
 
-  // deteksi apakah ini video track (camera / screenshare)
   const isVideoLike = useMemo(() => {
     if (!trackRef) return false;
     if (trackRef.source === Track.Source.ScreenShare) return true;
@@ -35,7 +30,6 @@ export default function CustomTile({ trackRef, participant: pAlt, secondaryLabel
     return pub?.kind === "video";
   }, [trackRef, pub]);
 
-  // attach/detach video ke <video> element
   useEffect(() => {
     const v = videoEl.current;
     const lkTrack: any = pub?.track || null;
@@ -49,12 +43,11 @@ export default function CustomTile({ trackRef, participant: pAlt, secondaryLabel
     return () => {
       try {
         lkTrack.detach(v);
-      } catch {}
+      } catch { }
     };
   }, [pub?.track, isVideoLike]);
 
   if (!participant) {
-    // kasus aneh: belum ada participant sama sekali
     return (
       <div className={`rounded border border-neutral-800 bg-neutral-900/60 p-4 ${className ?? ""}`}>
         <div className="text-neutral-400 text-sm">menunggu…</div>
@@ -62,17 +55,14 @@ export default function CustomTile({ trackRef, participant: pAlt, secondaryLabel
     );
   }
 
-  // cek status mic dari participant
   const micPub = participant.getTrackPublication(Track.Source.Microphone) as
     | RemoteTrackPublication
     | LocalTrackPublication
     | undefined;
   const micMuted = micPub?.isMuted ?? true;
 
-  // label nama
   const displayName = participant.name || participant.identity;
 
-  // ---- render ----
   if (isVideoLike && pub?.isSubscribed !== false) {
     const isScreen = trackRef?.source === Track.Source.ScreenShare;
 
@@ -82,10 +72,9 @@ export default function CustomTile({ trackRef, participant: pAlt, secondaryLabel
           ref={videoEl}
           autoPlay
           playsInline
-          muted={participant.isLocal} // mute diri sendiri
+          muted={participant.isLocal}
           style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
         />
-        {/* metadata strip */}
         <div className="absolute left-2 bottom-2 px-2 py-1 rounded bg-black/60 text-xs text-white flex items-center gap-2">
           {!isScreen && (
             <span
@@ -101,7 +90,6 @@ export default function CustomTile({ trackRef, participant: pAlt, secondaryLabel
     );
   }
 
-  // fallback tile (kamera mati / belum ada publish video)
   const initial =
     (participant.name?.[0] || participant.identity?.[0] || "?").toUpperCase();
 

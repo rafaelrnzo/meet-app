@@ -6,7 +6,6 @@ import { createLocalVideoTrack, createLocalAudioTrack, LocalVideoTrack, LocalAud
 import { Mic, MicOff, Video, VideoOff, Settings, Users, ArrowRight, Loader2, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-// import { VideoTrack } from "@livekit/components-react"; // Removed as causing crash
 
 function LocalVideoPreview({ track }: { track: LocalVideoTrack }) {
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -72,18 +71,11 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
 
     const [initializing, setInitializing] = useState(true);
 
-    // Load devices and initial tracks
     useEffect(() => {
         let mounted = true;
 
         const init = async () => {
             try {
-                // Request permissions first to get labels
-                // We create temporary tracks just to ask for permission / enumerate devices
-                // Or we just enumerate if permissions are already granted. 
-                // Best practice: Try to create tracks with defaults.
-
-                // Create initial tracks first to trigger permissions
                 if (videoEnabled) {
                     try {
                         const vTrack = await createLocalVideoTrack({
@@ -95,7 +87,6 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
                     }
                 }
 
-                // Now enumerate devices (labels should be available if permission granted)
                 const devices = await navigator.mediaDevices.enumerateDevices();
                 const audios = devices.filter(d => d.kind === "audioinput" && d.deviceId !== "");
                 const videos = devices.filter(d => d.kind === "videoinput" && d.deviceId !== "");
@@ -124,15 +115,12 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
         };
     }, []);
 
-    // Toggle Video
     const toggleVideo = async () => {
         if (videoEnabled) {
-            // Turn off
             setVideoEnabled(false);
             videoTrack?.stop();
             setVideoTrack(null);
         } else {
-            // Turn on
             setVideoEnabled(true);
             try {
                 const vTrack = await createLocalVideoTrack({
@@ -142,17 +130,15 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
                 setVideoTrack(vTrack);
             } catch (e) {
                 console.error("Failed to enable video", e);
-                setVideoEnabled(false); // Revert on failure
+                setVideoEnabled(false);
             }
         }
     };
 
-    // Toggle Audio
     const toggleAudio = () => {
         setAudioEnabled(!audioEnabled);
     };
 
-    // Change Device
     const changeVideoDevice = async (deviceId: string) => {
         setSelectedVideoDevice(deviceId);
         if (videoEnabled) {
@@ -170,16 +156,7 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
     };
 
     const handleJoin = () => {
-        // Stop local preview tracks before joining so the real room can create new ones
-        // OR we can pass these tracks to the room. 
-        // Passing tracks is better for seamless transition but requires LiveKitRoom to accept tracks.
-        // For simplicity and robustness, we'll stop them here and let LiveKitRoom recreate them
-        // using the flags we pass. 
-        // Wait, recreating causes a flicker/delay. 
-        // Let's rely on flag passing for now.
-
         videoTrack?.stop();
-        // audioTrack?.stop(); // We didn't create persistent audio track for preview yet
 
         onJoin({
             audioEnabled,
@@ -193,11 +170,9 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen bg-background relative overflow-hidden p-4">
-            {/* Background Decor */}
             <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
             <div className="absolute h-full w-full bg-background [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
 
-            {/* Back Button */}
             <div className="absolute top-6 left-6 z-20">
                 <Button
                     variant="ghost"
@@ -212,10 +187,7 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
 
             <div className="relative z-10 w-full max-w-md flex flex-col gap-4">
 
-                {/* Main Card */}
                 <div className="flex flex-col gap-4 p-4 rounded-3xl bg-card/40 backdrop-blur-xl border border-white/10 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
-
-                    {/* Header */}
                     <div className="text-center space-y-1">
                         <h1 className="text-xl font-bold tracking-tight">Ready to join?</h1>
                         <p className="text-muted-foreground text-xs">
@@ -223,7 +195,6 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
                         </p>
                     </div>
 
-                    {/* Video Preview */}
                     <div className="relative aspect-video rounded-xl overflow-hidden bg-muted/30 border border-white/10 shadow-inner group">
                         {videoEnabled && videoTrack ? (
                             <LocalVideoPreview track={videoTrack} />
@@ -236,7 +207,6 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
                             </div>
                         )}
 
-                        {/* Overlay Controls */}
                         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex items-center gap-2 p-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/10 opacity-0 group-hover:opacity-100 transition-all duration-300 translate-y-2 group-hover:translate-y-0">
                             <Button
                                 variant={audioEnabled ? "secondary" : "destructive"}
@@ -257,10 +227,8 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
                         </div>
                     </div>
 
-                    {/* Device Selectors */}
                     <div className="grid grid-cols-2 gap-2">
                         <div className="space-y-1">
-                            {/* <label className="text-[10px] text-muted-foreground font-medium ml-1">Microphone</label> */}
                             <Select value={selectedAudioDevice} onValueChange={setSelectedAudioDevice} disabled={audioDevices.length === 0}>
                                 <SelectTrigger className="h-8 text-xs bg-background/50 border-white/10">
                                     <span className="truncate">
@@ -277,7 +245,6 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
                             </Select>
                         </div>
                         <div className="space-y-1">
-                            {/* <label className="text-[10px] text-muted-foreground font-medium ml-1">Camera</label> */}
                             <Select value={selectedVideoDevice} onValueChange={changeVideoDevice} disabled={videoDevices.length === 0}>
                                 <SelectTrigger className="h-8 text-xs bg-background/50 border-white/10">
                                     <span className="truncate">
@@ -295,7 +262,6 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
                         </div>
                     </div>
 
-                    {/* Form & Actions */}
                     <div className="space-y-3 pt-1">
                         {!disableNameInput ? (
                             <div className="space-y-1">

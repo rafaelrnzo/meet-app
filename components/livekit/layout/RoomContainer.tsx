@@ -14,23 +14,30 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { Track, type Participant, type LocalParticipant, RoomEvent, DataPacket_Kind, ParticipantEvent, DisconnectReason, Room } from "livekit-client";
 import { useMemo, useState, useEffect, useRef, useCallback } from "react";
-import { Video, Users, ChevronLeft, ChevronRight, BarChart2, UserMinus } from "lucide-react";
+import { Video, Users, ChevronLeft, ChevronRight, BarChart2, UserMinus, Dices } from "lucide-react";
 import * as React from "react";
-import Whiteboard from "../whiteboard/Whiteboard";
-import { Controls } from "./Controls";
+import Whiteboard from "@/components/whiteboard/Whiteboard";
+import { Controls } from "../controls/Controls";
 import "@livekit/components-styles";
-import { VirtualBackgroundSelector } from "./VirtualBackgroundSelector";
+import { VirtualBackgroundSelector } from "../tools/VirtualBackgroundSelector";
 import { ReactionOverlay } from "./ReactionOverlay";
 import { SidePanel } from "./SidePanel";
 import { Toaster, toast } from "sonner";
 import { MediaChoices } from "@/components/features/meeting/PreJoin";
-import { PollingProvider } from "./Polling";
+import { PollingProvider } from "../tools/Polling";
 import { fetchUserDbRooms, fetchRoomByCode, updateRoomPermissions } from "@/lib/api/admin-api";
-import { PresentationViewer } from "./PresentationViewer";
+import dynamic from "next/dynamic";
+import { YouTubeSyncWrapper } from "@/components/features/meeting/YouTubeSyncWrapper";
+
+const PDFSlideViewer = dynamic(
+  () => import("../tools/PDFSlideViewer").then((mod) => ({ default: mod.PDFSlideViewer })),
+  { ssr: false }
+);
 
 
 type TrackRef = any;
 type LayoutMode = "auto" | "grid" | "screen-horizontal";
+type LayoutView = "grid" | "youtube" | "presentation";
 
 function DebugTracks() {
   const trackRefs = useTracks(undefined, { onlySubscribed: false });
@@ -65,6 +72,7 @@ function CustomParticipantTile({
 }) {
   const [isAudioMuted, setIsAudioMuted] = useState(() => !participant.isMicrophoneEnabled);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [handRaised, setHandRaised] = useState(false);
 
   const source: Track.Source | undefined =
     trackRef?.publication?.source ?? trackRef?.source;
@@ -80,9 +88,19 @@ function CustomParticipantTile({
       setIsAudioMuted(!lkParticipant.isMicrophoneEnabled);
     };
 
+    const updateMetadata = () => {
+      try {
+        const md = lkParticipant.metadata ? JSON.parse(lkParticipant.metadata) : {};
+        setHandRaised(!!md.handRaised);
+      } catch {
+        setHandRaised(false);
+      }
+    };
+
     const handleSpeakingChanged = (speaking: boolean) => setIsSpeaking(speaking);
 
     updateAudioMuted();
+    updateMetadata();
 
     const events = [
       ParticipantEvent.TrackMuted,
@@ -95,10 +113,12 @@ function CustomParticipantTile({
 
     events.forEach((evt) => lkParticipant.on?.(evt, updateAudioMuted));
     lkParticipant.on?.(ParticipantEvent.IsSpeakingChanged, handleSpeakingChanged);
+    lkParticipant.on?.(ParticipantEvent.ParticipantMetadataChanged, updateMetadata);
 
     return () => {
       events.forEach((evt) => lkParticipant.off?.(evt, updateAudioMuted));
       lkParticipant.off?.(ParticipantEvent.IsSpeakingChanged, handleSpeakingChanged);
+      lkParticipant.off?.(ParticipantEvent.ParticipantMetadataChanged, updateMetadata);
     };
   }, [participant]);
 
@@ -109,6 +129,9 @@ function CustomParticipantTile({
     !!trackRef.publication.track;
 
   const displayName = participant.name || participant.identity;
+  // Import Hand icon if not available in scope, but it was imported at top of file likely.
+  // Checking imports... Lucide icons are imported. Need to ensure 'Hand' is imported.
+  // I will check imports in next step or assume it's there. RoomContainer imports 'Users' but maybe not 'Hand'.
 
   return (
     <div
@@ -146,6 +169,16 @@ function CustomParticipantTile({
                   {displayName}
                   {isScreenShare && "'s screen"}
                 </span>
+                {handRaised && (
+                  <div className="w-5 h-5 rounded-full bg-yellow-500/80 flex items-center justify-center text-black" title="Hand Raised">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+                      <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2" />
+                      <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
+                      <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+                    </svg>
+                  </div>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 {isAudioMuted && !isScreenShare && (
@@ -171,7 +204,17 @@ function CustomParticipantTile({
           </div>
         </>
       ) : (
-        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted via-card to-background">
+        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted via-card to-background relative">
+          {handRaised && (
+            <div className="absolute top-2 right-2 p-1.5 bg-yellow-500/20 rounded-full border border-yellow-500/30 text-yellow-500 animate-pulse">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M18 11V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v0" />
+                <path d="M14 10V4a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v2" />
+                <path d="M10 10.5V6a2 2 0 0 0-2-2v0a2 2 0 0 0-2 2v8" />
+                <path d="M18 8a2 2 0 1 1 4 0v6a8 8 0 0 1-8 8h-2c-2.8 0-4.5-.86-5.99-2.34l-3.6-3.6a2 2 0 0 1 2.83-2.82L7 15" />
+              </svg>
+            </div>
+          )}
           <div className="text-center px-4">
             <div
               className="mx-auto mb-3 rounded-full bg-muted grid place-items-center text-foreground shadow-lg"
@@ -431,6 +474,61 @@ export default function RoomContainer({
   const [room, setRoom] = useState<Room | null>(null);
   const [canPublish, setCanPublish] = useState(false);
 
+  // Layout State
+  const [activeView, setActiveView] = useState<LayoutView>("grid");
+
+  // YouTube State
+  const [youtubeUrl, setYoutubeUrl] = useState<string | null>(null);
+  const [isYoutubeOpen, setIsYoutubeOpen] = useState(false);
+
+  // Sync YouTube State from Metadata
+  useEffect(() => {
+    if (!room) return;
+
+    const checkMetadata = () => {
+      const md = room.metadata ? JSON.parse(room.metadata) : {};
+      if (md.youtube) {
+        if (md.youtube.url) setYoutubeUrl(md.youtube.url);
+        if (typeof md.youtube.isOpen === "boolean") {
+          setIsYoutubeOpen(md.youtube.isOpen);
+          if (md.youtube.isOpen) {
+            setShowPresentation(false);
+            setActiveSidebar(null);
+            setActiveView("youtube"); // Switch to YouTube view
+          }
+        }
+      } else {
+        // If youtube key is missing or explicitly closed (handled in other effect?), 
+        // we might want to revert to grid if we were on youtube, but better to let specific close actions handle it
+      }
+    };
+
+    checkMetadata();
+    room.on(RoomEvent.RoomMetadataChanged, checkMetadata);
+    return () => {
+      room.off(RoomEvent.RoomMetadataChanged, checkMetadata);
+    };
+  }, [room]);
+
+  const handleCloseYouTube = async () => {
+    if (!isAdmin) return;
+    try {
+      const currentMeta = room?.metadata ? JSON.parse(room.metadata) : {};
+      const newMeta = {
+        ...currentMeta,
+        youtube: {
+          ...currentMeta.youtube,
+          isOpen: false
+        }
+      };
+      await updateRoomPermissions(roomName, newMeta);
+      setIsYoutubeOpen(false);
+      if (activeView === "youtube") setActiveView("grid");
+    } catch (e) {
+      toast.error("Failed to close YouTube");
+    }
+  };
+
   useEffect(() => {
     if (typeof window !== "undefined" && navigator.mediaDevices) {
       setCanPublish(true);
@@ -485,7 +583,7 @@ export default function RoomContainer({
   const [presentationPath, setPresentationPath] = useState<string | null>(null);
   const [roomId, setRoomId] = useState<number | null>(null);
   const [showPresentation, setShowPresentation] = useState(false);
-  const [presentationMode, setPresentationMode] = useState<"overlay" | "sidebar">("overlay");
+  const [presentationMode, setPresentationMode] = useState<"overlay" | "sidebar" | "embedded">("overlay");
 
   useEffect(() => {
     (async () => {
@@ -507,16 +605,25 @@ export default function RoomContainer({
   const fullPresentationPath = useMemo(() => {
     if (!presentationPath) return null;
 
-    // If already a full URL (backward compatibility with old direct S3 URLs)
-    if (presentationPath.startsWith("http://") || presentationPath.startsWith("https://")) {
-      return presentationPath;
+    let baseUrl = presentationPath;
+    // If relative path (new proxy URL format like "/api/presentations/:id")
+    if (!presentationPath.startsWith("http://") && !presentationPath.startsWith("https://")) {
+      const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
+        (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8080` : "http://localhost:8080");
+      baseUrl = `${API_BASE}${presentationPath.startsWith('/') ? presentationPath : '/' + presentationPath}`;
     }
 
-    // If relative path (new proxy URL format like "/api/presentations/:id")
-    const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
-      (typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8080` : "http://localhost:8080");
+    // Append token for authentication in iframe
+    if (typeof window !== "undefined") {
+      const token = localStorage.getItem("vc_token");
+      if (token) {
+        const url = new URL(baseUrl, window.location.origin);
+        url.searchParams.set("token", token);
+        return url.toString();
+      }
+    }
 
-    return `${API_BASE}${presentationPath.startsWith('/') ? presentationPath : '/' + presentationPath}`;
+    return baseUrl;
   }, [presentationPath]);
 
   // Sync Presentation State from Metadata
@@ -527,7 +634,10 @@ export default function RoomContainer({
       const md = room.metadata ? JSON.parse(room.metadata) : {};
       if (md.presentation) {
         if (md.presentation.url) setPresentationPath(md.presentation.url);
-        if (typeof md.presentation.isOpen === "boolean") setShowPresentation(md.presentation.isOpen);
+        if (typeof md.presentation.isOpen === "boolean") {
+          setShowPresentation(md.presentation.isOpen);
+          if (md.presentation.isOpen) setActiveView("presentation");
+        }
       }
     };
 
@@ -535,6 +645,29 @@ export default function RoomContainer({
     room.on(RoomEvent.RoomMetadataChanged, checkMetadata);
     return () => {
       room.off(RoomEvent.RoomMetadataChanged, checkMetadata);
+    };
+  }, [room]);
+
+  // Listen for Random User Selection (Toast)
+  useEffect(() => {
+    if (!room) return;
+
+    const onData = (payload: Uint8Array, participant?: any, kind?: any) => {
+      try {
+        const str = new TextDecoder().decode(payload);
+        const data = JSON.parse(str);
+        if (data.type === "random_user_selected" && data.winner) {
+          toast(`🎉 Random User Selected: ${data.winner}`, {
+            duration: 5000,
+            icon: <Dices className="w-5 h-5 text-blue-500" />
+          });
+        }
+      } catch (e) { /* ignore */ }
+    };
+
+    room.on(RoomEvent.DataReceived, onData);
+    return () => {
+      room.off(RoomEvent.DataReceived, onData);
     };
   }, [room]);
 
@@ -547,7 +680,10 @@ export default function RoomContainer({
     }
 
     if (newState) {
-      setPresentationMode("overlay");
+      setPresentationMode("embedded"); // Default to embedded when invoked via toggle
+      setActiveView("presentation");
+    } else {
+      if (activeView === "presentation") setActiveView("grid");
     }
 
     if (isAdmin) {
@@ -705,7 +841,51 @@ export default function RoomContainer({
           <div className="flex-1 min-w-0 min-h-0 relative overflow-hidden flex flex-col">
             <div className="flex-1 relative w-full h-full flex flex-col">
               <div className="flex-1 min-h-0 relative">
-                <VideoGrid layoutMode={layoutMode} />
+                {/* Navigation Arrows */}
+                {(isYoutubeOpen || showPresentation) && (
+                  <>
+                    {/* Next View (Right Arrow) - Mirroring functionality for convenience or bi-directional cycling if we add more views*/}
+                    <div className="absolute right-4 top-1/2 -translate-y-1/2 z-[60] group/nav">
+                      <button
+                        onClick={() => {
+                          // Same logic as left for now, essentially a toggle
+                          if (activeView === "grid") {
+                            if (isYoutubeOpen) setActiveView("youtube");
+                            else if (showPresentation) setActiveView("presentation");
+                          } else {
+                            setActiveView("grid");
+                          }
+                        }}
+                        className="p-1.5 rounded-full bg-black/50 hover:bg-black/80 backdrop-blur text-white/50 hover:text-white transition-all border border-white/10 hover:border-white/30 shadow-lg"
+                      >
+                        <ChevronRight size={24} className={activeView === "grid" ? "rotate-180" : ""} />
+                      </button>
+                      <div className="absolute right-full top-1/2 -translate-y-1/2 mr-2 px-2 py-1 bg-black text-white text-xs rounded opacity-0 group-hover/nav:opacity-100 transition-opacity whitespace-nowrap pointer-events-none">
+                        {activeView === "grid" ? "Show Content" : "Show Grid"}
+                      </div>
+                    </div>
+                  </>
+                )}
+
+                {activeView === "youtube" && isYoutubeOpen && youtubeUrl ? (
+                  <YouTubeSyncWrapper
+                    roomName={roomName}
+                    isAdmin={isAdmin}
+                    initialUrl={youtubeUrl}
+                    onClose={handleCloseYouTube}
+                  />
+                ) : activeView === "presentation" && showPresentation && fullPresentationPath ? (
+                  <PDFSlideViewer
+                    url={fullPresentationPath}
+                    isOpen={showPresentation}
+                    onClose={handleTogglePresentation}
+                    mode="embedded"
+                    isAdmin={isAdmin}
+                    roomName={roomName}
+                  />
+                ) : (
+                  <VideoGrid layoutMode={layoutMode} />
+                )}
               </div>
               <Whiteboard active={showWb} onClose={() => setShowWb(false)} />
               <VirtualBackgroundSelector
@@ -761,23 +941,42 @@ export default function RoomContainer({
                   // Providing better UX: Switch sidebar safely
                   setActiveSidebar(null);
                 }}
+                isYoutubeOpen={isYoutubeOpen}
+                onToggleYouTube={() => {
+                  // Actually, let's pass a handler to open specific URL
+                }}
+                onOpenYouTube={async (url) => {
+                  if (!isAdmin) return;
+                  try {
+                    const currentMeta = room?.metadata ? JSON.parse(room.metadata) : {};
+                    const newMeta = {
+                      ...currentMeta,
+                      youtube: {
+                        ...currentMeta.youtube,
+                        isOpen: true,
+                        url: url,
+                        playing: true,
+                        time: 0,
+                        lastUpdate: Date.now()
+                      }
+                    };
+                    await updateRoomPermissions(roomName, newMeta);
+                    // Local update will happen via metadata event
+                    // But we can optimistically set it content
+                    setYoutubeUrl(url);
+                    setIsYoutubeOpen(true);
+                    setActiveView("youtube");
+                    setActiveSidebar(null); // Close sidebar to show video
+                  } catch (e) {
+                    toast.error("Failed to open YouTube");
+                  }
+                }}
               />
             </div>
           </div>
         </div>
 
-        {fullPresentationPath && presentationMode === "overlay" && (
-          <PresentationViewer
-            url={fullPresentationPath}
-            isOpen={showPresentation}
-            onClose={() => setShowPresentation(false)}
-            onDock={() => {
-              setPresentationMode("sidebar");
-              setActiveSidebar("presentation");
-              setSidebarWidth(Math.min(window.innerWidth * 1, 800)); // Auto-expand to 60% or 800px
-            }}
-          />
-        )}
+        {/* Removed Overlay Presentation Viewer */}
 
         <div className="border-t border-border bg-card/60 backdrop-blur-md pb-safe">
 

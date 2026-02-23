@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchToken, fetchPublicRoom, joinPublicRoom } from "@/lib/api/api";
-import RoomContainer from "@/components/livekit/RoomContainer";
+import RoomContainer from "@/components/livekit/layout/RoomContainer";
 import { Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PreJoin, { MediaChoices } from "./PreJoin";
@@ -38,20 +38,16 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
         setError(null);
         setLoading(true);
 
-        // 1. Check Auth Check
         const authToken = typeof window !== 'undefined' ? localStorage.getItem("vc_token") : null;
 
         if (authToken) {
           try {
-            // Try fetching as authenticated user
-            // Pass current identity just in case, but backend might override with real user identity
             const data = await fetchToken(room, identity);
             if (!active) return;
             setToken(data.token);
             setServerUrl(data.serverUrl);
             setTokenParams({ roomName: data.roomName, isWaiting: data.isWaiting });
 
-            // IMPORTANT: specific logic for logged in user
             if (data.identity) {
               setIdentity(data.identity);
             }
@@ -61,25 +57,21 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
             return;
           } catch (e: any) {
             console.warn("Auth token present but fetch failed, falling back to public check", e);
-            // Show toast to debug why auth failed
             if (e.message) {
               toast.error(`Auth Error: ${e.message}`);
             }
-            // If 401, maybe we should clear token?
             if (e.message?.includes("401")) {
               localStorage.removeItem("vc_token");
             }
           }
         }
 
-        // 2. If no auth or auth failed, check if public room
         const info = await fetchPublicRoom(room);
         if (!active) return;
 
         if (info) {
           setRoomInfo(info);
           setIsGuest(true);
-          // Don't set token yet, wait for PreJoin
           setLoading(false);
         } else {
           throw new Error("Room not found");
@@ -107,12 +99,10 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
 
   const handleJoin = async (choices: MediaChoices) => {
     if (!isGuest) {
-      // Already have token, just proceed
       setPreJoinChoices(choices);
       return;
     }
 
-    // If Guest, exchange password for token
     try {
       setLoading(true);
       const data = await joinPublicRoom(room, choices.username, choices.password);
@@ -127,7 +117,6 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
       console.error("Guest join failed", e);
       toast.error("Gagal masuk: " + e.message);
       setLoading(false);
-      // Stay on PreJoin
     }
   };
 
@@ -162,11 +151,9 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
     );
   }
 
-  // Loading State (Initial or Joining)
   if (loading || (!token && !roomInfo)) {
     return (
       <div className="flex flex-col items-center justify-center h-screen w-full bg-background relative overflow-hidden">
-        {/* Ambient Background */}
         <div className="absolute inset-0 bg-grid-white/[0.02] bg-[size:50px_50px]" />
         <div className="absolute h-full w-full bg-background [mask-image:radial-gradient(ellipse_at_center,transparent_20%,black)]" />
 
@@ -189,8 +176,6 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
     );
   }
 
-  // Show PreJoin if we haven't made choices yet
-  // Condition: We have token (Auth user) OR We have roomInfo (Guest)
   if (!preJoinChoices) {
     return (
       <PreJoin
@@ -204,9 +189,7 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
     );
   }
 
-  // If we are here, we MUST have a token (either fetched initially or after guest join)
   if (!token || !serverUrl) {
-    // Should not happen if logic is correct, but safe guard
     return null;
   }
 

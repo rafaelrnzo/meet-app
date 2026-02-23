@@ -12,7 +12,6 @@ export function HostControls({ roomName }: { roomName: string }) {
     const room = useRoomContext();
     const [metadataStr, setMetadataStr] = useState("");
 
-    // Sync Metadata
     useEffect(() => {
         if (!room) return;
         setMetadataStr(room.metadata || "{}");
@@ -38,7 +37,6 @@ export function HostControls({ roomName }: { roomName: string }) {
     const allowVideo = metadata.allow_video !== false;
     const allowScreen = metadata.allow_screen !== false;
     const allowReaction = metadata.allow_reaction !== false;
-    // const allowChat = metadata.allow_chat !== false; // Future implementation
 
     const updatePermission = async (key: string, val: boolean, muteKind?: "audio" | "video") => {
         if (!room) return;
@@ -57,7 +55,6 @@ export function HostControls({ roomName }: { roomName: string }) {
 
     return (
         <div className="flex flex-col h-full overflow-y-auto">
-            {/* Description */}
             <div className="p-4 border-b border-border bg-muted/20">
                 <p className="text-sm text-muted-foreground">
                     Use these host settings to control your meeting. Only hosts have access to these controls.
@@ -65,9 +62,6 @@ export function HostControls({ roomName }: { roomName: string }) {
             </div>
 
             <div className="p-4 space-y-6">
-
-                {/* MEETING MODERATION Section */}
-
                 <div className="space-y-4">
                     <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                         Waiting Room
@@ -93,15 +87,11 @@ export function HostControls({ roomName }: { roomName: string }) {
                         Allow Participants
                     </h4>
 
-                    {/* Screen Share */}
                     <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                 Share their screen
                             </label>
-                            {/* <p className="text-[10px] text-muted-foreground">
-                                Izinkan peserta membagikan layar mereka.
-                            </p> */}
                         </div>
                         <Switch
                             checked={allowScreen}
@@ -109,7 +99,6 @@ export function HostControls({ roomName }: { roomName: string }) {
                         />
                     </div>
 
-                    {/* Reactions */}
                     <div className="flex items-center justify-between">
                         <div className="space-y-0.5">
                             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
@@ -122,7 +111,6 @@ export function HostControls({ roomName }: { roomName: string }) {
                         />
                     </div>
 
-                    {/* Mic */}
                     <div className="flex flex-col gap-2 pt-2">
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-medium leading-none">
@@ -138,7 +126,6 @@ export function HostControls({ roomName }: { roomName: string }) {
                         </p>
                     </div>
 
-                    {/* Video */}
                     <div className="flex flex-col gap-2 pt-2">
                         <div className="flex items-center justify-between">
                             <label className="text-sm font-medium leading-none">

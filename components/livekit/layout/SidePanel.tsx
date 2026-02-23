@@ -1,17 +1,23 @@
 "use client";
 
-import { useParticipants, useLocalParticipant } from "@livekit/components-react";
-import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft, MicOff, Mic, MoreVertical, Ban, Unlock, RefreshCw, FileText, ChevronRight, Presentation } from "lucide-react";
+import { useParticipants, useLocalParticipant, useRoomContext } from "@livekit/components-react";
+import { UserMinus, X, Video, PencilRuler, Disc, BarChart2, ChevronLeft, MicOff, Mic, MoreVertical, Ban, Unlock, RefreshCw, FileText, ChevronRight, Presentation, Hand, Dices } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import { muteParticipant, banParticipant, unbanParticipant, fetchUserDbRooms, DbRoom } from "@/lib/api/admin-api";
 import { toast } from "sonner";
 import { Track } from "livekit-client";
-import { MeetingChat } from "./MeetingChat";
-import { ServerRecordingControls } from "./ServerRecordingControls";
-import { PollingTool } from "./Polling";
-import { SharedNotes } from "./SharedNotes";
+import { MeetingChat } from "../chat/MeetingChat";
+import { ServerRecordingControls } from "../controls/ServerRecordingControls";
+import { PollingTool } from "../tools/Polling";
+import { SharedNotes } from "../tools/SharedNotes";
 
-import { HostControls } from "./HostControls";
+import dynamic from "next/dynamic";
+import { HostControls } from "../controls/HostControls";
+
+const PDFSlideViewer = dynamic(
+    () => import("../tools/PDFSlideViewer").then((mod) => ({ default: mod.PDFSlideViewer })),
+    { ssr: false }
+);
 
 type SidebarTab = "chat" | "participants" | "tools" | "settings" | "host_controls" | "presentation" | null;
 
@@ -31,6 +37,9 @@ interface SidePanelProps {
     onUndockPresentation?: () => void;
     width?: number | string;
     onWidthChange?: (w: number) => void;
+    isYoutubeOpen?: boolean;
+    onToggleYouTube?: () => void;
+    onOpenYouTube?: (url: string) => void;
 }
 
 export function SidePanel({
@@ -48,7 +57,10 @@ export function SidePanel({
     presentationUrl,
     onUndockPresentation,
     width: controlledWidth,
-    onWidthChange
+    onWidthChange,
+    isYoutubeOpen,
+    onToggleYouTube,
+    onOpenYouTube
 }: SidePanelProps) {
     const [internalWidth, setInternalWidth] = useState(320);
     const width = controlledWidth ?? internalWidth;
@@ -171,6 +183,9 @@ export function SidePanel({
                         hasPresentation={hasPresentation}
                         view={toolsView}
                         setView={onToolsViewChange || (() => { })}
+                        isYoutubeOpen={isYoutubeOpen}
+                        onToggleYouTube={onToggleYouTube}
+                        onOpenYouTube={onOpenYouTube}
                     />
                 )}
 
@@ -180,10 +195,13 @@ export function SidePanel({
 
                 {activeTab === "presentation" && presentationUrl && (
                     <div className="w-full h-full bg-white relative">
-                        <iframe
-                            src={presentationUrl}
-                            className="absolute inset-0 w-full h-full border-0"
-                            title="Presentation Side View"
+                        <PDFSlideViewer
+                            url={presentationUrl}
+                            isOpen={true}
+                            onClose={() => { /* Handled by sidebar close */ }}
+                            isAdmin={isAdmin}
+                            roomName={roomName}
+                            mode="embedded"
                         />
                     </div>
                 )}
@@ -200,7 +218,10 @@ function ToolsListContent({
     isPresentationOpen,
     hasPresentation,
     view,
-    setView
+    setView,
+    isYoutubeOpen,
+    onToggleYouTube,
+    onOpenYouTube
 }: {
     roomName: string;
     isAdmin: boolean;
@@ -211,7 +232,16 @@ function ToolsListContent({
     hasPresentation: boolean;
     view: "menu" | "polling" | "notes";
     setView: (v: "menu" | "polling" | "notes") => void;
+    isYoutubeOpen?: boolean;
+    onToggleYouTube?: () => void;
+    onOpenYouTube?: (url: string) => void;
 }) {
+    const room = useRoomContext();
+    const { localParticipant } = useLocalParticipant();
+    // Local state for YouTube input
+    const [ytUrl, setYtUrl] = useState("");
+    const [showYtInput, setShowYtInput] = useState(false);
+
     if (view === "polling") {
         return (
             <div className="flex flex-col h-full">
@@ -232,6 +262,48 @@ function ToolsListContent({
 
     if (view === "notes") {
         return <SharedNotes isAdmin={isAdmin} onBack={() => setView("menu")} roomName={roomName} />;
+    }
+
+    if (showYtInput) {
+        return (
+            <div className="flex flex-col h-full border-t border-border pt-4 mt-2">
+                <div className="p-2 border-b border-border flex items-center justify-between">
+                    <button
+                        onClick={() => setShowYtInput(false)}
+                        className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" /> Back
+                    </button>
+                    <span className="text-xs font-semibold">Share YouTube</span>
+                </div>
+                <div className="p-4 flex flex-col gap-3">
+                    <p className="text-xs text-muted-foreground">
+                        Paste a YouTube link to watch together synchronously.
+                    </p>
+                    <input
+                        type="text"
+                        placeholder="https://youtube.com/watch?v=..."
+                        className="w-full bg-muted/50 border border-border rounded px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        value={ytUrl}
+                        onChange={(e) => setYtUrl(e.target.value)}
+                        autoFocus
+                    />
+                    <button
+                        onClick={() => {
+                            if (ytUrl && onOpenYouTube) {
+                                onOpenYouTube(ytUrl);
+                                setShowYtInput(false);
+                                setYtUrl("");
+                            }
+                        }}
+                        disabled={!ytUrl}
+                        className="w-full py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded text-xs transition-colors disabled:opacity-50"
+                    >
+                        Start Sharing
+                    </button>
+                </div>
+            </div>
+        );
     }
 
     return (
@@ -275,22 +347,81 @@ function ToolsListContent({
                 </div>
             )}
 
+            <div className="pt-2">
+                <h4 className="text-[11px] font-semibold text-muted-foreground uppercase mb-3 px-1 tracking-wider">Media</h4>
+                <ToolItem
+                    icon={<Video className="w-4.5 h-4.5 text-red-500" />}
+                    title="YouTube Sync"
+                    description="Watch video together"
+                    onClick={() => {
+                        if (isYoutubeOpen && onToggleYouTube) {
+                            onToggleYouTube();
+                        } else {
+                            setShowYtInput(true);
+                        }
+                    }}
+                    actionLabel={isYoutubeOpen ? "Close" : "Open"}
+                    isActive={isYoutubeOpen}
+                />
+            </div>
+
             {isAdmin && (
                 <div className="pt-2">
                     <h4 className="text-[11px] font-semibold text-muted-foreground uppercase mb-3 px-1 tracking-wider">Admin</h4>
-                    <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors group border border-transparent hover:border-border cursor-pointer">
-                        <div className="flex items-center gap-2.5">
-                            <div className="p-2 rounded-md bg-muted/60 group-hover:bg-background group-hover:shadow-sm transition-all">
-                                <Disc className="w-4.5 h-4.5 text-red-500" />
+                    <div className="flex flex-col gap-2">
+                        <div className="flex items-center justify-between p-2 rounded-lg hover:bg-accent/50 transition-colors group border border-transparent hover:border-border cursor-pointer">
+                            <div className="flex items-center gap-2.5">
+                                <div className="p-2 rounded-md bg-muted/60 group-hover:bg-background group-hover:shadow-sm transition-all">
+                                    <Disc className="w-4.5 h-4.5 text-red-500" />
+                                </div>
+                                <div className="flex flex-col gap-0.5">
+                                    <span className="text-sm font-semibold">Recording</span>
+                                    <span className="text-[11px] text-muted-foreground font-medium">Record meeting</span>
+                                </div>
                             </div>
-                            <div className="flex flex-col gap-0.5">
-                                <span className="text-sm font-semibold">Recording</span>
-                                <span className="text-[11px] text-muted-foreground font-medium">Record meeting</span>
+                            <div className="scale-90 origin-right">
+                                <ServerRecordingControls roomName={roomName} />
                             </div>
                         </div>
-                        <div className="scale-90 origin-right">
-                            <ServerRecordingControls roomName={roomName} />
-                        </div>
+
+                        <ToolItem
+                            icon={<Dices className="w-4.5 h-4.5 text-blue-500" />}
+                            title="Pick Random User"
+                            description="Select a participant randomly"
+                            onClick={async () => {
+                                if (!room || !localParticipant) return;
+                                const participants = Array.from(room.remoteParticipants.values());
+                                // Filter out those who are waiting
+                                const activeParticipants = participants.filter(p => {
+                                    try {
+                                        const md = p.metadata ? JSON.parse(p.metadata) : {};
+                                        return md.status !== "waiting";
+                                    } catch { return true; }
+                                });
+
+                                if (activeParticipants.length === 0) {
+                                    toast.error("No other participants to pick from!");
+                                    return;
+                                }
+
+                                const randomIdx = Math.floor(Math.random() * activeParticipants.length);
+                                const winner = activeParticipants[randomIdx];
+                                const winnerName = winner.identity;
+
+                                // Broadcast to room
+                                try {
+                                    const data = new TextEncoder().encode(JSON.stringify({
+                                        type: "random_user_selected",
+                                        winner: winnerName
+                                    }));
+                                    await localParticipant.publishData(data, { reliable: true });
+                                    toast.success(`Selected: ${winnerName}`);
+                                } catch (e) {
+                                    console.error("Failed to broadcast winner", e);
+                                    toast.error("Failed to select user");
+                                }
+                            }}
+                        />
                     </div>
                 </div>
             )}
@@ -608,6 +739,15 @@ function ParticipantListContent({ roomName, isAdmin }: { roomName: string, isAdm
                                         )}
                                     </div>
                                 )}
+                                {/* Hand Raised Icon */}
+                                {(() => {
+                                    const md = p.metadata ? JSON.parse(p.metadata) : {};
+                                    return md.handRaised ? (
+                                        <div className="p-1 bg-yellow-500/10 rounded border border-yellow-500/20" title="Hand Raised">
+                                            <Hand className="w-3.5 h-3.5 text-yellow-500" />
+                                        </div>
+                                    ) : null;
+                                })()}
                             </div>
                         );
                     })}

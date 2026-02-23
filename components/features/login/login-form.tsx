@@ -56,7 +56,6 @@ export function LoginForm({
         throw new Error("Token not found in response")
       }
 
-      // Simpan token & user info ke localStorage (untuk useAuth di FE)
       if (typeof window !== "undefined") {
         localStorage.setItem("vc_token", token)
         localStorage.setItem(
@@ -68,7 +67,6 @@ export function LoginForm({
         )
       }
 
-      // Arahkan ke dashboard utama (ubah ke /dashboard kalau kamu pakai route itu)
       router.push("/")
     } catch (err: any) {
       console.error(err)

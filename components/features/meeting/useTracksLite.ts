@@ -16,15 +16,14 @@ type Pub = RemoteTrackPublication | LocalTrackPublication;
 export type GridItem = {
   key: string;
   participant: Participant;
-  videoPub?: Pub;           // kamera atau screenshare (satu per item)
+  videoPub?: Pub;
   kind: "camera" | "screen";
-  hasAudio: boolean;        // participant punya publikasi mic?
+  hasAudio: boolean;
 };
 
 function collect(room: Room): GridItem[] {
   const out: GridItem[] = [];
 
-  // Penting: pakai Array.from(...) saat spread iterator
   const everyone: Participant[] = [
     room.localParticipant,
     ...Array.from(room.remoteParticipants.values()),
@@ -38,19 +37,18 @@ function collect(room: Room): GridItem[] {
       out.push({
         key: `${p.identity}-cam-${cam.trackSid ?? "x"}`,
         participant: p,
-        // videoPub: cam,
+
         kind: "camera",
         hasAudio: !!mic,
       });
     }
 
-    // SCREEN (object sendiri) — tidak duplikasi key, ini push ke array baru
     const ss = p.getTrackPublication(Track.Source.ScreenShare);
     if (ss) {
       out.push({
         key: `${p.identity}-scr-${ss.trackSid ?? "x"}`,
         participant: p,
-        // videoPub: ss,
+
         kind: "screen",
         hasAudio: !!mic,
       });

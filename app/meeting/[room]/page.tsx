@@ -1,7 +1,7 @@
 // app/meeting/[room]/page.tsx
 import { Suspense } from "react";
 import MeetingClient from "@/components/features/meeting/MeetingClient";
-import { Loader } from "@/components/livekit/Loader";
+import { Loader } from "@/components/livekit/layout/Loader";
 
 export default async function MeetingPage({
   params,
