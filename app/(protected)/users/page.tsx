@@ -76,7 +76,6 @@ export default function UsersPage() {
     const loadRoles = async () => {
         const r = await fetchRoles()
         setRoles(r || [])
-        // Set default role to the first one if available
         if (r && r.length > 0) {
             setFormData(prev => ({ ...prev, role_id: r[0].id }))
         }
@@ -98,9 +97,9 @@ export default function UsersPage() {
 
     const getRoleBadgeVariant = (roleName: string) => {
         const lower = roleName.toLowerCase()
-        if (lower === "admin" || lower === "administrator") return "destructive" // Red/Orange
-        if (lower === "manager" || lower === "moderator") return "default" // Primary
-        return "secondary" // Gray
+        if (lower === "admin" || lower === "administrator") return "destructive"
+        if (lower === "manager" || lower === "moderator") return "default"
+        return "secondary"
     }
 
     return (

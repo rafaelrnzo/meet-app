@@ -78,6 +78,9 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
             try {
                 if (videoEnabled) {
                     try {
+                        if (!navigator.mediaDevices) {
+                            throw new Error("Media devices not supported or secure context required.");
+                        }
                         const vTrack = await createLocalVideoTrack({
                             resolution: { width: 1280, height: 720 }
                         });
@@ -87,7 +90,10 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
                     }
                 }
 
-                const devices = await navigator.mediaDevices.enumerateDevices();
+                let devices: MediaDeviceInfo[] = [];
+                if (navigator.mediaDevices && navigator.mediaDevices.enumerateDevices) {
+                    devices = await navigator.mediaDevices.enumerateDevices();
+                }
                 const audios = devices.filter(d => d.kind === "audioinput" && d.deviceId !== "");
                 const videos = devices.filter(d => d.kind === "videoinput" && d.deviceId !== "");
 
@@ -123,6 +129,7 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
         } else {
             setVideoEnabled(true);
             try {
+                if (!navigator.mediaDevices) throw new Error("Media devices not supported");
                 const vTrack = await createLocalVideoTrack({
                     deviceId: selectedVideoDevice,
                     resolution: { width: 1280, height: 720 }
@@ -144,6 +151,7 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
         if (videoEnabled) {
             videoTrack?.stop();
             try {
+                if (!navigator.mediaDevices) throw new Error("Media devices not supported");
                 const vTrack = await createLocalVideoTrack({
                     deviceId: deviceId,
                     resolution: { width: 1280, height: 720 }
@@ -186,6 +194,11 @@ export default function PreJoin({ roomName, initialUsername, onJoin, isLoading, 
             </div>
 
             <div className="relative z-10 w-full max-w-md flex flex-col gap-4">
+                {typeof window !== 'undefined' && !window.isSecureContext && window.location.hostname !== 'localhost' && (
+                    <div className="bg-destructive/90 text-destructive-foreground p-3 rounded-lg text-center text-sm font-medium animate-in fade-in slide-in-from-top-4">
+                        Warning: Camera and microphone are blocked on insecure connections (HTTP). Please access via HTTPS or localhost.
+                    </div>
+                )}
 
                 <div className="flex flex-col gap-4 p-4 rounded-3xl bg-card/40 backdrop-blur-xl border border-white/10 shadow-xl animate-in fade-in slide-in-from-bottom-4 duration-500">
                     <div className="text-center space-y-1">

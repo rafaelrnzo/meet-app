@@ -12,6 +12,7 @@ import { toast } from "sonner";
 export default function MeetingClient({ room: encodedRoom }: { room: string }) {
   const room = decodeURIComponent(encodedRoom);
   const searchParams = useSearchParams();
+  const isBot = searchParams.get("bot") === "true";
 
   const [identity, setIdentity] = useState(() => {
     const q = searchParams.get("identity");
@@ -120,6 +121,19 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
     }
   };
 
+  useEffect(() => {
+    if (isBot && !loading && !preJoinChoices && !error) {
+      if (isGuest && !roomInfo) return; // Wait until roomInfo is loaded for guests
+      handleJoin({
+        audioEnabled: false,
+        videoEnabled: false,
+        audioDeviceId: "",
+        videoDeviceId: "",
+        username: identity || "RecorderBot",
+      });
+    }
+  }, [isBot, loading, preJoinChoices, error, isGuest, roomInfo, identity]);
+
   if (error) {
     return (
       <div className="flex flex-col items-center justify-center h-screen w-full bg-background text-foreground p-4">
@@ -199,7 +213,7 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
       serverUrl={serverUrl}
       roomName={room}
       roomTitle={tokenParams?.roomName}
-      initialIsWaiting={tokenParams?.isWaiting}
+      initialIsWaiting={isBot ? false : tokenParams?.isWaiting}
       initialMediaState={preJoinChoices}
     />
   );

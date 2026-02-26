@@ -8,9 +8,7 @@ export function ServerRecordingControls({ roomName }: { roomName: string }) {
     const [loading, setLoading] = React.useState(false);
     const [lastError, setLastError] = React.useState<string | null>(null);
 
-    const API_BASE =
-        process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
-        "http://localhost:8080";
+    const RECORDER_API_BASE = "http://localhost:4000";
 
     const getJwt = () => {
         if (typeof window === "undefined") return "";
@@ -23,13 +21,14 @@ export function ServerRecordingControls({ roomName }: { roomName: string }) {
         setLastError(null);
 
         try {
-            const res = await fetch(`${API_BASE}/admin/livekit/recordings/start`, {
+            const roomId = roomName; // The prop passed to this component is already the room code from the URL
+
+            const res = await fetch(`${RECORDER_API_BASE}/start`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${getJwt()}`,
                 },
-                body: JSON.stringify({ room_name: roomName }),
+                body: JSON.stringify({ roomId: roomName, roomCode: roomId }),
             });
 
             if (!res.ok) {
@@ -37,12 +36,10 @@ export function ServerRecordingControls({ roomName }: { roomName: string }) {
                 throw new Error(data.error || `HTTP ${res.status}`);
             }
 
-            await res.json().catch(() => ({} as any));
             setIsRecording(true);
         } catch (err: any) {
             console.error("[Recording] gagal start:", err);
             setLastError(err?.message || "Gagal mulai recording");
-            // alert(`Gagal mulai recording: ${err?.message || "Unknown error"}`);
         } finally {
             setLoading(false);
         }
@@ -54,13 +51,12 @@ export function ServerRecordingControls({ roomName }: { roomName: string }) {
         setLastError(null);
 
         try {
-            const res = await fetch(`${API_BASE}/admin/livekit/recordings/stop`, {
+            const res = await fetch(`${RECORDER_API_BASE}/stop`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    Authorization: `Bearer ${getJwt()}`,
                 },
-                body: JSON.stringify({ room_name: roomName }),
+                body: JSON.stringify({ roomId: roomName }),
             });
 
             if (!res.ok) {
@@ -68,23 +64,10 @@ export function ServerRecordingControls({ roomName }: { roomName: string }) {
                 throw new Error(data.error || `HTTP ${res.status}`);
             }
 
-            const data = await res.json().catch(() => ({} as any));
-            const status: string = data.status || "";
-
-            if (
-                status === "EGRESS_ABORTED" ||
-                status === "EGRESS_COMPLETE" ||
-                status === "EGRESS_FAILED"
-            ) {
-                setIsRecording(false);
-                return;
-            }
-
             setIsRecording(false);
         } catch (err: any) {
             console.error("[Recording] gagal stop:", err);
             setLastError(err?.message || "Gagal stop recording");
-            // alert(`Gagal stop recording: ${err?.message || "Unknown error"}`);
         } finally {
             setLoading(false);
         }

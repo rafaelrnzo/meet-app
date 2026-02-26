@@ -55,20 +55,24 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
                 <>
                     {/* Backdrop */}
                     <motion.div
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        exit={{ opacity: 0 }}
-                        onClick={onClose}
-                        className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+                        {...({
+                            initial: { opacity: 0 },
+                            animate: { opacity: 1 },
+                            exit: { opacity: 0 },
+                            onClick: onClose,
+                            className: "fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
+                        } as any)}
                     />
 
                     {/* Sheet */}
                     <motion.div
-                        initial={{ x: "100%" }}
-                        animate={{ x: 0 }}
-                        exit={{ x: "100%" }}
-                        transition={{ type: "spring", damping: 25, stiffness: 200 }}
-                        className="fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-background border-l border-border shadow-2xl flex flex-col"
+                        {...({
+                            initial: { x: "100%" },
+                            animate: { x: 0 },
+                            exit: { x: "100%" },
+                            transition: { type: "spring", damping: 25, stiffness: 200 },
+                            className: "fixed inset-y-0 right-0 z-50 w-full max-w-lg bg-background border-l border-border shadow-2xl flex flex-col"
+                        } as any)}
                     >
                         {/* Header */}
                         <div className="flex items-center justify-between p-6 border-b border-border bg-card/50">
@@ -83,7 +87,7 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
                                 )}
                                 <div>
                                     <motion.h2
-                                        layoutId={`room-title-${room.id}`}
+                                        {...({ layoutId: `room-title-${room.id}` } as any)}
                                         className="text-xl font-bold"
                                     >
                                         {isEditing ? "Edit Room" : room.name}
@@ -147,7 +151,7 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
                                     >
                                         Overview
                                         {activeTab === "overview" && (
-                                            <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" layoutId="activeTab" />
+                                            <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" {...({ layoutId: "activeTab" } as any)} />
                                         )}
                                     </button>
                                     <button
@@ -159,7 +163,7 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
                                     >
                                         People & Access
                                         {activeTab === "participants" && (
-                                            <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" layoutId="activeTab" />
+                                            <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" {...({ layoutId: "activeTab" } as any)} />
                                         )}
                                     </button>
                                     <button
@@ -171,7 +175,7 @@ export function RoomDetailSheet({ room, activeRoom, isOpen, onClose, onDelete, o
                                     >
                                         Settings
                                         {activeTab === "settings" && (
-                                            <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" layoutId="activeTab" />
+                                            <motion.div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" {...({ layoutId: "activeTab" } as any)} />
                                         )}
                                     </button>
                                 </div>

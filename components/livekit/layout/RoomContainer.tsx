@@ -241,7 +241,10 @@ function CustomParticipantTile({
 }
 
 function VideoGrid({ layoutMode }: { layoutMode: LayoutMode }) {
-  const allParticipants = useParticipants();
+  const allParticipantsTemp = useParticipants();
+  const allParticipants = useMemo(() => {
+    return allParticipantsTemp.filter(p => p.identity !== "RecorderBot");
+  }, [allParticipantsTemp]);
   const participants = useMemo(() => {
     return allParticipants.filter((p) => {
       try {

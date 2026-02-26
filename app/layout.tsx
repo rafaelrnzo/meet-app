@@ -1,3 +1,4 @@
+import "@/lib/polyfill";
 import "@livekit/components-styles";
 import "./globals.css";
 import { Toaster } from "sonner";

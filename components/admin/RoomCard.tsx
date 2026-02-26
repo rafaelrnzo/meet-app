@@ -17,7 +17,7 @@ export function RoomCard({ room, activeRoom, onClick, onDelete }: RoomCardProps)
 
     return (
         <motion.div
-            layoutId={`room-${room.id}`}
+            {...({ layoutId: `room-${room.id}` } as any)}
             whileHover={{ y: -4, transition: { duration: 0.2 } }}
             className={cn(
                 "group relative overflow-hidden rounded-2xl border bg-card p-5 text-card-foreground shadow-sm transition-all hover:shadow-md cursor-pointer",
