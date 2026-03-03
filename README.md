@@ -1,36 +1,81 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Meet Custom Frontend
+
+custom video conferencing and collaboration frontend built with Next.js 15, LiveKit, and Tailwind CSS. It is designed to provide a seamless and highly interactive online meeting experience with rich collaboration tools.
+
+## Tech Stack
+
+- **Framework**: [Next.js](https://nextjs.org/) (App Router, React 19)
+- **WebRTC/Communications**: [LiveKit](https://livekit.io/) (`livekit-client`, `@livekit/components-react`)
+- **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
+- **UI Components**: [Radix UI](https://www.radix-ui.com/), [Lucide React](https://lucide.dev/) (Icons), [Sonner](https://sonner.emilkowal.ski/) (Toasts)
+- **Rich Content & Tools**: 
+  - [Excalidraw](https://excalidraw.com/) (Whiteboard)
+  - [Tiptap](https://tiptap.dev/) (Rich Text Editor)
+  - [React PDF Viewer](https://react-pdf-viewer.dev/) (Slide presentation)
+- **Animations**: [Framer Motion](https://www.framer.com/motion/)
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+
+Ensure you have the following installed on your local machine:
+- Node.js (v20 or higher recommended)
+- `npm`, `yarn`, `pnpm`, or `bun`
+
+### Installation
+
+1. Clone the repository and navigate into the project directory.
+2. Install the necessary dependencies:
 
 ```bash
+bun install
+# or
+npm install
+```
+
+### Running the Development Server
+
+Start the application in development mode:
+
+```bash
+bun run dev
+# or
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Environment Variables
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+To connect to your LiveKit backend and other services, ensure you create a `.env.local` file in the root of the project.
 
-## Learn More
+```env
+NEXT_PUBLIC_LIVEKIT_URL=wss://your-livekit-server-url
+# Add any other required environment variables here
+```
 
-To learn more about Next.js, take a look at the following resources:
+## Building for Production
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+To create an optimized production build:
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```bash
+bun run build
+# or
+npm run build
+```
 
-## Deploy on Vercel
+Then, you can start the production server:
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+```bash
+bun run start
+# or
+npm run start
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Contributing
+
+Contributions are welcome. Please feel free to submit a Pull Request.
+
+## License
+
+This project is licensed under the MIT License.
