@@ -309,6 +309,7 @@ export type Recording = {
   name: string
   link: string
   egress_id: string
+  status: string
   created_at: string
 }
 
@@ -333,6 +334,13 @@ export async function updateRecordingName(id: number, newName: string): Promise<
   return apiRequest<Recording>(`/admin/recordings/${id}`, {
     method: "PATCH",
     body: JSON.stringify({ name: newName }),
+  })
+}
+
+export async function updateRecordingStatus(id: number, status: string): Promise<Recording> {
+  return apiRequest<Recording>(`/admin/recordings/${id}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
   })
 }
 

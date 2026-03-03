@@ -2,6 +2,7 @@
 
 import React from "react";
 import { Loader2, AlertCircle } from "lucide-react";
+import { apiRequest } from "@/lib/api/admin-api";
 
 export function ServerRecordingControls({ roomName }: { roomName: string }) {
     const [isRecording, setIsRecording] = React.useState(false);
@@ -21,20 +22,10 @@ export function ServerRecordingControls({ roomName }: { roomName: string }) {
         setLastError(null);
 
         try {
-            const roomId = roomName; // The prop passed to this component is already the room code from the URL
-
-            const res = await fetch(`${RECORDER_API_BASE}/start`, {
+            await apiRequest("/admin/livekit/recordings/start", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ roomId: roomName, roomCode: roomId }),
+                body: JSON.stringify({ room_name: roomName }),
             });
-
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `HTTP ${res.status}`);
-            }
 
             setIsRecording(true);
         } catch (err: any) {
@@ -51,18 +42,10 @@ export function ServerRecordingControls({ roomName }: { roomName: string }) {
         setLastError(null);
 
         try {
-            const res = await fetch(`${RECORDER_API_BASE}/stop`, {
+            await apiRequest("/admin/livekit/recordings/stop", {
                 method: "POST",
-                headers: {
-                    "Content-Type": "application/json",
-                },
-                body: JSON.stringify({ roomId: roomName }),
+                body: JSON.stringify({ room_name: roomName }),
             });
-
-            if (!res.ok) {
-                const data = await res.json().catch(() => ({}));
-                throw new Error(data.error || `HTTP ${res.status}`);
-            }
 
             setIsRecording(false);
         } catch (err: any) {
