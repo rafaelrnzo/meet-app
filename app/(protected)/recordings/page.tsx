@@ -13,6 +13,13 @@ import {
 } from "@/lib/api/admin-api"
 import { useAuth } from "../../../hooks/use-auth"
 
+/**
+ * Recordings page component that fetches and displays a list of recordings grouped by room.
+ * It provides functionalities to rename, download, and delete recordings.
+ * Additionally, it polls for the processing status of extracting recordings.
+ *
+ * @returns {JSX.Element} The rendered recordings page interface.
+ */
 export default function RecordingsPage() {
     const { hasPermission } = useAuth({ requirePermission: "recording:read" })
     const [recordings, setRecordings] = useState<RecordingDto[]>([])
@@ -20,7 +27,6 @@ export default function RecordingsPage() {
     const [val, setVal] = useState("")
     const [expandedRooms, setExpandedRooms] = useState<Record<string, boolean>>({})
 
-    // progress state per egressId
     const [progressMap, setProgressMap] = useState<Record<string, number>>({})
 
     const canUpdate = hasPermission("recording:update")
@@ -31,7 +37,6 @@ export default function RecordingsPage() {
     }, [])
 
     useEffect(() => {
-        // Poll for progress for PROCESSING recordings
         const processingRecordings = recordings.filter(r => r.status === "PROCESSING");
         if (processingRecordings.length === 0) return;
 
@@ -44,7 +49,6 @@ export default function RecordingsPage() {
                             setProgressMap(prev => ({ ...prev, [r.egress_id]: data.progress }));
                         }
                         if (data.status === "COMPLETED") {
-                            // If completed, update the backend DB to COMPLETED
                             try {
                                 const { updateRecordingStatus } = await import("@/lib/api/admin-api");
                                 await updateRecordingStatus(r.id, "COMPLETED");
@@ -53,7 +57,6 @@ export default function RecordingsPage() {
                             }
                             load();
                         } else if (data.status === "ERROR") {
-                            // Also handle extraction failures
                             try {
                                 const { updateRecordingStatus } = await import("@/lib/api/admin-api");
                                 await updateRecordingStatus(r.id, "ERROR");
@@ -83,11 +86,9 @@ export default function RecordingsPage() {
 
     const handleDownload = async (url: string, filename: string) => {
         try {
-            // Fetch the file as a blob to force download instead of opening in browser
             const response = await fetch(url)
             const blob = await response.blob()
 
-            // Create a blob URL and trigger download
             const blobUrl = window.URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = blobUrl
@@ -96,12 +97,10 @@ export default function RecordingsPage() {
             document.body.appendChild(a)
             a.click()
 
-            // Cleanup
             window.URL.revokeObjectURL(blobUrl)
             document.body.removeChild(a)
         } catch (error) {
             console.error('Download failed:', error)
-            // Fallback: just open in new tab if fetch fails (e.g., due to CORS)
             window.open(url, '_blank')
         }
     }
@@ -140,7 +139,7 @@ export default function RecordingsPage() {
             ) : (
                 <div className="space-y-4">
                     {Object.entries(groupedRecordings).map(([roomId, roomRecordings]) => {
-                        const isExpanded = expandedRooms[roomId] !== false // Default to true if not explicitly collapsed
+                        const isExpanded = expandedRooms[roomId] !== false
                         return (
                             <div key={roomId} className="bg-card border border-border rounded-lg overflow-hidden shadow-sm">
                                 <button

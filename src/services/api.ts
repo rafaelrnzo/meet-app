@@ -7,6 +7,10 @@ interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
     _retry?: boolean;
 }
 
+/**
+ * Custom Axios instance configured for API communication.
+ * Sets the base URL appropriately depending on the runtime environment (browser vs SSR).
+ */
 const api = axios.create({
     baseURL: typeof window !== 'undefined'
         ? `${window.location.protocol}//${window.location.hostname}:8080/api`
@@ -22,6 +26,12 @@ let failedQueue: Array<{
     reject: (error: any) => void;
 }> = [];
 
+/**
+ * Processes the queue of pending requests when token refresh completes.
+ * 
+ * @param {any} error - Error object if token refresh failed.
+ * @param {string|null} token - The newly refreshed access token.
+ */
 const processQueue = (error: any, token: string | null = null) => {
     failedQueue.forEach((prom) => {
         if (error) {
@@ -33,7 +43,11 @@ const processQueue = (error: any, token: string | null = null) => {
     failedQueue = [];
 };
 
-// Request Interceptor: Attach Token
+/**
+ * Request Interceptor: Attach Token
+ * Automatically adds the Access Token to the Authorization header
+ * of every outgoing API request if it exists.
+ */
 api.interceptors.request.use(
     (config) => {
         const tokens = authService.getTokens();
@@ -45,7 +59,12 @@ api.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// Response Interceptor: Handle Refresh
+/**
+ * Response Interceptor: Handle Refresh
+ * Intercepts 401 Unauthorized responses to automatically attempt
+ * token refresh using Keycloak. Re-queues the original request
+ * and retries it once the token is successfully refreshed.
+ */
 api.interceptors.response.use(
     (response) => response,
     async (error: AxiosError) => {

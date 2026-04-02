@@ -9,6 +9,14 @@ import { Button } from "@/components/ui/button";
 import PreJoin, { MediaChoices } from "./PreJoin";
 import { toast } from "sonner";
 
+/**
+ * Client-side component for handling the meeting room logic.
+ * Manages authentication, guest states, and hardware choices before joining the room.
+ * 
+ * @param {Object} props - The component properties.
+ * @param {string} props.room - The encoded room identifier.
+ * @returns {JSX.Element|null} The rendered meeting interface, pre-join screen, or loading/error states.
+ */
 export default function MeetingClient({ room: encodedRoom }: { room: string }) {
   const room = decodeURIComponent(encodedRoom);
   const searchParams = useSearchParams();
@@ -25,7 +33,6 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Guest State
   const [isGuest, setIsGuest] = useState(false);
   const [roomInfo, setRoomInfo] = useState<{ name: string; is_password_protected: boolean } | null>(null);
 
@@ -82,10 +89,10 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
         if (!active) return;
         console.error("Join error:", e);
         if (e.message && e.message.includes("409")) {
-          const msg = e.message.split("-").pop()?.trim() || "Anda sedang berada di room lain.";
+          const msg = e.message.split("-").pop()?.trim() || "You are already in another room.";
           setError(msg);
         } else {
-          setError(e.message || "Gagal memuat room. Pastikan room ada dan Anda memiliki akses.");
+          setError(e.message || "Failed to load room. Make sure the room exists and you have access.");
         }
         setLoading(false);
       }
@@ -116,14 +123,14 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
 
     } catch (e: any) {
       console.error("Guest join failed", e);
-      toast.error("Gagal masuk: " + e.message);
+      toast.error("Failed to join: " + e.message);
       setLoading(false);
     }
   };
 
   useEffect(() => {
     if (isBot && !loading && !preJoinChoices && !error) {
-      if (isGuest && !roomInfo) return; // Wait until roomInfo is loaded for guests
+      if (isGuest && !roomInfo) return;
       handleJoin({
         audioEnabled: false,
         videoEnabled: false,
@@ -218,4 +225,3 @@ export default function MeetingClient({ room: encodedRoom }: { room: string }) {
     />
   );
 }
-

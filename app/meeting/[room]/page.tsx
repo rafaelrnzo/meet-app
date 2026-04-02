@@ -1,8 +1,16 @@
-// app/meeting/[room]/page.tsx
 import { Suspense } from "react";
 import MeetingClient from "@/components/features/meeting/MeetingClient";
 import { Loader } from "@/components/livekit/layout/Loader";
 
+/**
+ * Server component that handles the meeting room route.
+ * Validates the room parameter and renders the meeting client within a suspense boundary.
+ * 
+ * @param {Object} props - The component properties.
+ * @param {Promise<{ room: string }>} props.params - The route parameters containing the room ID.
+ * @param {Promise<{ identity?: string }>} props.searchParams - The URL search parameters containing an optional user identity.
+ * @returns {JSX.Element} The rendered meeting page or an error message if the room parameter is missing.
+ */
 export default async function MeetingPage({
   params,
   searchParams,
@@ -15,11 +23,11 @@ export default async function MeetingPage({
   if (!room || !room.trim()) {
     return (
       <div style={{ padding: 24, color: "#eee", background: "#111", height: "100vh" }}>
-        <h3>Param room kosong.</h3>
+        <h3>Room parameter is empty.</h3>
         <p>
-          Buka URL seperti: <code>/meeting/default-room?identity=nama</code>
+          Please open a URL like: <code>/meeting/default-room?identity=name</code>
         </p>
-        <p>Contoh: <code>/meeting/default-room?identity=test</code></p>
+        <p>Example: <code>/meeting/default-room?identity=test</code></p>
       </div>
     );
   }

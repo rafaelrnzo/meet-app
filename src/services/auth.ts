@@ -8,7 +8,14 @@ interface Tokens {
     expires_in: number;
 }
 
+/**
+ * Authentication service handling login, token exchange, and logout
+ * using Keycloak OpenID Connect and synchronizing with the backend.
+ */
 export const authService = {
+    /**
+     * Initiates the login flow by redirecting the user to the Keycloak auth page.
+     */
     login: () => {
         const origin = typeof window !== 'undefined' ? window.location.origin : '';
         const params = new URLSearchParams({
@@ -20,6 +27,13 @@ export const authService = {
         window.location.href = `${keycloakConfig.urls.auth}?${params.toString()}`;
     },
 
+    /**
+     * Exchanges an authorization code for access tokens from Keycloak,
+     * and performs a Single Sign-On (SSO) login with the local backend.
+     * 
+     * @param {string} code - The authorization code received from Keycloak.
+     * @returns {Promise<Tokens>} A promise that resolves to the token payload from Keycloak.
+     */
     exchangeToken: async (code: string): Promise<Tokens> => {
         const origin = typeof window !== 'undefined' ? window.location.origin : '';
         const params = new URLSearchParams({
@@ -99,6 +113,10 @@ export const authService = {
         return response.data;
     },
 
+    /**
+     * Logs out the user by clearing local authentication tokens
+     * and redirecting to the Keycloak logout endpoint.
+     */
     logout: () => {
         // Clear local tokens
         localStorage.removeItem('access_token');
@@ -113,6 +131,11 @@ export const authService = {
         window.location.href = `${keycloakConfig.urls.logout}?${params.toString()}`;
     },
 
+    /**
+     * Retrieves the stored authentication tokens from local storage.
+     * 
+     * @returns {Object|null} An object containing accessToken, refreshToken, and idToken.
+     */
     getTokens: () => {
         if (typeof window === 'undefined') return null;
         return {
@@ -122,12 +145,22 @@ export const authService = {
         };
     },
 
+    /**
+     * Stores the given authentication tokens into local storage.
+     * 
+     * @param {Tokens} tokens - The token payload from Keycloak.
+     */
     setTokens: (tokens: Tokens) => {
         localStorage.setItem('access_token', tokens.access_token);
         localStorage.setItem('refresh_token', tokens.refresh_token);
         localStorage.setItem('id_token', tokens.id_token);
     },
 
+    /**
+     * Checks if the user is currently authenticated based on local storage token presence.
+     * 
+     * @returns {boolean} True if an access token exists, false otherwise.
+     */
     isAuthenticated: () => {
         if (typeof window === 'undefined') return false;
         return !!localStorage.getItem('access_token');
