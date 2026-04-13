@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { getToken, getUser, clearAuth, fetchProfile } from "@/lib/api/auth-client"
+import { authService } from "@/src/services/auth";
 
 export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: string }) {
   const router = useRouter()
@@ -89,8 +90,9 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
 
   }, [router, pathname, options?.requireAdmin, options?.requirePermission])
 
-  const logout = () => {
+  const logout = async () => {
     clearAuth()
+    await authService.logout()
     router.replace("/login")
   }
 

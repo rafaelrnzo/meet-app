@@ -65,12 +65,7 @@ export const authService = {
             const payload = JSON.parse(atob(response.data.id_token.split('.')[1]));
             const username = payload.preferred_username || payload.name || payload.sub;
             const email = payload.email || "";
-
-            const origin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000';
-            // Assuming backend is on port 8080 and same hostname
-            const hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-            const protocol = typeof window !== 'undefined' ? window.location.protocol : 'http:';
-            const backendUrl = `${protocol}//${hostname}:8080`;
+            const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}`
 
             const apiRes = await axios.post(`${backendUrl}/sso-login`, {
                 username,
@@ -117,19 +112,24 @@ export const authService = {
      * Logs out the user by clearing local authentication tokens
      * and redirecting to the Keycloak logout endpoint.
      */
-    logout: () => {
-        // Clear local tokens
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('id_token');
-
-        // Redirect to Keycloak logout
+    logout: async () => {
         const params = new URLSearchParams({
             client_id: keycloakConfig.clientId,
+            refresh_token: localStorage.getItem('refresh_token') ?? '',
             post_logout_redirect_uri: window.location.origin,
         });
-        window.location.href = `${keycloakConfig.urls.logout}?${params.toString()}`;
-    },
+
+        // Clear local tokens
+        localStorage.removeItem('access_token')
+        localStorage.removeItem('refresh_token')
+        localStorage.removeItem('id_token')
+
+        await axios.post(keycloakConfig.urls.logout, params, {
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+        })
+  },
 
     /**
      * Retrieves the stored authentication tokens from local storage.
