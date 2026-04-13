@@ -6,14 +6,11 @@
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
-
     {
       "name": "🟩 Register",
       "request": {
         "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"username\": \"user1\",\n  \"password\": \"123456\"\n}"
@@ -32,9 +29,7 @@
       "name": "🟩 Login (Get JWT Token)",
       "request": {
         "method": "POST",
-        "header": [
-          { "key": "Content-Type", "value": "application/json" }
-        ],
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
         "body": {
           "mode": "raw",
           "raw": "{\n  \"username\": \"user1\",\n  \"password\": \"123456\"\n}"
@@ -67,9 +62,7 @@
       "name": "🔐 Protected (JWT Required)",
       "request": {
         "method": "GET",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{token}}" }
-        ],
+        "header": [{ "key": "Authorization", "value": "Bearer {{token}}" }],
         "url": {
           "raw": "http://localhost:8080/api/protected",
           "protocol": "http",
@@ -128,9 +121,7 @@
       "name": "🛠 Admin - List Rooms",
       "request": {
         "method": "GET",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
-        ],
+        "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
         "url": {
           "raw": "http://localhost:8080/admin/livekit/rooms",
           "protocol": "http",
@@ -145,9 +136,7 @@
       "name": "🛠 Admin - Delete Room",
       "request": {
         "method": "DELETE",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
-        ],
+        "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
         "url": {
           "raw": "http://localhost:8080/admin/livekit/rooms/{{roomName}}",
           "protocol": "http",
@@ -162,18 +151,14 @@
       "name": "🛠 Admin - List Participants",
       "request": {
         "method": "GET",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
-        ],
+        "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
         "url": {
           "raw": "http://localhost:8080/admin/livekit/participants?room={{roomName}}",
           "protocol": "http",
           "host": ["localhost"],
           "port": "8080",
           "path": ["admin", "livekit", "participants"],
-          "query": [
-            { "key": "room", "value": "{{roomName}}" }
-          ]
+          "query": [{ "key": "room", "value": "{{roomName}}" }]
         }
       }
     },
@@ -182,9 +167,7 @@
       "name": "🛠 Admin - Kick Participant",
       "request": {
         "method": "DELETE",
-        "header": [
-          { "key": "Authorization", "value": "Bearer {{admin_token}}" }
-        ],
+        "header": [{ "key": "Authorization", "value": "Bearer {{admin_token}}" }],
         "url": {
           "raw": "http://localhost:8080/admin/livekit/participants?room={{roomName}}&identity={{identity}}",
           "protocol": "http",
@@ -198,7 +181,6 @@
         }
       }
     }
-
   ],
   "variable": [
     { "key": "token", "value": "" },

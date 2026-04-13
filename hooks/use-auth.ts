@@ -1,9 +1,9 @@
-"use client"
+'use client'
 
-import { useEffect, useState } from "react"
-import { useRouter, usePathname } from "next/navigation"
-import { getToken, getUser, clearAuth, fetchProfile } from "@/lib/api/auth-client"
-import { authService } from "@/src/services/auth";
+import { useEffect, useState } from 'react'
+import { useRouter, usePathname } from 'next/navigation'
+import { getToken, getUser, clearAuth, fetchProfile } from '@/lib/api/auth-client'
+import { authService } from '@/src/services/auth'
 
 export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: string }) {
   const router = useRouter()
@@ -20,7 +20,7 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
     const storedUser = getUser()
     setUser(storedUser)
 
-    const isAuthPage = pathname === "/login"
+    const isAuthPage = pathname === '/login'
 
     if (!token) {
       setIsAuthenticated(false)
@@ -29,7 +29,7 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
       setLoading(false)
 
       if (!isAuthPage) {
-        router.replace("/login")
+        router.replace('/login')
       }
       return
     }
@@ -38,27 +38,27 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
 
     // Helper to process user object
     const processUser = (u: any) => {
-      let roleName = "user"
+      let roleName = 'user'
       let userPerms: string[] = []
 
       if (u?.role) {
-        if (typeof u.role === "string") {
+        if (typeof u.role === 'string') {
           roleName = u.role
         } else {
-          roleName = u?.role?.name || "user"
+          roleName = u?.role?.name || 'user'
           if (u.role.permissions && Array.isArray(u.role.permissions)) {
             userPerms = u.role.permissions.map((p: any) => p.key)
           }
         }
       }
 
-      const admin = roleName === "admin"
+      const admin = roleName === 'admin'
       setIsAdmin(admin)
       setPermissions(userPerms)
 
       // Legacy admin check
       if (options?.requireAdmin && !admin) {
-        router.replace("/")
+        router.replace('/')
         return
       }
 
@@ -66,7 +66,7 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
       if (options?.requirePermission) {
         const has = admin || userPerms.includes(options.requirePermission)
         if (!has) {
-          router.replace("/")
+          router.replace('/')
         }
       }
     }
@@ -77,23 +77,25 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
     }
 
     // Hydrate from backend to ensure permissions are fresh
-    fetchProfile().then(freshUser => {
-      setUser(freshUser)
-      processUser(freshUser)
-      // Optionally update localStorage here too
-      // localStorage.setItem("vc_user", JSON.stringify(freshUser))
-    }).catch(err => {
-      console.error("Hydration failed", err)
-    }).finally(() => {
-      setLoading(false)
-    })
-
+    fetchProfile()
+      .then((freshUser) => {
+        setUser(freshUser)
+        processUser(freshUser)
+        // Optionally update localStorage here too
+        // localStorage.setItem("vc_user", JSON.stringify(freshUser))
+      })
+      .catch((err) => {
+        console.error('Hydration failed', err)
+      })
+      .finally(() => {
+        setLoading(false)
+      })
   }, [router, pathname, options?.requireAdmin, options?.requirePermission])
 
   const logout = async () => {
     clearAuth()
     await authService.logout()
-    router.replace("/login")
+    router.replace('/login')
   }
 
   const hasPermission = (key: string) => {

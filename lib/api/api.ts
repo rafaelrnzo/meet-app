@@ -7,29 +7,27 @@ type TokenResponse = {
   is_waiting?: boolean
 }
 
-const BASE =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") ||
-  "http://localhost:8080"
+const BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'
 
 export function normalizeServerUrl(hostFromBackend: string): string {
   try {
     const url = new URL(hostFromBackend)
-    if (url.protocol === "http:") url.protocol = "ws:"
-    if (url.protocol === "https:") url.protocol = "wss:"
-    return url.toString().replace(/\/+$/, "")
+    if (url.protocol === 'http:') url.protocol = 'ws:'
+    if (url.protocol === 'https:') url.protocol = 'wss:'
+    return url.toString().replace(/\/+$/, '')
   } catch {
     return hostFromBackend
   }
 }
 
 function getAuthToken(): string {
-  if (typeof window === "undefined") {
-    throw new Error("Token hanya bisa diambil di client")
+  if (typeof window === 'undefined') {
+    throw new Error('Token hanya bisa diambil di client')
   }
 
-  const token = localStorage.getItem("vc_token")
+  const token = localStorage.getItem('vc_token')
   if (!token) {
-    throw new Error("Not authenticated: JWT token tidak ditemukan")
+    throw new Error('Not authenticated: JWT token tidak ditemukan')
   }
 
   return token
@@ -46,22 +44,21 @@ export async function fetchToken(
   roomName?: string
   isWaiting?: boolean
 }> {
-
   const jwt = getAuthToken()
 
   const res = await fetch(`${BASE}/api/livekit/token`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${jwt}`,
     },
-    cache: "no-store",
+    cache: 'no-store',
     body: JSON.stringify({ room_code: room }),
   })
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}))
-    const errorMessage = errorData.error || await res.text()
+    const errorMessage = errorData.error || (await res.text())
     throw new Error(`Failed to fetch LiveKit token: ${res.status} - ${errorMessage}`)
   }
 
@@ -69,7 +66,7 @@ export async function fetchToken(
 
   if (!data.host || !data.host.trim()) {
     throw new Error(
-      "Backend mengembalikan host kosong. Pastikan LIVEKIT_SERVER_URL di backend sudah diset."
+      'Backend mengembalikan host kosong. Pastikan LIVEKIT_SERVER_URL di backend sudah diset.'
     )
   }
 
@@ -83,15 +80,14 @@ export async function fetchToken(
   }
 }
 
-
 export async function leaveRoomBackend(): Promise<void> {
   const jwt = getAuthToken()
   await fetch(`${BASE}/api/livekit/leave`, {
-    method: "POST",
+    method: 'POST',
     headers: {
       Authorization: `Bearer ${jwt}`,
     },
-    cache: "no-store",
+    cache: 'no-store',
   })
 }
 
@@ -104,11 +100,11 @@ export async function fetchPublicRoom(code: string): Promise<{
   is_public: boolean
 }> {
   const res = await fetch(`${BASE}/public/rooms/${code}`, {
-    method: "GET",
-    cache: "no-store",
+    method: 'GET',
+    cache: 'no-store',
   })
   if (!res.ok) {
-    throw new Error("Failed to fetch public room info")
+    throw new Error('Failed to fetch public room info')
   }
   return res.json()
 }
@@ -125,9 +121,9 @@ export async function joinPublicRoom(
   isWaiting: boolean
 }> {
   const res = await fetch(`${BASE}/public/join`, {
-    method: "POST",
+    method: 'POST',
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
     body: JSON.stringify({
       room_code: roomCode,
@@ -138,8 +134,8 @@ export async function joinPublicRoom(
 
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}))
-    const errorMessage = errorData.error || await res.text()
-    throw new Error(errorMessage || "Failed to join room")
+    const errorMessage = errorData.error || (await res.text())
+    throw new Error(errorMessage || 'Failed to join room')
   }
 
   const data = await res.json()

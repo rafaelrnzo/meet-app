@@ -8,7 +8,7 @@ custom video conferencing and collaboration frontend built with Next.js 15, Live
 - **WebRTC/Communications**: [LiveKit](https://livekit.io/) (`livekit-client`, `@livekit/components-react`)
 - **Styling**: [Tailwind CSS v4](https://tailwindcss.com/)
 - **UI Components**: [Radix UI](https://www.radix-ui.com/), [Lucide React](https://lucide.dev/) (Icons), [Sonner](https://sonner.emilkowal.ski/) (Toasts)
-- **Rich Content & Tools**: 
+- **Rich Content & Tools**:
   - [Excalidraw](https://excalidraw.com/) (Whiteboard)
   - [Tiptap](https://tiptap.dev/) (Rich Text Editor)
   - [React PDF Viewer](https://react-pdf-viewer.dev/) (Slide presentation)
@@ -19,6 +19,7 @@ custom video conferencing and collaboration frontend built with Next.js 15, Live
 ### Prerequisites
 
 Ensure you have the following installed on your local machine:
+
 - Node.js (v20 or higher recommended)
 - `npm`, `yarn`, `pnpm`, or `bun`
 
