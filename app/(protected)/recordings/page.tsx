@@ -1,28 +1,21 @@
 'use client'
 
-import React, { useEffect, useState, useMemo } from 'react'
-import { Button } from '@/components/ui/button'
+import type { Recording as RecordingDto } from '@/lib/api/admin-api'
+import { useEffect, useState, useMemo, useRef, useCallback } from 'react'
 import { Input } from '@/components/ui/input'
-import {
-  RefreshCcw,
-  Pencil,
-  Link2,
-  Trash2,
-  Folder,
-  ChevronDown,
-  ChevronRight,
-  Download,
-  Loader2,
-} from 'lucide-react'
+import { ChevronDown, ChevronUp, Play, Search } from 'lucide-react'
 import {
   fetchRecordings,
   syncRecordings,
   updateRecordingName,
   deleteRecording,
-  type Recording as RecordingDto,
 } from '@/lib/api/admin-api'
 import { useAuth } from '../../../hooks/use-auth'
-
+import { TableView } from '@/compounds/table-view'
+import { recordingColumn } from '@/column/recording'
+import { cn } from '@/lib/utils'
+import { usePathname, useRouter, useSearchParams } from 'next/navigation'
+import { Badge } from '@/components/ui/badge'
 /**
  * Recordings page component that fetches and displays a list of recordings grouped by room.
  * It provides functionalities to rename, download, and delete recordings.
@@ -31,13 +24,18 @@ import { useAuth } from '../../../hooks/use-auth'
  * @returns {JSX.Element} The rendered recordings page interface.
  */
 export default function RecordingsPage() {
+  const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
   const { hasPermission } = useAuth({ requirePermission: 'recording:read' })
   const [recordings, setRecordings] = useState<RecordingDto[]>([])
   const [renamingId, setRenamingId] = useState<number | null>(null)
-  const [val, setVal] = useState('')
-  const [expandedRooms, setExpandedRooms] = useState<Record<string, boolean>>({})
-
+  const [expandedRoomId, setExpandedRoomId] = useState<string | null>(
+    searchParams.get('room') || null
+  )
   const [progressMap, setProgressMap] = useState<Record<string, number>>({})
+  const [search, setSearch] = useState('')
+  const inputRenameRef = useRef<HTMLDivElement | null>(null)
 
   const canUpdate = hasPermission('recording:update')
   const canDelete = hasPermission('recording:delete')
@@ -70,7 +68,9 @@ export default function RecordingsPage() {
               try {
                 const { updateRecordingStatus } = await import('@/lib/api/admin-api')
                 await updateRecordingStatus(r.id, 'ERROR')
-              } catch (e) {}
+              } catch {
+                /* empty */
+              }
               load()
             }
           })
@@ -86,13 +86,13 @@ export default function RecordingsPage() {
     setRecordings((await fetchRecordings()) || [])
   }
 
-  const handleRename = async (id: number) => {
-    if (val) {
-      await updateRecordingName(id, val)
+  const handleRename = useCallback(async (id: number, value: string) => {
+    if (value) {
+      await updateRecordingName(id, value)
       setRenamingId(null)
       load()
     }
-  }
+  }, [])
 
   const handleDownload = async (url: string, filename: string) => {
     try {
@@ -115,12 +115,10 @@ export default function RecordingsPage() {
     }
   }
 
-  const toggleRoom = (roomId: string) => {
-    setExpandedRooms((prev) => ({
-      ...prev,
-      [roomId]: prev[roomId] === undefined ? false : !prev[roomId],
-    }))
-  }
+  const handleDelete = useCallback(async (id: number) => {
+    await deleteRecording(id)
+    load()
+  }, [])
 
   const groupedRecordings = useMemo(() => {
     return recordings.reduce(
@@ -136,13 +134,68 @@ export default function RecordingsPage() {
     )
   }, [recordings])
 
+  // handle click outside input rename
+  useEffect(() => {
+    const handleClickOutsideRename = (event: MouseEvent | TouchEvent) => {
+      if (!inputRenameRef.current) return
+
+      if (event.target instanceof Node && !inputRenameRef.current.contains(event.target)) {
+        setRenamingId(null)
+      }
+    }
+
+    document.addEventListener('mousedown', handleClickOutsideRename)
+    document.addEventListener('touchstart', handleClickOutsideRename)
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutsideRename)
+      document.removeEventListener('touchstart', handleClickOutsideRename)
+    }
+  }, [])
+
+  const columns = useMemo(
+    () =>
+      recordingColumn({
+        renamingId,
+        setRenamingId,
+        inputRenameRef,
+        canUpdate,
+        canDelete,
+        handleRename,
+        handleDownload,
+        handleDelete,
+        progressMap,
+      }),
+    [canDelete, canUpdate, handleDelete, handleRename, progressMap, renamingId]
+  )
+
   return (
-    <div className='space-y-4'>
-      <div className='flex items-center justify-between'>
-        <h2 className='text-base font-semibold'>Recordings</h2>
-        <Button variant='outline' size='sm' onClick={load} className='h-8 text-xs'>
-          <RefreshCcw className='mr-2 h-3 w-3' /> Refresh
-        </Button>
+    <div className='space-y-8'>
+      {/* title */}
+      <div className='flex items-center gap-2 rounded-md bg-red-100 p-6'>
+        <div className='size-10 rounded-md border border-red-800 bg-red-50 p-2.5'>
+          <div className='flex size-4.5 items-center justify-center rounded-full bg-red-800 p-1'>
+            <Play className='size-4.5 fill-white text-white' />
+          </div>
+        </div>
+        <div className='flex flex-col leading-5.25'>
+          <span className='font-semibold text-red-800'>Recordings</span>
+          <span className='text-sm'>List of recorded room</span>
+        </div>
+      </div>
+
+      {/* search */}
+      <div className='px-6'>
+        <div className='relative'>
+          <Search className='absolute top-1/2 left-3 size-4 -translate-y-1/2 text-neutral-400' />
+          <Input
+            type='search'
+            placeholder='Search recording ..'
+            className='border border-neutral-400 py-1 pr-3 pl-9 md:w-75'
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
       </div>
 
       {recordings.length === 0 ? (
@@ -150,142 +203,46 @@ export default function RecordingsPage() {
           No recordings found
         </div>
       ) : (
-        <div className='space-y-4'>
+        <div className='space-y-8'>
           {Object.entries(groupedRecordings).map(([roomId, roomRecordings]) => {
-            const isExpanded = expandedRooms[roomId] !== false
+            const isExpanded = expandedRoomId === roomId
+            const Icon = isExpanded ? ChevronDown : ChevronUp
+
             return (
-              <div
-                key={roomId}
-                className='bg-card border-border overflow-hidden rounded-lg border shadow-sm'
-              >
+              <div key={roomId} className='bg-card overflow-hidden rounded-md'>
                 <button
-                  onClick={() => toggleRoom(roomId)}
-                  className='bg-muted/30 hover:bg-muted/50 flex w-full items-center justify-between p-4 transition-colors'
+                  onClick={() => {
+                    router.push(isExpanded ? pathname : `${pathname}?room=${roomId}`, {
+                      scroll: false,
+                    })
+                    setExpandedRoomId((prev) => (prev === roomId ? null : roomId))
+                  }}
+                  className={cn(
+                    'hover:bg-muted/50 flex w-full items-center justify-between rounded-t-md border bg-white py-[12.5px] pr-6 pl-2 transition-colors',
+                    !isExpanded && 'rounded-b-md'
+                  )}
                 >
                   <div className='flex items-center gap-2'>
-                    <Folder className='text-primary h-4 w-4' />
                     <span className='text-sm font-medium'>Room: {roomId}</span>
-                    <span className='bg-primary/10 text-primary ml-2 rounded-full px-2 py-0.5 text-[10px] font-medium'>
-                      {roomRecordings.length}{' '}
-                      {roomRecordings.length === 1 ? 'recording' : 'recordings'}
-                    </span>
+                    <Badge
+                      variant='secondary'
+                      className='rounded-md border-neutral-400 bg-neutral-200 font-normal text-neutral-800 italic'
+                    >
+                      {`${roomRecordings.length} recording${roomRecordings.length > 1 ? 's' : ''}`}
+                    </Badge>
                   </div>
-                  {isExpanded ? (
-                    <ChevronDown className='text-muted-foreground h-4 w-4' />
-                  ) : (
-                    <ChevronRight className='text-muted-foreground h-4 w-4' />
-                  )}
+                  <Icon className='h-4 w-4 text-neutral-950' />
                 </button>
 
                 {isExpanded && (
-                  <div className='overflow-x-auto'>
-                    <table className='w-full text-left text-sm'>
-                      <thead className='bg-muted border-border text-muted-foreground border-y border-b text-xs font-medium uppercase'>
-                        <tr>
-                          <th className='px-5 py-3'>Name</th>
-                          <th className='px-5 py-3'>Date</th>
-                          <th className='px-5 py-3'>Status</th>
-                          <th className='px-5 py-3 text-right'>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody className='divide-border/70 divide-y'>
-                        {roomRecordings.map((r) => (
-                          <tr key={r.id} className='hover:bg-muted/50'>
-                            <td className='px-5 py-3'>
-                              {renamingId === r.id ? (
-                                <div className='flex gap-2'>
-                                  <Input
-                                    className='h-7 text-xs'
-                                    value={val}
-                                    onChange={(e) => setVal(e.target.value)}
-                                    autoFocus
-                                  />
-                                  <Button
-                                    size='sm'
-                                    className='h-7'
-                                    onClick={() => handleRename(r.id)}
-                                  >
-                                    ✓
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className='flex items-center gap-2 font-medium'>
-                                  {r.name}
-                                  {canUpdate && (
-                                    <button
-                                      onClick={() => {
-                                        setRenamingId(r.id)
-                                        setVal(r.name)
-                                      }}
-                                      className='text-muted-foreground hover:text-primary'
-                                    >
-                                      <Pencil className='h-3 w-3' />
-                                    </button>
-                                  )}
-                                </div>
-                              )}
-                            </td>
-                            <td className='text-muted-foreground px-5 py-3 text-xs'>
-                              {new Date(r.created_at).toLocaleString()}
-                            </td>
-                            <td className='flex items-center gap-2 px-5 py-3 text-xs'>
-                              {r.status === 'PROCESSING' ? (
-                                <>
-                                  <Loader2 className='text-primary h-4 w-4 animate-spin' />
-                                  <span className='text-primary animate-pulse font-medium'>
-                                    Extracting ({progressMap[r.egress_id] ?? 0}%)
-                                  </span>
-                                </>
-                              ) : (
-                                <span className='font-medium text-green-600'>Ready</span>
-                              )}
-                            </td>
-                            <td className='px-5 py-3 text-right'>
-                              <div className='flex justify-end gap-2'>
-                                {r.status !== 'PROCESSING' && (
-                                  <>
-                                    <button
-                                      onClick={() =>
-                                        handleDownload(
-                                          r.link,
-                                          r.name.includes('.mp4') ? r.name : `${r.name}.mp4`
-                                        )
-                                      }
-                                      className='text-primary hover:bg-primary/10 rounded p-1.5'
-                                      title='Download'
-                                    >
-                                      <Download className='h-3.5 w-3.5' />
-                                    </button>
-                                    <a
-                                      href={r.link}
-                                      target='_blank'
-                                      className='text-primary hover:bg-primary/10 rounded p-1.5'
-                                      title='Open Link'
-                                    >
-                                      <Link2 className='h-3.5 w-3.5' />
-                                    </a>
-                                  </>
-                                )}
-                                {canDelete && (
-                                  <button
-                                    onClick={async () => {
-                                      if (confirm('Delete?')) {
-                                        await deleteRecording(r.id)
-                                        load()
-                                      }
-                                    }}
-                                    className='text-destructive hover:bg-destructive/10 rounded p-1.5'
-                                    title='Delete'
-                                  >
-                                    <Trash2 className='h-3.5 w-3.5' />
-                                  </button>
-                                )}
-                              </div>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
+                  <div className='overflow-x-auto pb-1'>
+                    <TableView
+                      data={roomRecordings}
+                      columns={columns}
+                      wrapper={{
+                        className: 'rounded-t-none',
+                      }}
+                    />
                   </div>
                 )}
               </div>
