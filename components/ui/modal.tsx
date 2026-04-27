@@ -236,4 +236,4 @@ function ModalDelete({ submit, title, children, cancel, footer, content, ...rest
   )
 }
 
-export { Modal, ModalDelete }
+export { Modal, ModalDelete, type ModalDialogProps }
