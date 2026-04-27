@@ -20,16 +20,13 @@ import { ARR_PAGE_SIZE, TableViewPagination } from '@/compounds/table-view/pagin
 import { useState } from 'react'
 import { TableViewColumnHeader } from '@/compounds/table-view/column-header'
 import { cn } from '@/lib/utils'
-import { Plus } from 'lucide-react'
 import type { VariantProps } from 'class-variance-authority'
 import type { buttonVariants } from '@/components/ui/button'
-import { Button } from '@/components/ui/button'
 import type { TableViewSearchProps } from '@/compounds/table-view/search'
-import { TableViewSearch } from '@/compounds/table-view/search'
 import type { TableViewFilterProps } from '@/compounds/table-view/filter'
-import { TableViewFilter } from '@/compounds/table-view/filter'
+import { TableViewHeader } from '@/compounds/table-view/header'
 
-type TableViewOptionsAdd = React.ComponentProps<'button'> &
+type TableViewButtonProps = React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }
@@ -38,18 +35,22 @@ interface TableViewProps {
   pageSizeOptions?: number[]
   wrapper?: React.ComponentProps<'div'>
   search?: TableViewSearchProps
-  add?: TableViewOptionsAdd
+  add?: TableViewButtonProps
+  refresh?: TableViewButtonProps
   filter?: TableViewFilterProps
+  headerAddon?: React.ReactNode
 }
 
-export function TableView<TData>({
+function TableView<TData>({
   columns,
   data,
   pageSizeOptions = ARR_PAGE_SIZE,
   wrapper,
   search,
   add,
+  refresh,
   filter,
+  headerAddon,
   ...rest
 }: Omit<TableOptions<TData>, 'getCoreRowModel'> & TableViewProps) {
   const [sorting, setSorting] = useState<SortingState>([])
@@ -74,30 +75,8 @@ export function TableView<TData>({
   })
 
   return (
-    <div className='@container/table-container space-y-8'>
-      {(!!search || !!filter || !!add) && (
-        <div className='@container/table-header sm:px-6'>
-          <div className='flex items-center gap-2 @max-[496px]/table-header:flex-col-reverse'>
-            {!!search && <TableViewSearch {...search} />}
-
-            {(!!filter || !!add) && (
-              <div className='flex w-full grow justify-end gap-2 @max-[496px]/table-header:flex-col-reverse'>
-                {!!filter && <TableViewFilter {...filter} />}
-
-                {!!add && (
-                  <Button variant='primary' {...add}>
-                    {add.children ?? (
-                      <>
-                        <Plus /> Tambah
-                      </>
-                    )}
-                  </Button>
-                )}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+    <div className='@container/table-container flex flex-col gap-4 md:gap-8'>
+      <TableViewHeader {...{ search, add, filter, refresh, table, pageSizeOptions, headerAddon }} />
       <div
         {...wrapper}
         className={cn('overflow-hidden rounded-md border border-neutral-200', wrapper?.className)}
@@ -158,3 +137,6 @@ export function TableView<TData>({
     </div>
   )
 }
+
+export type { TableViewButtonProps }
+export { TableView }

@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 
 interface TableViewPaginationProps<TData> {
   table: Table<TData>
@@ -17,35 +18,56 @@ interface TableViewPaginationProps<TData> {
 
 export const ARR_PAGE_SIZE = [10, 20, 25, 30, 40, 50]
 
+function SelectPageSize<TData>({
+  table,
+  pageSizeOptions,
+  className,
+}: TableViewPaginationProps<TData> & {
+  className?: React.ComponentProps<typeof SelectTrigger>['className']
+}) {
+  return (
+    <Select
+      value={`${table.getState().pagination.pageSize}`}
+      onValueChange={(value) => {
+        table.setPageSize(Number(value))
+      }}
+    >
+      <SelectTrigger className={cn('h-9 w-20', className)}>
+        <SelectValue placeholder={table.getState().pagination.pageSize} />
+      </SelectTrigger>
+      <SelectContent side='top'>
+        {pageSizeOptions.map((pageSize) => (
+          <SelectItem key={pageSize} value={`${pageSize}`}>
+            {pageSize}
+          </SelectItem>
+        ))}
+      </SelectContent>
+    </Select>
+  )
+}
+
+function TotalPageInfo<TData>({
+  table,
+  className,
+}: Pick<TableViewPaginationProps<TData>, 'table'> & { className?: HTMLDivElement['className'] }) {
+  return (
+    <div className={cn('flex w-fit items-center justify-center text-sm', className)}>
+      Laman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}
+    </div>
+  )
+}
+
 function TableViewPagination<TData>({ table, pageSizeOptions }: TableViewPaginationProps<TData>) {
   return (
-    <div className='flex items-center justify-between gap-2 @max-[496px]/table-container:flex-col'>
-      <div className='flex items-center space-x-4 @max-[496px]/table-container:w-full @max-[496px]/table-container:justify-between'>
+    <div className='flex items-center justify-between gap-2'>
+      <div className='flex items-center space-x-4 max-md:hidden'>
         <p className='text-sm'>Jumlah data tabel per laman</p>
-        <Select
-          value={`${table.getState().pagination.pageSize}`}
-          onValueChange={(value) => {
-            table.setPageSize(Number(value))
-          }}
-        >
-          <SelectTrigger className='h-9 w-20'>
-            <SelectValue placeholder={table.getState().pagination.pageSize} />
-          </SelectTrigger>
-          <SelectContent side='top'>
-            {pageSizeOptions.map((pageSize) => (
-              <SelectItem key={pageSize} value={`${pageSize}`}>
-                {pageSize}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+        <SelectPageSize {...{ table, pageSizeOptions }} />
       </div>
 
-      <div className='flex space-x-4 @max-[496px]/table-container:w-full @max-[496px]/table-container:justify-between'>
-        <div className='flex w-fit items-center justify-center text-sm'>
-          Laman {table.getState().pagination.pageIndex + 1} dari {table.getPageCount()}
-        </div>
-        <div className='flex items-center space-x-2'>
+      <div className='flex space-x-4 max-md:w-full'>
+        <TotalPageInfo {...{ table }} className='max-md:hidden' />
+        <div className='flex items-center space-x-2 max-md:w-full'>
           <Button
             variant='primary-outline'
             size='icon-sm'
@@ -64,6 +86,7 @@ function TableViewPagination<TData>({ table, pageSizeOptions }: TableViewPaginat
             <span className='sr-only'>Kembali ke halaman sebelumnya</span>
             <ChevronLeft />
           </Button>
+          <TotalPageInfo {...{ table }} className='flex-1 md:hidden' />
           <Button
             variant='primary-outline'
             size='icon-sm'
@@ -88,4 +111,4 @@ function TableViewPagination<TData>({ table, pageSizeOptions }: TableViewPaginat
   )
 }
 
-export { TableViewPagination }
+export { TableViewPagination, SelectPageSize }
