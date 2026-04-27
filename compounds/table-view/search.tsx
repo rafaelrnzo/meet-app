@@ -1,34 +1,53 @@
 'use client'
-import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { Search } from 'lucide-react'
+import { TableViewFilter } from './filter'
+import type { TableViewFilterProps } from './filter'
 import React, { useRef } from 'react'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 
-type TableViewSearchProps = React.ComponentProps<'input'> & {
+interface TableViewSearchProps extends React.ComponentProps<'input'> {
   onSearch?: ({ event, value }: { event: React.FormEvent<HTMLFormElement>; value: string }) => void
+  filter?: TableViewFilterProps
 }
 
 function TableViewSearch(props: TableViewSearchProps) {
-  const { className, onSearch, ...rest } = props
+  const { className, onSearch, filter, ...rest } = props
   const currentSearch = useRef('')
 
   return (
     <form
-      className='relative w-75 @max-[496px]/table-header:w-full'
+      className='relative w-full min-[830px]:w-75'
       onSubmit={(event) => {
         event.preventDefault()
         const formData = new FormData(event.currentTarget)
         const searchQuery = formData.get('searchQuery') ?? ''
-        if (typeof searchQuery !== 'string' || currentSearch.current === searchQuery) {
+        const value = typeof searchQuery === 'string' ? searchQuery.trim() : ''
+
+        if (currentSearch.current === value) {
           return
         }
-        const value = searchQuery.trim()
+
         onSearch?.({ event, value })
-        currentSearch.current = searchQuery
+        currentSearch.current = value
       }}
     >
-      <Search className='absolute top-1/2 left-3 size-4 -translate-y-1/2 text-neutral-400' />
-      <Input {...rest} name='searchQuery' type='search' className={cn('pl-9 md:w-75', className)} />
+      <InputGroup className='has-[[data-slot][aria-invalid=true]]:[&>input]:text-error has-[[data-slot][aria-invalid=true]]:border-red-200 has-[[data-slot][aria-invalid=true]]:bg-red-200'>
+        <InputGroupInput
+          {...rest}
+          name='searchQuery'
+          type='search'
+          className={cn('w-full min-[830px]:w-75', className)}
+        />
+        <InputGroupAddon>
+          <Search />
+        </InputGroupAddon>
+        {!!filter && (
+          <InputGroupAddon align='inline-end' className='mr-0! p-0 md:hidden'>
+            <TableViewFilter {...filter} />
+          </InputGroupAddon>
+        )}
+      </InputGroup>
     </form>
   )
 }

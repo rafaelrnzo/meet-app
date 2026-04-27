@@ -1,5 +1,6 @@
 import '@/lib/polyfill'
 import '@livekit/components-styles'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import './globals.css'
 import { Toaster } from 'sonner'
 
@@ -12,7 +13,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang='en' suppressHydrationWarning>
       <body style={{ margin: 0 }}>
-        {children}
+        <TooltipProvider>{children}</TooltipProvider>
         <Toaster position='top-center' richColors />
       </body>
     </html>
