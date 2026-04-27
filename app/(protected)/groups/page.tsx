@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Plus, Trash2, Users, Settings, Search, UserPlus, X } from 'lucide-react'
+import { UserPlus, X } from 'lucide-react'
 import {
   fetchGroups,
   createGroup,
@@ -11,9 +11,8 @@ import {
   addGroupMember,
   removeGroupMember,
   fetchUsers,
-  type Group as GroupDto,
-  type User as UserDto,
 } from '@/lib/api/admin-api'
+import type { Group, User as UserDto } from '@/lib/api/admin-api'
 import { useAuth } from '../../../hooks/use-auth'
 import { Label } from '@/components/ui/label'
 import {
@@ -24,10 +23,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
+import PageContainer from '@/compounds/page-container'
+import { TableView } from '@/compounds/table-view'
+import { groupsColumn } from '@/column/groups'
 
 export default function GroupsPage() {
   const { hasPermission, loading } = useAuth()
-  const [groups, setGroups] = useState<GroupDto[]>([])
+  const [groups, setGroups] = useState<Group[]>([])
   const [users, setUsers] = useState<UserDto[]>([])
 
   // Create Group State
@@ -35,7 +37,7 @@ export default function GroupsPage() {
   const [createForm, setCreateForm] = useState({ name: '', description: '' })
 
   // Manage Members State
-  const [selectedGroup, setSelectedGroup] = useState<GroupDto | null>(null)
+  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [isManageOpen, setIsManageOpen] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState('')
 
@@ -45,7 +47,15 @@ export default function GroupsPage() {
 
   const loadData = async () => {
     const [g, u] = await Promise.all([fetchGroups(), fetchUsers()])
-    setGroups(g || [])
+    setGroups(
+      g.map((items) => ({
+        id: items.id,
+        name: items.name || '-',
+        description: items.description || '-',
+        members: items.members,
+        created_at: items.created_at,
+      })) || []
+    )
     setUsers(u || [])
   }
 
@@ -58,13 +68,11 @@ export default function GroupsPage() {
   }
 
   const handleDelete = async (id: number) => {
-    if (confirm('Are you sure you want to delete this group? This cannot be undone.')) {
-      await deleteGroup(id)
-      loadData()
-    }
+    await deleteGroup(id)
+    loadData()
   }
 
-  const openManage = (g: GroupDto) => {
+  const openManage = (g: Group) => {
     setSelectedGroup(g)
     setIsManageOpen(true)
     setSelectedUserId('')
@@ -104,89 +112,24 @@ export default function GroupsPage() {
   if (loading) return <div className='text-muted-foreground p-8 text-center'>Loading...</div>
 
   return (
-    <div className='space-y-6'>
-      <div className='flex items-center justify-between'>
-        <div>
-          <h2 className='text-2xl font-bold tracking-tight'>Teams & Groups</h2>
-          <p className='text-muted-foreground text-sm'>
-            Organize users into teams for easier management.
-          </p>
+    <PageContainer
+      icon='groups'
+      title='Daftar Kelompok'
+      subTitle='Kelola anggota Anda dalam tiap kelompok'
+    >
+      {groups.length === 0 ? (
+        <div className='bg-card border-border text-muted-foreground overflow-hidden rounded-lg border p-8 text-center text-sm shadow-sm'>
+          No groups are created
         </div>
-        <Button onClick={() => setIsCreateOpen(true)} size='sm' className='h-9 gap-2'>
-          <Plus className='h-4 w-4' /> New Group
-        </Button>
-      </div>
-
-      {/* Groups Table */}
-      <div className='border-border bg-card overflow-hidden rounded-xl border shadow-sm'>
-        <div className='relative w-full overflow-auto'>
-          <table className='w-full caption-bottom text-left text-sm'>
-            <thead className='[&_tr]:border-b'>
-              <tr className='hover:bg-muted/50 data-[state=selected]:bg-muted border-b transition-colors'>
-                <th className='text-muted-foreground h-12 w-[200px] px-4 align-middle font-medium'>
-                  Group Name
-                </th>
-                <th className='text-muted-foreground h-12 px-4 align-middle font-medium'>
-                  Description
-                </th>
-                <th className='text-muted-foreground h-12 w-[100px] px-4 text-center align-middle font-medium'>
-                  Members
-                </th>
-                <th className='text-muted-foreground h-12 w-[150px] px-4 text-right align-middle font-medium'>
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody className='[&_tr:last-child]:border-0'>
-              {groups.map((group) => (
-                <tr key={group.id} className='hover:bg-muted/50 border-b transition-colors'>
-                  <td className='p-4 align-middle font-medium'>
-                    <div className='flex items-center gap-2'>
-                      <Users className='text-muted-foreground h-4 w-4' />
-                      {group.name}
-                    </div>
-                  </td>
-                  <td className='text-muted-foreground p-4 align-middle'>
-                    {group.description || '-'}
-                  </td>
-                  <td className='p-4 text-center align-middle'>
-                    <span className='bg-primary/10 text-primary inline-flex items-center justify-center rounded-full px-2.5 py-0.5 text-xs font-medium'>
-                      {group.members?.length || 0}
-                    </span>
-                  </td>
-                  <td className='p-4 text-right align-middle'>
-                    <div className='flex justify-end gap-2'>
-                      <Button
-                        variant='secondary'
-                        size='sm'
-                        className='h-8 text-xs'
-                        onClick={() => openManage(group)}
-                      >
-                        <Settings className='mr-1.5 h-3.5 w-3.5' /> Manage
-                      </Button>
-                      <Button
-                        variant='ghost'
-                        size='sm'
-                        className='text-muted-foreground hover:text-destructive h-8 w-8 p-0'
-                        onClick={() => handleDelete(group.id)}
-                      >
-                        <Trash2 className='h-4 w-4' />
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {groups.length === 0 && (
-                <tr>
-                  <td colSpan={4} className='text-muted-foreground p-8 text-center'>
-                    No groups created yet.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      ) : (
+        <TableView
+          data={groups}
+          columns={groupsColumn({ handleDelete, openManage })}
+          add={{
+            onClick: () => setIsCreateOpen(true),
+          }}
+        />
+      )}
 
       {/* Create Group Dialog */}
       <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
@@ -291,6 +234,6 @@ export default function GroupsPage() {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </PageContainer>
   )
 }
