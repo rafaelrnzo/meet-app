@@ -62,12 +62,13 @@ const CategoryActionButton = ({ buttonComp, deleteComp, switchComp }: ActionButt
                   size='icon-xs'
                   className='my-1 h-11 w-full justify-start px-2 py-1 md:my-0 md:size-6 md:justify-center md:p-0'
                 >
-                  <Trash2 size={16} />{' '}
+                  <Trash2 size={16} />
                   <span className='block md:hidden'>{deleteComp.title?.children}</span>
                 </Button>
               ),
             }}
             submit={{
+              ...deleteComp.submit,
               children: (
                 <>
                   <Trash2 />
@@ -76,6 +77,7 @@ const CategoryActionButton = ({ buttonComp, deleteComp, switchComp }: ActionButt
               ),
             }}
             cancel={{
+              ...deleteComp.cancel,
               children: 'Batal',
             }}
           >
