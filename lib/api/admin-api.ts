@@ -264,15 +264,19 @@ export async function removeRolePermission(roleId: number, permId: number): Prom
   })
 }
 
-export type User = {
+export type UserResponse = {
   id: number
   username: string
   role?: Role
   role_id: number
 }
 
-export async function fetchUsers(): Promise<User[]> {
-  return apiRequest<User[]>('/admin/users', {
+export type User = {
+  data: UserResponse[]
+}
+
+export async function fetchUsers(): Promise<User> {
+  return apiRequest<User>('/admin/users', {
     method: 'GET',
     cache: 'no-store',
   })
