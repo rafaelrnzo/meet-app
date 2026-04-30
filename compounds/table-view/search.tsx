@@ -9,15 +9,16 @@ import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/in
 interface TableViewSearchProps extends React.ComponentProps<'input'> {
   onSearch?: ({ event, value }: { event: React.FormEvent<HTMLFormElement>; value: string }) => void
   filter?: TableViewFilterProps
+  wrapper?: { className?: HTMLFormElement['className'] }
 }
 
 function TableViewSearch(props: TableViewSearchProps) {
-  const { className, onSearch, filter, ...rest } = props
+  const { className, onSearch, filter, wrapper, ...rest } = props
   const currentSearch = useRef('')
 
   return (
     <form
-      className='relative w-full min-[830px]:w-75'
+      className={cn('relative w-full min-[830px]:w-75', wrapper?.className)}
       onSubmit={(event) => {
         event.preventDefault()
         const formData = new FormData(event.currentTarget)
