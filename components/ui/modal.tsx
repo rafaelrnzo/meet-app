@@ -137,7 +137,6 @@ function Modal({
               </div>
               <DialogDescription
                 {...description}
-                asChild
                 className={cn(
                   'flex flex-col text-left text-sm text-neutral-950',
                   !description?.children && 'hidden',
