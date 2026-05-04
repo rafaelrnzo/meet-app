@@ -147,3 +147,9 @@
   mask-image: linear-gradient(to left, transparent 0%, black 20px);
   -webkit-mask-image: linear-gradient(to left, transparent 0%, black 20px);
 }
+
+/* Prevent native Edge "eye" icon */
+input[type='password']::-ms-reveal,
+input[type='password']::-ms-clear {
+  display: none;
+}
