@@ -15,3 +15,15 @@ export const djs = dayjs
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
+
+export function without<T extends object, K extends keyof T>(obj: T, keys: K[]) {
+  const clone = { ...obj }
+  for (const key of keys) {
+    delete clone[key]
+  }
+  return clone
+}
+
+export function omit<T extends object, K extends keyof T>(obj: T, keys: K[]): Omit<T, K> {
+  return without(obj, keys)
+}
