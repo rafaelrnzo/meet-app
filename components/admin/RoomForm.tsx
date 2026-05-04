@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -16,7 +16,7 @@ import {
   FieldTitle,
 } from '../ui/field'
 import { Textarea } from '../ui/textarea'
-import { cn } from '@/lib/utils'
+import { cn, djs, omit } from '@/lib/utils'
 import { CalendarWithTime } from '../ui/calendar-with-time'
 import {
   Combobox,
@@ -33,7 +33,8 @@ import type { RoomSchemaValue, SelectOptions } from '@/feat/rooms/dto'
 import { roomSchema } from '@/feat/rooms/schema'
 import { useForm } from '@tanstack/react-form'
 import { Modal } from '../ui/modal'
-import { Plus } from 'lucide-react'
+import { Eye, EyeClosed, Plus } from 'lucide-react'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '../ui/input-group'
 
 interface RoomFormProps {
   open: boolean
@@ -65,7 +66,7 @@ const FormField = (props: FormFieldProps) => {
   } = props
   return (
     <Field orientation='vertical' className={cn('flex flex-col gap-2', className)}>
-      <FieldLabel htmlFor={name}>
+      <FieldLabel htmlFor={name} className='gap-1'>
         {label} {required && <span className='text-destructive'>*</span>}
       </FieldLabel>
       {children}
@@ -103,6 +104,8 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
   })
 
   const [users, setUsers] = useState<User[]>([])
+  const params = useRef<ParamsUserAssignment>({})
+  const [showPassword, setShowPassword] = useState(false)
 
   const fetchUsers = async (params?: ParamsUserAssignment) => {
     try {
@@ -156,7 +159,7 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
             const isInvalid = isTouched && errors.length > 0
 
             return (
-              <FormField label='Nama Ruangan' required {...{ name, isInvalid, errors }}>
+              <FormField label='Nama ruangan' required {...{ name, isInvalid, errors }}>
                 <Input
                   id={name}
                   {...{ name, value }}
@@ -179,13 +182,14 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
             const isInvalid = isTouched && errors.length > 0
 
             return (
-              <FormField {...{ name }} label='Deskripsi Ruangan'>
+              <FormField {...{ name }} label='Deskripsi ruangan'>
                 <Textarea
                   id={name}
                   {...{ name, value }}
                   onChange={(event) => handleChange(event.target.value)}
                   placeholder='Contoh: Ruangan ini khusus untuk pimpinan'
                   aria-invalid={isInvalid}
+                  maxLength={250}
                 />
                 <FieldDescription className={cn('text-xs', isInvalid && 'text-error')}>
                   {`${value.length} / 250 Karakter.`}
@@ -204,7 +208,7 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
               const isInvalid = isTouched && errors.length > 0
 
               return (
-                <FormField label='Waktu Mulai' required {...{ name, isInvalid, errors }}>
+                <FormField label='Waktu mulai' required {...{ name, isInvalid, errors }}>
                   <CalendarWithTime
                     id={name}
                     {...{ name }}
@@ -222,6 +226,10 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                         before: new Date(),
                       },
                     }}
+                    disabled={{
+                      startTime:
+                        !!initialData?.start_date && djs(initialData?.start_date).isBefore(),
+                    }}
                   />
                 </FormField>
               )
@@ -236,15 +244,25 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
               const isInvalid = isTouched && errors.length > 0
 
               return (
-                <FormField label='Room Password(Opsional)' {...{ name, isInvalid, errors }}>
-                  <Input
-                    id={name}
-                    {...{ name, value }}
-                    type='text'
-                    onChange={(event) => handleChange(event.target.value)}
-                    placeholder='Contoh: @ruanganpimpinan1'
-                    aria-invalid={isInvalid}
-                  />
+                <FormField label='Kata sandi ruangan (Opsional)' {...{ name, isInvalid, errors }}>
+                  <InputGroup>
+                    <InputGroupInput
+                      id={name}
+                      {...{ name, value }}
+                      type={showPassword ? 'text' : 'password'}
+                      onChange={(event) => handleChange(event.target.value)}
+                      placeholder='Contoh: @ruanganpimpinan1'
+                      aria-invalid={isInvalid}
+                      className='appearance-none'
+                    />
+                    <InputGroupAddon
+                      align='inline-end'
+                      onClick={() => setShowPassword((prev) => !prev)}
+                      className='cursor-pointer'
+                    >
+                      {showPassword ? <EyeClosed /> : <Eye />}
+                    </InputGroupAddon>
+                  </InputGroup>
                 </FormField>
               )
             }}
@@ -272,9 +290,13 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                     {...{ value }}
                     onValueChange={(val) => {
                       handleChange(val?.value ?? '')
-                      if (val) {
-                        fetchUsers({ exclude_group_id: +val.value })
+                      const updateParams = {
+                        ...omit(params.current, ['exclude_group_id']),
+                        ...(val ? { exclude_group_id: +val.value } : {}),
                       }
+                      params.current = updateParams
+                      fetchUsers(updateParams)
+                      field.form.setFieldValue('assignedTo', [])
                     }}
                   >
                     <ComboboxInput placeholder='Pilih kelompok ...' showClear={!!value.value} />
@@ -324,6 +346,7 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
             const { value, meta } = state
             const { errors, isTouched } = meta
             const isInvalid = isTouched && errors.length > 0
+            const assignTo = field.form.state.values.assignedTo
 
             return (
               <FormField
@@ -332,7 +355,11 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
               >
                 <TableViewSearch
                   placeholder='Cari anggota ...'
-                  onSearch={({ value: search }) => fetchUsers({ search })}
+                  onSearch={({ value: search }) => {
+                    const updateParams = { ...params.current, search }
+                    params.current = updateParams
+                    fetchUsers(updateParams)
+                  }}
                 />
                 <Card className='rounded-md'>
                   <CardContent className='px-2 pt-1 pb-3.5'>
@@ -347,13 +374,18 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                           }
                           handleChange([])
                         }}
+                        disabled={!users.length}
+                        checked={
+                          users.length === assignTo.length &&
+                          users.every((user) => assignTo.includes(`${user.id}`))
+                        }
                       />
                       <Label htmlFor='all' className='w-full'>
                         All
                       </Label>
                     </Field>
                     <Separator className='my-2' />
-                    <div className='grid grid-cols-2 gap-2'>
+                    <div className='grid max-h-[113px] grid-cols-2 gap-2 overflow-y-auto'>
                       {users.map((user) => (
                         <Field key={user.id} orientation='horizontal'>
                           <Checkbox
@@ -394,7 +426,7 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                 {...{ name, isInvalid, errors }}
                 className='sm:w-[calc(50%-4px)]'
               >
-                <FieldLabel>
+                <FieldLabel className='border-neutral-400 has-data-[state=checked]:border-neutral-400 has-data-[state=checked]:bg-transparent'>
                   <Field orientation='horizontal' className='items-center! px-3! py-2!'>
                     <Checkbox
                       id={name}

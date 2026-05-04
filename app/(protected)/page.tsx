@@ -19,6 +19,7 @@ import { TableViewHeader } from '@/compounds/table-view/header'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Loader } from 'lucide-react'
 import { toast } from 'sonner'
+import { useRealTimeRooms } from '../../hooks/use-real-time-rooms'
 
 export default function HomePage() {
   const router = useRouter()
@@ -56,6 +57,11 @@ export default function HomePage() {
     },
     [isAdmin]
   )
+
+  // SSE for real-time updates
+  useRealTimeRooms(() => {
+    loadData()
+  })
 
   useEffect(() => {
     if (!authLoading) {

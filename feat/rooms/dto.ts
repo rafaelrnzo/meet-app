@@ -19,7 +19,7 @@ const getRoomDefaultValue = (data: DbRoom): RoomSchemaValue => {
     groupId: data.group_id ? String(data.group_id) : '',
     maxParticipants: data.max_participants,
     assignedTo: data.assigned_to || [],
-    isMuteOnStart: data.is_mute_on_start, // TODO: check is this exist?
+    isMuteOnStart: data.is_mute_on_start,
   }
 }
 

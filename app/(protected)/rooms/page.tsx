@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   fetchDbRooms,
   deleteDbRoom,
@@ -8,7 +8,7 @@ import {
   fetchActiveRooms,
   fetchUsers,
 } from '@/lib/api/admin-api'
-import type { DbRoom, Group as GroupDto, ActiveRoom, User } from '@/lib/api/admin-api'
+import type { DbRoom, Group as GroupDto, ActiveRoom, User, RoomParams } from '@/lib/api/admin-api'
 import { useAuth } from '../../../hooks/use-auth'
 import { RoomDetailSheet } from '@/components/admin/RoomDetailSheet'
 import { RoomList } from '@/components/features/rooms/RoomList'
@@ -16,6 +16,7 @@ import { djs } from '@/lib/utils'
 import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { RoomForm } from '@/components/admin/RoomForm'
+import { useRealTimeRooms } from '../../../hooks/use-real-time-rooms'
 
 export default function RoomsPage() {
   const { hasPermission } = useAuth({ requirePermission: 'room:read' })
@@ -25,6 +26,7 @@ export default function RoomsPage() {
   const [users, setUsers] = useState<User[]>([])
   const { isAdmin, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
+  const params = useRef<RoomParams>({})
 
   // Modal State
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -39,7 +41,7 @@ export default function RoomsPage() {
   const canDelete = hasPermission('room:delete')
 
   const loadData = useCallback(
-    async (params?: { search?: string }) => {
+    async (params?: RoomParams) => {
       setLoading(true)
       try {
         const [r, g, ar, u] = await Promise.all([
@@ -67,8 +69,17 @@ export default function RoomsPage() {
     }
   }, [authLoading, loadData])
 
+  useRealTimeRooms(() => {
+    loadData()
+  })
+
   const handleCreate = () => {
     setEditingRoom(null)
+    setIsFormOpen(true)
+  }
+
+  const handleEdit = (room: DbRoom) => {
+    setEditingRoom(room)
     setIsFormOpen(true)
   }
 
@@ -101,9 +112,46 @@ export default function RoomsPage() {
         <TableViewHeader
           search={{
             placeholder: 'Cari nama atau kode ruangan ...',
-            onSearch: ({ value }) => loadData({ search: value }),
+            onSearch: ({ value }) => {
+              const updateParams = { ...params.current, search: value }
+              params.current = updateParams
+              loadData(updateParams)
+            },
           }}
           {...(canCreate && { add: { onClick: handleCreate } })}
+          filter={{
+            options: [
+              {
+                value: 'newest',
+                label: 'Terbaru',
+              },
+              {
+                value: 'oldest',
+                label: 'Terlama',
+              },
+              {
+                value: 'name_asc',
+                label: 'Alfabet (A - Z)',
+              },
+              {
+                value: 'name_desc',
+                label: 'Alfabet (Z - A)',
+              },
+              {
+                value: 'group',
+                label: 'Kelompok',
+              },
+            ],
+            selectProps: {
+              select: {
+                onValueChange: (value) => {
+                  const updateParams = { ...params.current, sort: value }
+                  params.current = updateParams
+                  loadData(updateParams)
+                },
+              },
+            },
+          }}
         />
 
         <RoomList
@@ -133,6 +181,7 @@ export default function RoomsPage() {
         onEditSuccess={loadData}
         groups={groups}
         users={users}
+        handleEdit={(room: DbRoom) => handleEdit(room)}
       />
     </PageContainer>
   )

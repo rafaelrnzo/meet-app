@@ -62,9 +62,15 @@ export type DbRoom = {
   presentation_path?: string
   createdById?: number
   password?: string
+  is_mute_on_start: boolean
 }
 
-export async function fetchDbRooms(searchParams?: { search?: string }): Promise<DbRoom[]> {
+export type RoomParams = {
+  search?: string
+  sort?: string
+}
+
+export async function fetchDbRooms(searchParams?: RoomParams): Promise<DbRoom[]> {
   return apiRequest<DbRoom[]>(
     '/admin/rooms',
     {

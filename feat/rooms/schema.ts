@@ -4,7 +4,7 @@ import * as yup from 'yup'
 const roomSchema = yup.object().shape({
   name: yup
     .string()
-    .max(250, 'Nama Ruangan maksimal 250 karakter')
+    .max(50, 'Nama Ruangan maksimal 50 karakter')
     .required('Nama Ruangan wajib diisi')
     .default(''),
   description: yup.string().max(250, 'Deskripsi maksimal 250 karakter').default(''),
@@ -21,6 +21,9 @@ const roomSchema = yup.object().shape({
         return !end || !value || djs(value).isBefore(end)
       }
     )
+    .test('isValid', 'Jam Mulai harus lebih dari saat ini', function (value) {
+      return !value || djs(value).isAfter()
+    })
     .default(null),
   endDate: yup
     .date()
