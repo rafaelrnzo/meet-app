@@ -21,10 +21,14 @@ type CalendarWithTimeProps = Omit<React.ComponentProps<typeof Input>, 'popover' 
     endTime?: Date
   }
   onSelect?: ({ startTime, endTime }: { startTime?: Date; endTime?: Date }) => void
+  disabled?: {
+    startTime?: React.ComponentProps<'input'>['disabled']
+    endTime?: React.ComponentProps<'input'>['disabled']
+  }
 }
 
 function CalendarWithTime(props: CalendarWithTimeProps) {
-  const { popover, popoverContent, calendar, selected, onSelect, ...rest } = props
+  const { popover, popoverContent, calendar, selected, onSelect, disabled, ...rest } = props
   const [startTime, setStartTime] = React.useState<Date | undefined>(selected?.startTime)
   const [endTime, setEndTime] = React.useState<Date | undefined>(selected?.endTime)
 
@@ -150,6 +154,7 @@ function CalendarWithTime(props: CalendarWithTimeProps) {
                     onChange={(event) =>
                       handleGetTime({ value: event.target.value, target: 'startTime' })
                     }
+                    disabled={disabled?.startTime}
                   />
                   <InputGroupAddon>
                     <Clock2Icon className='text-muted-foreground' />
@@ -168,6 +173,7 @@ function CalendarWithTime(props: CalendarWithTimeProps) {
                     onChange={(event) =>
                       handleGetTime({ value: event.target.value, target: 'endTime' })
                     }
+                    disabled={disabled?.endTime}
                   />
                   <InputGroupAddon>
                     <Clock2Icon className='text-muted-foreground' />
