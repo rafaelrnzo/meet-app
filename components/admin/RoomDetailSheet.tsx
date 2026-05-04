@@ -34,6 +34,7 @@ interface RoomDetailSheetProps {
   activeRoom?: ActiveRoom
   isOpen: boolean
   onClose: () => void
+  canDelete: boolean
   onDelete: (id: number) => void
   onEditSuccess: () => void // Callback to refresh data
   groups: Group[]
@@ -45,6 +46,7 @@ export function RoomDetailSheet({
   activeRoom,
   isOpen,
   onClose,
+  canDelete,
   onDelete,
   onEditSuccess,
   groups,
@@ -512,6 +514,7 @@ export function RoomDetailSheet({
                           participants.
                         </p>
                         <button
+                          disabled={!canDelete} // TODO: disabled ketika sedang mulai
                           onClick={() => onDelete(room.id)}
                           className='text-destructive border-destructive/20 hover:bg-destructive w-full rounded-lg border bg-white px-4 py-2 text-sm font-medium shadow-sm transition-all hover:text-white'
                         >

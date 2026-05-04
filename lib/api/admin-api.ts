@@ -1,3 +1,5 @@
+import type { SearchParams } from 'next/dist/server/request/search-params'
+
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'
 
 function getToken(): string | null {
@@ -10,7 +12,11 @@ function getToken(): string | null {
   }
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiRequest<T>(
+  path: string,
+  options: RequestInit = {},
+  searchParams = {}
+): Promise<T> {
   const token = getToken()
 
   const headers: Record<string, string> = {
@@ -22,14 +28,16 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     headers.Authorization = `Bearer ${token}`
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const params = new URLSearchParams(searchParams)
+  const url = `${API_BASE}${path}?${params}`
+  const res = await fetch(url, {
     ...options,
     headers,
   })
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(text || `Request failed with status ${res.status}`)
+    const data = await res.json().catch(() => '')
+    throw new Error(data?.error || `Request failed with status ${res.status}`)
   }
 
   // Handle empty responses (like 204 No Content)
@@ -56,18 +64,26 @@ export type DbRoom = {
   password?: string
 }
 
-export async function fetchDbRooms(): Promise<DbRoom[]> {
-  return apiRequest<DbRoom[]>('/admin/rooms', {
-    method: 'GET',
-    cache: 'no-store',
-  })
+export async function fetchDbRooms(searchParams?: { search?: string }): Promise<DbRoom[]> {
+  return apiRequest<DbRoom[]>(
+    '/admin/rooms',
+    {
+      method: 'GET',
+      cache: 'no-store',
+    },
+    { ...searchParams }
+  )
 }
 
-export async function fetchUserDbRooms(): Promise<DbRoom[]> {
-  return apiRequest<DbRoom[]>('/api/rooms', {
-    method: 'GET',
-    cache: 'no-store',
-  })
+export async function fetchUserDbRooms(searchParams?: { search?: string }): Promise<DbRoom[]> {
+  return apiRequest<DbRoom[]>(
+    '/api/rooms',
+    {
+      method: 'GET',
+      cache: 'no-store',
+    },
+    { ...searchParams }
+  )
 }
 
 export async function fetchRoomByCode(code: string): Promise<DbRoom> {
@@ -113,6 +129,17 @@ export async function deleteDbRoom(id: number): Promise<void> {
   await apiRequest(`/admin/rooms/${id}`, {
     method: 'DELETE',
   })
+}
+
+export async function generateCode(roomId: number): Promise<{ code: string }> {
+  const res = await apiRequest<{ code: string }>(
+    `/admin/rooms/${roomId}/regenerate-code?length=10`,
+    {
+      method: 'POST',
+      cache: 'no-store',
+    }
+  )
+  return res
 }
 
 export async function uploadRoomPresentation(id: number, file: File): Promise<{ path: string }> {
@@ -271,11 +298,27 @@ export type User = {
   role_id: number
 }
 
+export type ParamsUserAssignment = {
+  exclude_group_id?: number
+  search?: string
+}
+
 export async function fetchUsers(): Promise<User[]> {
   return apiRequest<User[]>('/admin/users', {
     method: 'GET',
     cache: 'no-store',
   })
+}
+
+export async function fetchUsersAssignment(params?: ParamsUserAssignment): Promise<User[]> {
+  return apiRequest<User[]>(
+    '/admin/users/assignment',
+    {
+      method: 'GET',
+      cache: 'no-store',
+    },
+    { ...params }
+  )
 }
 
 export async function createUser(payload: {
