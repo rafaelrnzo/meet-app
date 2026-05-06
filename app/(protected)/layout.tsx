@@ -1,62 +1,24 @@
 'use client'
 
-import React, { createContext, useContext, useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
+import React, { useEffect, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { LogOut, Moon, Sun } from 'lucide-react'
-import { getUser, type StoredUser } from '@/lib/api/auth-client'
+import { LogOut } from 'lucide-react'
+import { getUser } from '@/lib/api/auth-client'
+import type { StoredUser } from '@/lib/api/auth-client'
 import { cn } from '@/lib/utils'
 import { useAuth } from '../../hooks/use-auth'
 import { MobileNav } from '@/components/ui/mobile-nav'
 
-type Theme = 'dark' | 'light'
-const ThemeContext = createContext<{ theme: Theme; toggleTheme: () => void } | undefined>(undefined)
-
-function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [theme, setTheme] = useState<Theme>('dark')
-
-  useEffect(() => {
-    const savedTheme = localStorage.getItem('app-theme') as Theme
-    if (savedTheme) {
-      setTheme(savedTheme)
-      document.documentElement.classList.toggle('dark', savedTheme === 'dark')
-    } else {
-      document.documentElement.classList.add('dark')
-      setTheme('dark')
-    }
-  }, [])
-
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light'
-    setTheme(newTheme)
-    localStorage.setItem('app-theme', newTheme)
-    document.documentElement.classList.toggle('dark', newTheme === 'dark')
-  }
-
-  return <ThemeContext.Provider value={{ theme, toggleTheme }}>{children}</ThemeContext.Provider>
-}
-
-function useTheme() {
-  const context = useContext(ThemeContext)
-  if (!context) throw new Error('useTheme must be used within ThemeProvider')
-  return context
-}
-
 import { sidebarItems } from '@/lib/menu-items'
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <ThemeProvider>
-      <ProtectedContent>{children}</ProtectedContent>
-    </ThemeProvider>
-  )
+  return <ProtectedContent>{children}</ProtectedContent>
 }
 
 function ProtectedContent({ children }: { children: React.ReactNode }) {
-  const router = useRouter()
   const pathname = usePathname()
   const { loading, isAuthenticated, isAdmin, hasPermission, logout } = useAuth()
-  const { theme, toggleTheme } = useTheme()
   const [user, setUser] = useState<StoredUser | null>(null)
 
   useEffect(() => {
@@ -122,23 +84,13 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
           })}
         </div>
 
-        <div className='mb-2 flex flex-col gap-3'>
-          <button
-            onClick={toggleTheme}
-            className='text-muted-foreground hover:bg-muted flex h-9 w-9 items-center justify-center rounded-md transition-all'
-            title='Toggle Theme'
-          >
-            {theme === 'light' ? <Moon className='h-4 w-4' /> : <Sun className='h-4 w-4' />}
-          </button>
-
-          <button
-            onClick={logout}
-            className='text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex h-9 w-9 items-center justify-center rounded-md transition-all'
-            title='Logout'
-          >
-            <LogOut className='h-4 w-4' />
-          </button>
-        </div>
+        <button
+          onClick={logout}
+          className='text-muted-foreground hover:bg-destructive/10 hover:text-destructive flex h-9 w-9 items-center justify-center rounded-md transition-all'
+          title='Logout'
+        >
+          <LogOut className='h-4 w-4' />
+        </button>
       </aside>
 
       <main className='ml-0 flex min-w-0 flex-1 flex-col pb-16 md:ml-16 md:pb-0'>
