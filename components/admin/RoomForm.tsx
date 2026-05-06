@@ -1,10 +1,10 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
-import type { DbRoom, Group, ParamsUserAssignment, User } from '@/lib/api/admin-api'
+import type { ActiveRoom, DbRoom, Group, ParamsUserAssignment, User } from '@/lib/api/admin-api'
 import { createDbRoom, fetchUsersAssignment, updateDbRoom } from '@/lib/api/admin-api'
 import { TableViewSearch } from '@/compounds/table-view/search'
 import {
@@ -14,10 +14,10 @@ import {
   FieldError,
   FieldLabel,
   FieldTitle,
-} from '../ui/field'
-import { Textarea } from '../ui/textarea'
-import { cn, djs, omit } from '@/lib/utils'
-import { CalendarWithTime } from '../ui/calendar-with-time'
+} from '@/components/ui/field'
+import { Textarea } from '@/components/ui/textarea'
+import { cn, omit } from '@/lib/utils'
+import { CalendarWithTime } from '@/components/ui/calendar-with-time'
 import {
   Combobox,
   ComboboxContent,
@@ -26,15 +26,16 @@ import {
   ComboboxItem,
   ComboboxList,
 } from '@/components/ui/combobox'
-import { Card, CardContent } from '../ui/card'
-import { Separator } from '../ui/separator'
+import { Card, CardContent } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
 import { getRoomDefaultValue, getRoomPayload } from '@/feat/rooms/dto'
 import type { RoomSchemaValue, SelectOptions } from '@/feat/rooms/dto'
 import { roomSchema } from '@/feat/rooms/schema'
-import { useForm } from '@tanstack/react-form'
-import { Modal } from '../ui/modal'
+import { useForm, useStore } from '@tanstack/react-form'
+import { Modal } from '@/components/ui/modal'
 import { Eye, EyeClosed, Plus } from 'lucide-react'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../ui/input-group'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import { toast } from 'sonner'
 
 interface RoomFormProps {
   open: boolean
@@ -42,6 +43,7 @@ interface RoomFormProps {
   onSuccess: () => void
   initialData?: DbRoom | null
   groups: Group[]
+  activeRooms: ActiveRoom[]
 }
 
 interface FormFieldProps {
@@ -75,7 +77,14 @@ const FormField = (props: FormFieldProps) => {
   )
 }
 
-export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }: RoomFormProps) {
+export function RoomForm({
+  open,
+  onOpenChange,
+  onSuccess,
+  initialData,
+  groups,
+  activeRooms,
+}: RoomFormProps) {
   const defaultValues: RoomSchemaValue = initialData
     ? getRoomDefaultValue(initialData)
     : roomSchema.getDefault()
@@ -93,12 +102,19 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
         } else {
           await createDbRoom(payload)
         }
+        toast.success(`Ruang rapat berhasil ${initialData ? 'diperbarui' : 'dibuat'}`, {
+          description: `Ruang rapat ${payload.name} berhasil ${initialData ? 'diperbarui' : 'dibuat'}`,
+        })
+        onOpenChange(false)
+        form.reset()
         onSuccess()
       } catch (error) {
-        console.error('Failed to save room:', error)
-        alert('Failed to save room')
-      } finally {
-        onOpenChange(false)
+        toast.error(`Gagal ${initialData ? 'memperbarui' : 'membuat'} ruang rapat`, {
+          description:
+            error instanceof Error
+              ? error?.message
+              : 'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman',
+        })
       }
     },
   })
@@ -106,6 +122,11 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
   const [users, setUsers] = useState<User[]>([])
   const params = useRef<ParamsUserAssignment>({})
   const [showPassword, setShowPassword] = useState(false)
+  const isSubmittingForm = useStore(form.store, (state) => state.isSubmitting)
+  const isActiveRoom = useMemo(
+    () => !!activeRooms.find((ar) => ar.name === initialData?.room_code),
+    [activeRooms, initialData?.room_code]
+  ) // TODO: cek apakah ini realtime update setelah useRealTimeRooms sudah bisa update active room
 
   const fetchUsers = async (params?: ParamsUserAssignment) => {
     try {
@@ -117,8 +138,8 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
   }
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    fetchUsers(initialData ? { exclude_group_id: initialData.group_id } : {})
+  }, [initialData])
 
   return (
     <Modal
@@ -128,6 +149,7 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
         onOpenChange: (val) => {
           onOpenChange(val)
           form.reset()
+          setShowPassword(false)
         },
         modal: false,
       }}
@@ -148,6 +170,7 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
           </>
         ),
         onClick: async () => await form.handleSubmit(),
+        disabled: isSubmittingForm,
       }}
     >
       <div className='space-y-4'>
@@ -168,6 +191,8 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                   autoFocus
                   placeholder='Contoh: Ruangan pimpinan'
                   aria-invalid={isInvalid}
+                  autoComplete='off'
+                  aria-autocomplete='none'
                 />
               </FormField>
             )
@@ -226,10 +251,7 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                         before: new Date(),
                       },
                     }}
-                    disabled={{
-                      startTime:
-                        !!initialData?.start_date && djs(initialData?.start_date).isBefore(),
-                    }}
+                    disabled={isActiveRoom}
                   />
                 </FormField>
               )
@@ -253,7 +275,8 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                       onChange={(event) => handleChange(event.target.value)}
                       placeholder='Contoh: @ruanganpimpinan1'
                       aria-invalid={isInvalid}
-                      className='appearance-none'
+                      autoComplete='new-password'
+                      aria-autocomplete='none'
                     />
                     <InputGroupAddon
                       align='inline-end'
@@ -329,7 +352,7 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                     id={name}
                     type='number'
                     {...{ name }}
-                    value={`${value}`}
+                    value={`${value ?? ''}`}
                     onChange={(event) => handleChange(+event.target.value)}
                     placeholder='Contoh: 20'
                     aria-invalid={isInvalid}
@@ -368,17 +391,15 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                         id='all'
                         name='all'
                         onCheckedChange={(val) => {
+                          const allUser = users.map((user) => `${user.id}`)
                           if (val) {
-                            handleChange(users.map((user) => `${user.id}`))
+                            handleChange((prev) => [...new Set([...prev, ...allUser])])
                             return
                           }
-                          handleChange([])
+                          handleChange((prev) => prev.filter((userId) => !allUser.includes(userId)))
                         }}
                         disabled={!users.length}
-                        checked={
-                          users.length === assignTo.length &&
-                          users.every((user) => assignTo.includes(`${user.id}`))
-                        }
+                        checked={users.every((user) => assignTo.includes(`${user.id}`))}
                       />
                       <Label htmlFor='all' className='w-full'>
                         All

@@ -9,14 +9,14 @@ import {
   fetchUsers,
 } from '@/lib/api/admin-api'
 import type { DbRoom, Group as GroupDto, ActiveRoom, User, RoomParams } from '@/lib/api/admin-api'
-import { useAuth } from '../../../hooks/use-auth'
+import { useAuth } from '@/hooks/use-auth'
 import { RoomDetailSheet } from '@/components/admin/RoomDetailSheet'
 import { RoomList } from '@/components/features/rooms/RoomList'
 import { djs } from '@/lib/utils'
 import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { RoomForm } from '@/components/admin/RoomForm'
-import { useRealTimeRooms } from '../../../hooks/use-real-time-rooms'
+import { useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 
 export default function RoomsPage() {
   const { hasPermission } = useAuth({ requirePermission: 'room:read' })
@@ -117,6 +117,7 @@ export default function RoomsPage() {
               params.current = updateParams
               loadData(updateParams)
             },
+            'aria-invalid': !!params.current.search && !displayedRooms.length,
           }}
           {...(canCreate && { add: { onClick: handleCreate } })}
           filter={{
@@ -160,6 +161,10 @@ export default function RoomsPage() {
           activeRooms={activeRooms}
           isAdmin={isAdmin}
           handleDetail={canUpdate ? handleViewDetails : void 0}
+          handleCloseModal={() => {
+            setIsDetailOpen(false)
+            if (isFormOpen && editingRoom) setIsFormOpen(false)
+          }}
         />
       </div>
 
@@ -169,6 +174,7 @@ export default function RoomsPage() {
         onSuccess={loadData}
         initialData={editingRoom}
         groups={groups}
+        activeRooms={activeRooms}
       />
 
       <RoomDetailSheet

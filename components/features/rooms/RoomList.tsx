@@ -12,13 +12,14 @@ import { generateCode } from '@/lib/api/admin-api'
 import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
 import { cn, djs } from '@/lib/utils'
 import { Calendar, Copy, ExternalLink, RefreshCcw, Users } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
 import { toast } from 'sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { Skeleton } from '@/components/ui/skeleton'
 
 interface RoomCode {
   roomId: number
@@ -32,16 +33,71 @@ interface SummaryCardProps {
   activeRooms: ActiveRoom[]
   isAdmin: boolean
   handleDetail?: (room: DbRoom) => void
+  handleCloseModal?: () => void
 }
 
 const CARD_PERPAGE = 6
 const COOKIE_KEY = 'remaining_generate'
 
-function RoomList(props: SummaryCardProps) {
-  const { loading = false, staticRooms, activeRooms, isAdmin, handleDetail } = props
-
-  const now = djs()
+const ButtonJoin = ({
+  isFull,
+  isAdmin,
+  room,
+  handleCloseModal,
+}: {
+  isFull: boolean
+  isAdmin: boolean
+  room: DbRoom
+  handleCloseModal?: () => void
+}) => {
   const router = useRouter()
+  const startDate = djs(room.start_date)
+  const endDate = djs(room.end_date)
+  const [now, setNow] = useState(djs())
+  const status = useMemo(() => (now.isBefore(startDate) ? 'upcoming' : 'open'), [now, startDate])
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      const current = djs()
+      setNow(current)
+
+      const secondsLeft = endDate.diff(current, 'second')
+      if (secondsLeft <= 0) {
+        clearInterval(timer)
+        router.refresh()
+        handleCloseModal?.()
+      }
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [endDate, handleCloseModal, router])
+
+  return (
+    <Button
+      size='lg'
+      className='w-full p-0 disabled:opacity-100'
+      variant={!isAdmin && (status !== 'open' || isFull) ? 'secondary' : 'primary'}
+      disabled={!isAdmin && (status !== 'open' || isFull)}
+      onClick={() => router.push(`/meeting/${encodeURIComponent(room.room_code)}`)}
+    >
+      {!isAdmin && status === 'upcoming'
+        ? `Mulai di ${djs(room.start_date).format('DD MMMM YYYY, HH.mm')} WIB`
+        : !isAdmin && isFull
+          ? 'Anggota sudah mencukupi'
+          : 'Masuk ke Ruangan'}
+    </Button>
+  )
+}
+
+function RoomList(props: SummaryCardProps) {
+  const {
+    loading = false,
+    staticRooms,
+    activeRooms,
+    isAdmin,
+    handleDetail,
+    handleCloseModal,
+  } = props
   const displayedRooms = staticRooms.map((room) => ({
     ...room,
     isLive: !!activeRooms.find((ar) => ar.name === room.room_code),
@@ -93,32 +149,6 @@ function RoomList(props: SummaryCardProps) {
     setVisibleCards((prevValue) => prevValue + CARD_PERPAGE)
   }
 
-  const ButtonJoin = ({
-    status,
-    isFull,
-    room,
-  }: {
-    status: string
-    isFull: boolean
-    room: DbRoom
-  }) => {
-    return (
-      <Button
-        size='lg'
-        className='w-full p-0 disabled:opacity-100'
-        variant={!isAdmin && (status !== 'open' || isFull) ? 'secondary' : 'primary'}
-        disabled={!isAdmin && (status !== 'open' || isFull)}
-        onClick={() => router.push(`/meeting/${encodeURIComponent(room.room_code)}`)}
-      >
-        {!isAdmin && status === 'upcoming'
-          ? `Mulai di ${djs(room.start_date).format('DD MMMM YYYY, HH.mm')} WIB`
-          : !isAdmin && isFull
-            ? 'Anggota sudah mencukupi'
-            : 'Masuk ke Ruangan'}
-      </Button>
-    )
-  }
-
   const handleShowTooltip = (showing: typeof isTooltipVisible) => {
     if (tooltipTimeoutRef.current) {
       clearTimeout(tooltipTimeoutRef.current)
@@ -145,10 +175,10 @@ function RoomList(props: SummaryCardProps) {
     }
 
     try {
+      await navigator.clipboard.writeText(`${data.url}`)
       if (navigator.canShare?.(data)) {
         await navigator.share(data)
       }
-      await navigator.clipboard.writeText(`${data.url}`)
       handleShowTooltip({ action: 'share', roomId })
     } catch {
       toast.error('Gagal bagikan kode')
@@ -158,13 +188,16 @@ function RoomList(props: SummaryCardProps) {
   return (
     <div>
       {loading ? (
-        <div className='text-muted-foreground py-12 text-center text-sm'>Loading rooms...</div>
+        <div className='grid-cols grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
+          {Array.from({ length: 6 }, (_, i) => i + 1).map((item) => (
+            <Skeleton key={item} className='h-73.5' />
+          ))}
+        </div>
       ) : (
         <div className='space-y-8'>
           <div className='grid-cols grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
             {displayedRooms.slice(0, visibleCards).map((room) => {
               const startDate = djs(room.start_date)
-              const status = now.isBefore(startDate) ? 'upcoming' : 'open'
               const isFull =
                 room.assigned_to?.length > 0 &&
                 (room.currentParticipants ?? 0) >= room.max_participants
@@ -179,12 +212,12 @@ function RoomList(props: SummaryCardProps) {
                 <Card
                   key={room.id}
                   className={cn(
-                    'space-y-4 rounded-md border-neutral-200 p-5',
+                    'flex min-h-73.5 flex-col space-y-4 rounded-md border-neutral-200 p-5',
                     !!handleDetail && 'cursor-pointer hover:border-neutral-300 hover:shadow-lg'
                   )}
                   onClick={() => handleDetail?.(room)}
                 >
-                  <CardHeader className='relative gap-4 space-y-0 p-0'>
+                  <CardHeader className='relative grow gap-4 space-y-0 p-0'>
                     {room.isLive && (
                       <span
                         className='absolute -top-2 -right-2 size-2 animate-pulse rounded-full bg-red-500'
@@ -242,7 +275,9 @@ function RoomList(props: SummaryCardProps) {
                       </div>
                     </div>
 
-                    <CardDescription>{room.description || 'Tidak ada deskripsi'}</CardDescription>
+                    <CardDescription className='line-clamp-3'>
+                      {room.description || 'Tidak ada deskripsi'}
+                    </CardDescription>
                   </CardHeader>
                   <CardContent className='p-0'>
                     <div
@@ -287,7 +322,7 @@ function RoomList(props: SummaryCardProps) {
                     </div>
                   </CardContent>
                   <CardFooter className='p-0'>
-                    <ButtonJoin {...{ status, isFull, room }} />
+                    <ButtonJoin {...{ isFull, isAdmin, room, handleCloseModal }} />
                   </CardFooter>
                 </Card>
               )

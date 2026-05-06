@@ -12,24 +12,22 @@ const roomSchema = yup.object().shape({
     .date()
     .nullable()
     .transform((value: Date, originalValue: string) => (originalValue ? value : null))
-    .test('isRequired', 'Waktu Mulai wajib diisi', (value) => !!value)
-    .test(
-      'isValid',
-      'Jam Mulai tidak boleh lebih dari atau sama dengan Jam Berakhir',
-      function (value) {
-        const end: Date = this.resolve(yup.ref('endDate'))
-        return !end || !value || djs(value).isBefore(end)
-      }
-    )
-    .test('isValid', 'Jam Mulai harus lebih dari saat ini', function (value) {
-      return !value || djs(value).isAfter()
+    .test('isRequired', 'Waktu Mulai wajib diisi', function (value) {
+      const end: Date = this.resolve(yup.ref('endDate'))
+      return !!value && !!end
+    })
+    .test('isValid', 'Jam Mulai harus kurang dari Jam Berakhir', function (value) {
+      const end: Date = this.resolve(yup.ref('endDate'))
+      return !end || !value || djs(value).isBefore(end)
+    })
+    .test('isValid', 'Jam Mulai harus lebih dari atau sama dengan saat ini', function (value) {
+      return !value || djs(value).isAfter() || djs(value).isSame()
     })
     .default(null),
   endDate: yup
     .date()
     .nullable()
     .transform((value: Date, originalValue: string) => (originalValue ? value : null))
-    .test('isRequired', 'Waktu Selesai wajib diisi', (value) => !!value)
     .default(null),
   password: yup.string().default('').max(250, 'Kata Sandi Ruangan maksimal 250 karakter'),
   groupId: yup.string().default(''),

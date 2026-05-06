@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState, useTransition } from 'react'
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -10,8 +10,8 @@ import {
   fetchUserDbRooms,
   fetchRoomByCode,
 } from '@/lib/api/admin-api'
-import type { DbRoom, ActiveRoom } from '@/lib/api/admin-api'
-import { useAuth } from '../../hooks/use-auth'
+import type { DbRoom, ActiveRoom, RoomParams } from '@/lib/api/admin-api'
+import { useAuth } from '@/hooks/use-auth'
 import { RoomList } from '@/components/features/rooms/RoomList'
 import { djs } from '@/lib/utils'
 import PageContainer from '@/compounds/page-container'
@@ -19,7 +19,7 @@ import { TableViewHeader } from '@/compounds/table-view/header'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Loader } from 'lucide-react'
 import { toast } from 'sonner'
-import { useRealTimeRooms } from '../../hooks/use-real-time-rooms'
+import { useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 
 export default function HomePage() {
   const router = useRouter()
@@ -31,9 +31,10 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false)
   const [isPendingJoin, startTransitionJoin] = useTransition()
   const isMobile = useIsMobile()
+  const params = useRef<RoomParams>({})
 
   const loadData = useCallback(
-    async (params?: { search?: string }) => {
+    async (params?: RoomParams) => {
       setLoading(true)
       try {
         if (!isAdmin) {
@@ -79,6 +80,7 @@ export default function HomePage() {
         router.push(`/meeting/${encodeURIComponent(targetCode)}`)
       })
     } catch {
+      // TODO: get error jika kode meeting sudah berakhir
       toast.error('Kode ruangan salah', {
         description: `Kode '${targetCode}' tidak valid. Coba salin kode ruang lainnya.`,
       })
@@ -122,7 +124,12 @@ export default function HomePage() {
         <TableViewHeader
           search={{
             placeholder: 'Cari nama atau kode ruangan ...',
-            onSearch: ({ value }) => loadData({ search: value }),
+            onSearch: ({ value }) => {
+              const updateParams = { ...params.current, search: value }
+              params.current = updateParams
+              loadData(updateParams)
+            },
+            'aria-invalid': !!params.current.search && !displayedRooms.length,
           }}
           {...(!isMobile && {
             headerAddon: (
