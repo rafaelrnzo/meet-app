@@ -21,6 +21,7 @@ export const authService = {
     const params = new URLSearchParams({
       client_id: keycloakConfig.clientId,
       redirect_uri: `${origin}${keycloakConfig.routes.callback}`,
+      client_secret: keycloakConfig.clientSecret,
       response_type: 'code',
       scope: 'openid profile email',
     })
@@ -39,6 +40,7 @@ export const authService = {
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       client_id: keycloakConfig.clientId,
+      client_secret: keycloakConfig.clientSecret,
       redirect_uri: `${origin}${keycloakConfig.routes.callback}`,
       code,
     })
@@ -116,6 +118,7 @@ export const authService = {
       client_id: keycloakConfig.clientId,
       refresh_token: localStorage.getItem('refresh_token') ?? '',
       post_logout_redirect_uri: window.location.origin,
+      client_secret: keycloakConfig.clientSecret,
     })
 
     // Clear local tokens
