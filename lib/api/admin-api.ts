@@ -1,12 +1,11 @@
-const API_BASE =
-  process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") || "http://localhost:8080"
+const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'
 
 function getToken(): string | null {
-  if (typeof window === "undefined") return null
+  if (typeof window === 'undefined') return null
   try {
-    return localStorage.getItem("vc_token")
+    return localStorage.getItem('vc_token')
   } catch (e) {
-    console.error("Failed to access localStorage", e)
+    console.error('Failed to access localStorage', e)
     return null
   }
 }
@@ -15,12 +14,12 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   const token = getToken()
 
   const headers: Record<string, string> = {
-    "Content-Type": "application/json",
+    'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
   }
 
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`
+    headers.Authorization = `Bearer ${token}`
   }
 
   const res = await fetch(`${API_BASE}${path}`, {
@@ -29,7 +28,7 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
   })
 
   if (!res.ok) {
-    const text = await res.text().catch(() => "")
+    const text = await res.text().catch(() => '')
     throw new Error(text || `Request failed with status ${res.status}`)
   }
 
@@ -58,29 +57,29 @@ export type DbRoom = {
 }
 
 export async function fetchDbRooms(): Promise<DbRoom[]> {
-  return apiRequest<DbRoom[]>("/admin/rooms", {
-    method: "GET",
-    cache: "no-store",
+  return apiRequest<DbRoom[]>('/admin/rooms', {
+    method: 'GET',
+    cache: 'no-store',
   })
 }
 
 export async function fetchUserDbRooms(): Promise<DbRoom[]> {
-  return apiRequest<DbRoom[]>("/api/rooms", {
-    method: "GET",
-    cache: "no-store",
+  return apiRequest<DbRoom[]>('/api/rooms', {
+    method: 'GET',
+    cache: 'no-store',
   })
 }
 
 export async function fetchRoomByCode(code: string): Promise<DbRoom> {
   return apiRequest<DbRoom>(`/api/rooms/${code}`, {
-    method: "GET",
-    cache: "no-store",
+    method: 'GET',
+    cache: 'no-store',
   })
 }
 
 export async function createDbRoom(payload: any): Promise<DbRoom> {
-  return apiRequest<DbRoom>("/admin/rooms", {
-    method: "POST",
+  return apiRequest<DbRoom>('/admin/rooms', {
+    method: 'POST',
     body: JSON.stringify({
       name: payload.name,
       description: payload.description,
@@ -96,7 +95,7 @@ export async function createDbRoom(payload: any): Promise<DbRoom> {
 
 export async function updateDbRoom(id: number, payload: any): Promise<DbRoom> {
   return apiRequest<DbRoom>(`/admin/rooms/${id}`, {
-    method: "PATCH",
+    method: 'PATCH',
     body: JSON.stringify({
       name: payload.name,
       description: payload.description,
@@ -112,29 +111,29 @@ export async function updateDbRoom(id: number, payload: any): Promise<DbRoom> {
 
 export async function deleteDbRoom(id: number): Promise<void> {
   await apiRequest(`/admin/rooms/${id}`, {
-    method: "DELETE",
+    method: 'DELETE',
   })
 }
 
 export async function uploadRoomPresentation(id: number, file: File): Promise<{ path: string }> {
   const formData = new FormData()
-  formData.append("file", file)
+  formData.append('file', file)
 
   const token = getToken()
   const headers: Record<string, string> = {}
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`
+    headers.Authorization = `Bearer ${token}`
   }
 
   const res = await fetch(`${API_BASE}/admin/rooms/${id}/presentation`, {
-    method: "POST",
+    method: 'POST',
     headers,
     body: formData,
   })
 
   if (!res.ok) {
     const text = await res.text()
-    throw new Error(text || "Failed to upload presentation")
+    throw new Error(text || 'Failed to upload presentation')
   }
 
   return res.json()
@@ -149,39 +148,40 @@ export type Group = {
 }
 
 export async function fetchGroups(): Promise<Group[]> {
-  return apiRequest<Group[]>("/admin/groups", {
-    method: "GET",
-    cache: "no-store",
+  return apiRequest<Group[]>('/admin/groups', {
+    method: 'GET',
+    cache: 'no-store',
   })
 }
 
 export async function createGroup(payload: { name: string; description: string }): Promise<Group> {
-  return apiRequest<Group>("/admin/groups", {
-    method: "POST",
+  return apiRequest<Group>('/admin/groups', {
+    method: 'POST',
     body: JSON.stringify(payload),
   })
 }
 
 export async function deleteGroup(id: number): Promise<void> {
   await apiRequest(`/admin/groups/${id}`, {
-    method: "DELETE",
+    method: 'DELETE',
   })
 }
 
 export async function addGroupMember(groupId: number, userId: number): Promise<void> {
   await apiRequest(`/admin/groups/${groupId}/members`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({ user_id: userId }),
   })
 }
 
 export async function removeGroupMember(groupId: number, userId: number): Promise<void> {
   await apiRequest(`/admin/groups/${groupId}/members/${userId}`, {
-    method: "DELETE",
+    method: 'DELETE',
   })
 }
 
 export type ActiveRoom = {
+  num_publishers: number
   sid: string
   name: string
   num_participants: number
@@ -190,15 +190,15 @@ export type ActiveRoom = {
 }
 
 export async function fetchActiveRooms(): Promise<ActiveRoom[]> {
-  return apiRequest<ActiveRoom[]>("/admin/livekit/rooms", {
-    method: "GET",
-    cache: "no-store",
+  return apiRequest<ActiveRoom[]>('/admin/livekit/rooms', {
+    method: 'GET',
+    cache: 'no-store',
   })
 }
 
 export async function closeActiveRoom(name: string): Promise<void> {
   await apiRequest(`/admin/livekit/rooms/${encodeURIComponent(name)}`, {
-    method: "DELETE",
+    method: 'DELETE',
   })
 }
 
@@ -216,15 +216,15 @@ export type Role = {
 }
 
 export async function fetchRoles(): Promise<Role[]> {
-  return apiRequest<Role[]>("/admin/roles", {
-    method: "GET",
-    cache: "no-store",
+  return apiRequest<Role[]>('/admin/roles', {
+    method: 'GET',
+    cache: 'no-store',
   })
 }
 
 export async function createRole(payload: { name: string; description: string }): Promise<Role> {
-  return apiRequest<Role>("/admin/roles", {
-    method: "POST",
+  return apiRequest<Role>('/admin/roles', {
+    method: 'POST',
     body: JSON.stringify(payload),
   })
 }
@@ -234,34 +234,34 @@ export async function updateRole(
   payload: { name: string; description: string }
 ): Promise<Role> {
   return apiRequest<Role>(`/admin/roles/${id}`, {
-    method: "PATCH",
+    method: 'PATCH',
     body: JSON.stringify(payload),
   })
 }
 
 export async function deleteRole(id: number): Promise<void> {
   await apiRequest(`/admin/roles/${id}`, {
-    method: "DELETE",
+    method: 'DELETE',
   })
 }
 
 export async function fetchPermissions(): Promise<Permission[]> {
-  return apiRequest<Permission[]>("/admin/roles/permissions", {
-    method: "GET",
-    cache: "no-store",
+  return apiRequest<Permission[]>('/admin/roles/permissions', {
+    method: 'GET',
+    cache: 'no-store',
   })
 }
 
 export async function addRolePermission(roleId: number, permId: number): Promise<void> {
   await apiRequest(`/admin/roles/${roleId}/permissions`, {
-    method: "POST",
+    method: 'POST',
     body: JSON.stringify({ permission_id: permId }),
   })
 }
 
 export async function removeRolePermission(roleId: number, permId: number): Promise<void> {
   await apiRequest(`/admin/roles/${roleId}/permissions/${permId}`, {
-    method: "DELETE",
+    method: 'DELETE',
   })
 }
 
@@ -273,9 +273,9 @@ export type User = {
 }
 
 export async function fetchUsers(): Promise<User[]> {
-  return apiRequest<User[]>("/admin/users", {
-    method: "GET",
-    cache: "no-store",
+  return apiRequest<User[]>('/admin/users', {
+    method: 'GET',
+    cache: 'no-store',
   })
 }
 
@@ -284,22 +284,22 @@ export async function createUser(payload: {
   password: string
   role_id: number
 }): Promise<User> {
-  return apiRequest<User>("/admin/users", {
-    method: "POST",
+  return apiRequest<User>('/admin/users', {
+    method: 'POST',
     body: JSON.stringify(payload),
   })
 }
 
 export async function updateUserRole(id: number, role_id: number): Promise<User> {
   return apiRequest<User>(`/admin/users/${id}`, {
-    method: "PATCH",
+    method: 'PATCH',
     body: JSON.stringify({ role_id }),
   })
 }
 
 export async function deleteUser(id: number): Promise<void> {
   await apiRequest(`/admin/users/${id}`, {
-    method: "DELETE",
+    method: 'DELETE',
   })
 }
 
@@ -316,71 +316,85 @@ export type Recording = {
 export async function fetchRecordings(roomID?: string): Promise<Recording[]> {
   const path = roomID
     ? `/admin/recordings?room_id=${encodeURIComponent(roomID)}`
-    : "/admin/recordings"
+    : '/admin/recordings'
 
   return apiRequest<Recording[]>(path, {
-    method: "GET",
-    cache: "no-store",
+    method: 'GET',
+    cache: 'no-store',
   })
 }
 
 export async function syncRecordings(): Promise<void> {
-  await apiRequest<void>("/admin/recordings/sync", {
-    method: "POST",
+  await apiRequest<void>('/admin/recordings/sync', {
+    method: 'POST',
   })
 }
 
 export async function updateRecordingName(id: number, newName: string): Promise<Recording> {
   return apiRequest<Recording>(`/admin/recordings/${id}`, {
-    method: "PATCH",
+    method: 'PATCH',
     body: JSON.stringify({ name: newName }),
   })
 }
 
 export async function updateRecordingStatus(id: number, status: string): Promise<Recording> {
   return apiRequest<Recording>(`/admin/recordings/${id}/status`, {
-    method: "PATCH",
+    method: 'PATCH',
     body: JSON.stringify({ status }),
   })
 }
 
 export async function deleteRecording(id: number): Promise<void> {
   await apiRequest<void>(`/admin/recordings/${id}`, {
-    method: "DELETE",
+    method: 'DELETE',
   })
 }
 
-export async function muteAllParticipants(roomCode: string, muteAudio: boolean, muteVideo: boolean): Promise<void> {
-  await apiRequest<void>("/admin/livekit/rooms/mute-all", {
-    method: "POST",
+export async function muteAllParticipants(
+  roomCode: string,
+  muteAudio: boolean,
+  muteVideo: boolean
+): Promise<void> {
+  await apiRequest<void>('/admin/livekit/rooms/mute-all', {
+    method: 'POST',
     body: JSON.stringify({ room_code: roomCode, mute_audio: muteAudio, mute_video: muteVideo }),
   })
 }
 
 export async function updateRoomPermissions(roomCode: string, metadata: any): Promise<void> {
-  await apiRequest<void>("/admin/livekit/rooms/permissions", {
-    method: "POST",
+  await apiRequest<void>('/admin/livekit/rooms/permissions', {
+    method: 'POST',
     body: JSON.stringify({ room_code: roomCode, metadata: JSON.stringify(metadata) }),
   })
 }
 
-export async function muteParticipant(roomCode: string, identity: string, muteAudio: boolean, muteVideo: boolean): Promise<void> {
-  await apiRequest<void>("/admin/livekit/participants/mute", {
-    method: "POST",
-    body: JSON.stringify({ room_code: roomCode, identity, mute_audio: muteAudio, mute_video: muteVideo }),
+export async function muteParticipant(
+  roomCode: string,
+  identity: string,
+  muteAudio: boolean,
+  muteVideo: boolean
+): Promise<void> {
+  await apiRequest<void>('/admin/livekit/participants/mute', {
+    method: 'POST',
+    body: JSON.stringify({
+      room_code: roomCode,
+      identity,
+      mute_audio: muteAudio,
+      mute_video: muteVideo,
+    }),
   })
 }
 
 export async function banParticipant(roomCode: string, identity: string): Promise<void> {
-  await apiRequest<void>("/api/livekit/ban", {
-    method: "POST",
+  await apiRequest<void>('/api/livekit/ban', {
+    method: 'POST',
     body: JSON.stringify({ room_code: roomCode, identity }),
   })
 }
 
 export async function unbanParticipant(roomCode: string, identity: string): Promise<void> {
-  await apiRequest<void>("/api/livekit/unban", {
-    method: "POST",
+  await apiRequest<void>('/api/livekit/unban', {
+    method: 'POST',
     body: JSON.stringify({ room_code: roomCode, identity }),
   })
 }

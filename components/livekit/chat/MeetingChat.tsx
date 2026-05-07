@@ -1,24 +1,24 @@
-"use client";
+'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
-import { ChevronLeft, Copy, MessageSquare, Pin, Plus, Trash2, User, X } from "lucide-react";
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { ChevronLeft, Copy, MessageSquare, Pin, Plus, Trash2, User, X } from 'lucide-react'
 
-import { useChat } from "./useChat";
-import { ChatMessage } from "./ChatMessage";
-import { ChatInput } from "./ChatInput";
-import { ChatItem } from "./types";
+import { useChat } from './useChat'
+import { ChatMessage } from './ChatMessage'
+import { ChatInput } from './ChatInput'
+import { ChatItem } from './types'
 
 export function MeetingChat({
   roomCode,
-  storage = "memory",
+  storage = 'memory',
   maxItems = 200,
   onClose,
 }: {
-  roomCode: string;
-  storage?: "memory" | "session";
-  maxItems?: number;
-  onClose?: () => void;
+  roomCode: string
+  storage?: 'memory' | 'session'
+  maxItems?: number
+  onClose?: () => void
 }) {
   const {
     items,
@@ -37,130 +37,136 @@ export function MeetingChat({
     handleUnpin,
     openChat,
     participants,
-  } = useChat({ roomCode, storage, maxItems });
+  } = useChat({ roomCode, storage, maxItems })
 
-  const [isOpen, setIsOpen] = useState(false);
-  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ChatItem } | null>(null);
+  const [isOpen, setIsOpen] = useState(false)
+  const [contextMenu, setContextMenu] = useState<{ x: number; y: number; item: ChatItem } | null>(
+    null
+  )
 
-  const [mounted, setMounted] = useState(false);
+  const [mounted, setMounted] = useState(false)
   useEffect(() => {
-    setMounted(true);
-  }, []);
+    setMounted(true)
+  }, [])
 
-  const endRef = useRef<HTMLDivElement | null>(null);
-
-  useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [items.length, pinnedMessages]);
+  const endRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
-    const fn = () => setContextMenu(null);
-    window.addEventListener("click", fn);
-    return () => window.removeEventListener("click", fn);
-  }, []);
+    endRef.current?.scrollIntoView({ behavior: 'smooth' })
+  }, [items.length, pinnedMessages])
+
+  useEffect(() => {
+    const fn = () => setContextMenu(null)
+    window.addEventListener('click', fn)
+    return () => window.removeEventListener('click', fn)
+  }, [])
 
   // Filter items for view
   const filteredItems = useMemo(() => {
-    return items.filter(i => {
-      if (activeTab === "everyone") {
-        return !i.to;
+    return items.filter((i) => {
+      if (activeTab === 'everyone') {
+        return !i.to
       }
-      if (i.mine && i.to === activeTab) return true;
-      if (!i.mine && i.from === activeTab && i.to === me) return true;
-      return false;
-    });
-  }, [items, activeTab, me]);
+      if (i.mine && i.to === activeTab) return true
+      if (!i.mine && i.from === activeTab && i.to === me) return true
+      return false
+    })
+  }, [items, activeTab, me])
 
   const activeParticipantName = useMemo(() => {
-    if (activeTab === "everyone") return "Everyone";
-    const p = participants.find(x => x.identity === activeTab);
-    return p?.name || activeTab;
-  }, [activeTab, participants]);
+    if (activeTab === 'everyone') return 'Everyone'
+    const p = participants.find((x) => x.identity === activeTab)
+    return p?.name || activeTab
+  }, [activeTab, participants])
 
   const availableUsers = useMemo(() => {
-    return participants.filter(p => p.identity !== me && !conversations.includes(p.identity));
-  }, [participants, conversations, me]);
+    return participants.filter((p) => p.identity !== me && !conversations.includes(p.identity))
+  }, [participants, conversations, me])
 
   // Scroll to message
   const scrollToMessage = (id: string) => {
-    const el = document.getElementById(`msg-${id}`);
+    const el = document.getElementById(`msg-${id}`)
     if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center" });
-      el.classList.add("bg-primary/20", "transition-colors", "duration-1000");
-      setTimeout(() => el.classList.remove("bg-primary/20"), 2000);
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      el.classList.add('bg-primary/20', 'transition-colors', 'duration-1000')
+      setTimeout(() => el.classList.remove('bg-primary/20'), 2000)
     }
-  };
+  }
 
   const handleContextMenu = (e: React.MouseEvent, item: ChatItem) => {
-    e.stopPropagation();
-    const rect = e.currentTarget.getBoundingClientRect();
-    setContextMenu({ x: rect.left, y: rect.bottom + 5, item });
-  };
+    e.stopPropagation()
+    const rect = e.currentTarget.getBoundingClientRect()
+    setContextMenu({ x: rect.left, y: rect.bottom + 5, item })
+  }
 
   const handleCopy = (text: string) => {
-    navigator.clipboard.writeText(text);
-    setContextMenu(null);
-  };
+    navigator.clipboard.writeText(text)
+    setContextMenu(null)
+  }
 
   const handleMenuDelete = () => {
     if (contextMenu) {
-      handleDelete(contextMenu.item.id, contextMenu.item.from);
+      handleDelete(contextMenu.item.id, contextMenu.item.from)
     }
-  };
+  }
 
   const handleMenuPin = () => {
     if (contextMenu) {
-      handlePin(contextMenu.item);
+      handlePin(contextMenu.item)
     }
-  };
+  }
 
   return (
-    <div className="h-full w-full flex flex-col bg-card/80 backdrop-blur-sm">
+    <div className='bg-card/80 flex h-full w-full flex-col backdrop-blur-sm'>
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border flex items-center justify-between bg-muted/50 h-14">
-        <div className="flex items-center gap-2 overflow-hidden">
+      <div className='border-border bg-muted/50 flex h-14 items-center justify-between border-b px-4 py-3'>
+        <div className='flex items-center gap-2 overflow-hidden'>
           {!inConversation ? (
-            <span className="text-sm font-semibold text-foreground">Messages</span>
+            <span className='text-foreground text-sm font-semibold'>Messages</span>
           ) : (
-            <div className="flex items-center gap-2">
+            <div className='flex items-center gap-2'>
               <button
                 onClick={() => setInConversation(false)}
-                className="p-1 hover:bg-muted-foreground/10 rounded mr-1"
-                title="Back to list"
+                className='hover:bg-muted-foreground/10 mr-1 rounded p-1'
+                title='Back to list'
               >
-                <ChevronLeft className="w-4 h-4" />
+                <ChevronLeft className='h-4 w-4' />
               </button>
-              <div className="flex flex-col leading-none">
-                <span className="text-sm font-semibold text-foreground truncate max-w-[150px]">{activeParticipantName}</span>
-                {activeTab !== "everyone" && <span className="text-[10px] text-muted-foreground">Private Chat</span>}
+              <div className='flex flex-col leading-none'>
+                <span className='text-foreground max-w-[150px] truncate text-sm font-semibold'>
+                  {activeParticipantName}
+                </span>
+                {activeTab !== 'everyone' && (
+                  <span className='text-muted-foreground text-[10px]'>Private Chat</span>
+                )}
               </div>
             </div>
           )}
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className='flex items-center gap-2'>
           {/* If in list view, show add button */}
           {!inConversation && (
-            <div className="relative">
+            <div className='relative'>
               <button
                 onClick={() => setIsOpen(!isOpen)}
-                className="p-1.5 hover:bg-muted-foreground/10 rounded-full border border-border"
-                title="New Chat"
+                className='hover:bg-muted-foreground/10 border-border rounded-full border p-1.5'
+                title='New Chat'
               >
-                <Plus className="w-4 h-4" />
+                <Plus className='h-4 w-4' />
               </button>
               {isOpen && (
-                <div className="absolute right-0 top-8 w-40 bg-popover border border-border rounded-md shadow-md z-10 py-1 max-h-48 overflow-auto">
+                <div className='bg-popover border-border absolute top-8 right-0 z-10 max-h-48 w-40 overflow-auto rounded-md border py-1 shadow-md'>
                   {availableUsers.length === 0 ? (
-                    <div className="px-3 py-2 text-xs text-muted-foreground">No other users</div>
+                    <div className='text-muted-foreground px-3 py-2 text-xs'>No other users</div>
                   ) : (
-                    availableUsers.map(u => (
+                    availableUsers.map((u) => (
                       <button
                         key={u.identity}
-                        className="w-full text-left px-3 py-2 text-sm hover:bg-muted text-foreground transition-colors"
+                        className='hover:bg-muted text-foreground w-full px-3 py-2 text-left text-sm transition-colors'
                         onClick={() => {
-                          openChat(u.identity);
-                          setIsOpen(false);
+                          openChat(u.identity)
+                          setIsOpen(false)
                         }}
                       >
                         {u.name || u.identity}
@@ -175,7 +181,7 @@ export function MeetingChat({
           {onClose && (
             <button
               onClick={onClose}
-              className="text-muted-foreground hover:text-foreground text-xs px-2 py-1 rounded-md border border-border hover:bg-muted transition-colors"
+              className='text-muted-foreground hover:text-foreground border-border hover:bg-muted rounded-md border px-2 py-1 text-xs transition-colors'
             >
               ✕
             </button>
@@ -186,73 +192,79 @@ export function MeetingChat({
       {/* Main Content Area */}
       {!inConversation ? (
         // LIST VIEW
-        <div className="flex-1 overflow-y-auto">
+        <div className='flex-1 overflow-y-auto'>
           <button
-            onClick={() => openChat("everyone")}
-            className={`w-full flex items-center gap-3 px-4 py-3 border-b border-border/40 hover:bg-muted/30 transition-colors text-left group ${activeTab === 'everyone' ? 'bg-muted/50' : ''}`}
+            onClick={() => openChat('everyone')}
+            className={`border-border/40 hover:bg-muted/30 group flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors ${activeTab === 'everyone' ? 'bg-muted/50' : ''}`}
           >
-            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-              <MessageSquare className="w-5 h-5" />
+            <div className='bg-primary/10 text-primary flex h-10 w-10 items-center justify-center rounded-full'>
+              <MessageSquare className='h-5 w-5' />
             </div>
-            <div className="flex-1 min-w-0">
-              <div className="text-sm font-medium text-foreground">Everyone</div>
-              <div className="text-xs text-muted-foreground truncate">Public room chat</div>
+            <div className='min-w-0 flex-1'>
+              <div className='text-foreground text-sm font-medium'>Everyone</div>
+              <div className='text-muted-foreground truncate text-xs'>Public room chat</div>
             </div>
-            <ChevronLeft className="w-4 h-4 text-muted-foreground rotate-180 opacity-0 group-hover:opacity-100 transition-opacity" />
+            <ChevronLeft className='text-muted-foreground h-4 w-4 rotate-180 opacity-0 transition-opacity group-hover:opacity-100' />
           </button>
 
-          {conversations.map(cId => {
-            const p = participants.find(x => x.identity === cId);
-            const name = p?.name || cId;
-            const count = unread[cId] || 0;
+          {conversations.map((cId) => {
+            const p = participants.find((x) => x.identity === cId)
+            const name = p?.name || cId
+            const count = unread[cId] || 0
             return (
               <button
                 key={cId}
                 onClick={() => openChat(cId)}
-                className={`w-full flex items-center gap-3 px-4 py-3 border-b border-border/40 hover:bg-muted/30 transition-colors text-left group`}
+                className={`border-border/40 hover:bg-muted/30 group flex w-full items-center gap-3 border-b px-4 py-3 text-left transition-colors`}
               >
-                <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center text-secondary-foreground">
-                  <User className="w-5 h-5" />
+                <div className='bg-secondary text-secondary-foreground flex h-10 w-10 items-center justify-center rounded-full'>
+                  <User className='h-5 w-5' />
                 </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex justify-between items-center">
-                    <span className="text-sm font-medium text-foreground truncate">{name}</span>
-                    {count > 0 && <span className="bg-primary text-primary-foreground text-[10px] font-bold px-1.5 py-0.5 rounded-full">{count}</span>}
+                <div className='min-w-0 flex-1'>
+                  <div className='flex items-center justify-between'>
+                    <span className='text-foreground truncate text-sm font-medium'>{name}</span>
+                    {count > 0 && (
+                      <span className='bg-primary text-primary-foreground rounded-full px-1.5 py-0.5 text-[10px] font-bold'>
+                        {count}
+                      </span>
+                    )}
                   </div>
-                  <div className="text-xs text-muted-foreground truncate">Private conversation</div>
+                  <div className='text-muted-foreground truncate text-xs'>Private conversation</div>
                 </div>
               </button>
-            );
+            )
           })}
         </div>
       ) : (
         // CHAT VIEW
         <>
           {pinnedMessages[activeTab] && (
-            <div className="bg-primary/5 border-b border-primary/20 px-3 py-2 flex items-center justify-between sticky top-0 z-10 backdrop-blur-md">
+            <div className='bg-primary/5 border-primary/20 sticky top-0 z-10 flex items-center justify-between border-b px-3 py-2 backdrop-blur-md'>
               <div
-                className="flex flex-col flex-1 cursor-pointer"
+                className='flex flex-1 cursor-pointer flex-col'
                 onClick={() => scrollToMessage(pinnedMessages[activeTab]!.id)}
               >
-                <div className="text-[10px] text-primary font-bold flex items-center gap-1">
-                  <Pin className="w-3 h-3" /> Pinned Message
+                <div className='text-primary flex items-center gap-1 text-[10px] font-bold'>
+                  <Pin className='h-3 w-3' /> Pinned Message
                 </div>
-                <div className="text-xs text-foreground/80 truncate max-w-[200px]">
-                  {pinnedMessages[activeTab]!.type === "text" ? (pinnedMessages[activeTab] as any).text : "📷 Image"}
+                <div className='text-foreground/80 max-w-[200px] truncate text-xs'>
+                  {pinnedMessages[activeTab].type === 'text'
+                    ? (pinnedMessages[activeTab] as any).text
+                    : '📷 Image'}
                 </div>
               </div>
               {isAdmin && (
-                <button onClick={handleUnpin} className="p-1 hover:bg-black/5 rounded">
-                  <X className="w-4 h-4 text-muted-foreground" />
+                <button onClick={handleUnpin} className='rounded p-1 hover:bg-black/5'>
+                  <X className='text-muted-foreground h-4 w-4' />
                 </button>
               )}
             </div>
           )}
 
-          <div className="flex-1 min-h-0 overflow-y-auto p-3 space-y-2 relative">
+          <div className='relative min-h-0 flex-1 space-y-2 overflow-y-auto p-3'>
             {filteredItems.length === 0 ? (
-              <div className="text-xs text-muted-foreground text-center py-6">
-                {activeTab === "everyone" ? "No messages yet." : "Start a private conversation."}
+              <div className='text-muted-foreground py-6 text-center text-xs'>
+                {activeTab === 'everyone' ? 'No messages yet.' : 'Start a private conversation.'}
               </div>
             ) : (
               filteredItems.map((m) => (
@@ -276,38 +288,43 @@ export function MeetingChat({
       )}
 
       {/* Context Menu */}
-      {contextMenu && mounted && createPortal(
-        <div
-          className="fixed z-[9999] bg-popover border border-border text-popover-foreground rounded-md shadow-md min-w-[120px] overflow-hidden p-1 flex flex-col gap-0.5"
-          style={{ top: contextMenu.y, left: contextMenu.x }}
-          onClick={(e) => e.stopPropagation()}
-        >
-          {isAdmin && (
-            <button
-              onClick={handleMenuPin}
-              className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-muted w-full text-left rounded-sm"
-            >
-              <Pin className="w-3.5 h-3.5" /> {pinnedMessages[activeTab]?.id === contextMenu.item.id ? "Unpin" : "Pin"}
-            </button>
-          )}
-          {contextMenu.item.type === "text" && (
-            <button
-              onClick={() => handleCopy(contextMenu.item.type === 'text' ? contextMenu.item.text : "")}
-              className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-muted w-full text-left rounded-sm"
-            >
-              <Copy className="w-3.5 h-3.5" /> Copy
-            </button>
-          )}
-          <div className="h-px bg-border my-0.5" />
-          <button
-            onClick={handleMenuDelete}
-            className="flex items-center gap-2 px-2 py-1.5 text-xs hover:bg-destructive/10 text-destructive w-full text-left rounded-sm"
+      {contextMenu &&
+        mounted &&
+        createPortal(
+          <div
+            className='bg-popover border-border text-popover-foreground fixed z-[9999] flex min-w-[120px] flex-col gap-0.5 overflow-hidden rounded-md border p-1 shadow-md'
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            onClick={(e) => e.stopPropagation()}
           >
-            <Trash2 className="w-3.5 h-3.5" /> Delete
-          </button>
-        </div>,
-        document.body
-      )}
+            {isAdmin && (
+              <button
+                onClick={handleMenuPin}
+                className='hover:bg-muted flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs'
+              >
+                <Pin className='h-3.5 w-3.5' />{' '}
+                {pinnedMessages[activeTab]?.id === contextMenu.item.id ? 'Unpin' : 'Pin'}
+              </button>
+            )}
+            {contextMenu.item.type === 'text' && (
+              <button
+                onClick={() =>
+                  handleCopy(contextMenu.item.type === 'text' ? contextMenu.item.text : '')
+                }
+                className='hover:bg-muted flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs'
+              >
+                <Copy className='h-3.5 w-3.5' /> Copy
+              </button>
+            )}
+            <div className='bg-border my-0.5 h-px' />
+            <button
+              onClick={handleMenuDelete}
+              className='hover:bg-destructive/10 text-destructive flex w-full items-center gap-2 rounded-sm px-2 py-1.5 text-left text-xs'
+            >
+              <Trash2 className='h-3.5 w-3.5' /> Delete
+            </button>
+          </div>,
+          document.body
+        )}
     </div>
-  );
+  )
 }

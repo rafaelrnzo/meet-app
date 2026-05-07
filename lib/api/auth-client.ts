@@ -1,9 +1,9 @@
 // D:\proj\meet-FE\meet-fe-custom\lib\auth-client.ts
 
-import { apiRequest } from "./admin-api" // Using admin-api's generic apiRequest for consistency or similar
+import { apiRequest } from './admin-api' // Using admin-api's generic apiRequest for consistency or similar
 
-// Re-export types from admin-api or define here. 
-// Ideally we should consolidate. 
+// Re-export types from admin-api or define here.
+// Ideally we should consolidate.
 // For now, let's just make sure we can fetch profile.
 
 export type Permission = {
@@ -24,11 +24,11 @@ export type StoredUser = {
   role?: string | Role
 }
 
-const TOKEN_KEY = "vc_token"
-const USER_KEY = "vc_user"
+const TOKEN_KEY = 'vc_token'
+const USER_KEY = 'vc_user'
 
 export function isBrowser() {
-  return typeof window !== "undefined"
+  return typeof window !== 'undefined'
 }
 
 export function getToken(): string | null {
@@ -65,17 +65,20 @@ export async function fetchProfile(): Promise<StoredUser> {
 
   // Let's implement a simple fetch here to avoid circular deps if any.
   const token = getToken()
-  if (!token) throw new Error("No token")
+  if (!token) throw new Error('No token')
 
-  const originBackend = typeof window !== 'undefined' ? `${window.location.protocol}//${window.location.hostname}:8080` : "http://localhost:8080";
-  const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, "") || originBackend
+  const originBackend =
+    typeof window !== 'undefined'
+      ? `${window.location.protocol}//${window.location.hostname}:8080`
+      : 'http://localhost:8080'
+  const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || originBackend
 
   const res = await fetch(`${API_BASE}/api/me`, {
     headers: {
-      "Authorization": `Bearer ${token}`
-    }
+      Authorization: `Bearer ${token}`,
+    },
   })
 
-  if (!res.ok) throw new Error("Failed to fetch profile")
+  if (!res.ok) throw new Error('Failed to fetch profile')
   return res.json()
 }
