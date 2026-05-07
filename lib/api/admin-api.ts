@@ -214,6 +214,7 @@ export async function removeGroupMember(groupId: number, userId: number): Promis
 }
 
 export type ActiveRoom = {
+  num_publishers: number
   sid: string
   name: string
   num_participants: number

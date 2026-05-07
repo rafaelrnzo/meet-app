@@ -1,6 +1,7 @@
-const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL || 'https://localhost'
-const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM || 'Meet'
-const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID || 'meet-frontend'
+const keycloakUrl = process.env.NEXT_PUBLIC_KEYCLOAK_URL ?? ''
+const realm = process.env.NEXT_PUBLIC_KEYCLOAK_REALM ?? ''
+const clientId = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_ID ?? ''
+const clientSecret = process.env.NEXT_PUBLIC_KEYCLOAK_CLIENT_SECRET ?? ''
 
 /**
  * Configuration object for Keycloak authentication.
@@ -11,6 +12,7 @@ export const keycloakConfig = {
   url: keycloakUrl,
   realm,
   clientId,
+  clientSecret,
   urls: {
     auth: `${keycloakUrl}/realms/${realm}/protocol/openid-connect/auth`,
     token: `${keycloakUrl}/realms/${realm}/protocol/openid-connect/token`,
