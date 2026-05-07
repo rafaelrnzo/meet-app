@@ -57,7 +57,7 @@ export default function RoomsPage() {
       } catch (error) {
         console.error('Failed to load data', error)
       } finally {
-        setLoading(false)
+        setTimeout(() => setLoading(false), 500)
       }
     },
     [isAdmin]

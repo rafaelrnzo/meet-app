@@ -1,9 +1,9 @@
-import * as yup from 'yup'
-import { roomSchema } from './schema'
-import { DbRoom } from '@/lib/api/admin-api'
+import type * as yup from 'yup'
+import type { roomSchema } from './schema'
+import type { DbRoom } from '@/lib/api/admin-api'
 import { djs, omit } from '@/lib/utils'
 
-type RoomSchemaValue = yup.InferType<typeof roomSchema>
+type RoomSchemaValue = yup.InferType<ReturnType<typeof roomSchema>>
 
 interface SelectOptions {
   value: string

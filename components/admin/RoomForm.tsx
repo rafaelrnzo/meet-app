@@ -31,6 +31,7 @@ import { Separator } from '@/components/ui/separator'
 import { getRoomDefaultValue, getRoomPayload } from '@/feat/rooms/dto'
 import type { RoomSchemaValue, SelectOptions } from '@/feat/rooms/dto'
 import { roomSchema } from '@/feat/rooms/schema'
+import type { AnyFormApi } from '@tanstack/react-form'
 import { useForm, useStore } from '@tanstack/react-form'
 import { Modal } from '@/components/ui/modal'
 import { Eye, EyeClosed, Plus } from 'lucide-react'
@@ -85,16 +86,27 @@ export function RoomForm({
   groups,
   activeRooms,
 }: RoomFormProps) {
+  const [users, setUsers] = useState<User[]>([])
+  const [showPassword, setShowPassword] = useState(false)
+  const params = useRef<ParamsUserAssignment>({})
+  const isActiveRoom = useMemo(
+    () => !!activeRooms.find((ar) => ar.name === initialData?.room_code),
+    [activeRooms, initialData?.room_code]
+  )
+  const currentParticipant = useMemo(
+    () => activeRooms.find((ar) => ar.name === initialData?.room_code)?.num_participants,
+    [activeRooms, initialData?.room_code]
+  )
   const defaultValues: RoomSchemaValue = initialData
     ? getRoomDefaultValue(initialData)
-    : roomSchema.getDefault()
+    : roomSchema().getDefault()
 
   const form = useForm({
     defaultValues,
     validators: {
-      onChangeAsync: roomSchema,
+      onChangeAsync: roomSchema({ isLive: isActiveRoom, currentParticipant }),
     },
-    onSubmit: async ({ value }: { value: RoomSchemaValue }) => {
+    onSubmit: async ({ value, formApi }: { value: RoomSchemaValue; formApi: AnyFormApi }) => {
       const payload = getRoomPayload(value)
       try {
         if (initialData) {
@@ -106,8 +118,8 @@ export function RoomForm({
           description: `Ruang rapat ${payload.name} berhasil ${initialData ? 'diperbarui' : 'dibuat'}`,
         })
         onOpenChange(false)
-        form.reset()
         onSuccess()
+        formApi.reset()
       } catch (error) {
         toast.error(`Gagal ${initialData ? 'memperbarui' : 'membuat'} ruang rapat`, {
           description:
@@ -119,14 +131,7 @@ export function RoomForm({
     },
   })
 
-  const [users, setUsers] = useState<User[]>([])
-  const params = useRef<ParamsUserAssignment>({})
-  const [showPassword, setShowPassword] = useState(false)
   const isSubmittingForm = useStore(form.store, (state) => state.isSubmitting)
-  const isActiveRoom = useMemo(
-    () => !!activeRooms.find((ar) => ar.name === initialData?.room_code),
-    [activeRooms, initialData?.room_code]
-  ) // TODO: cek apakah ini realtime update setelah useRealTimeRooms sudah bisa update active room
 
   const fetchUsers = async (params?: ParamsUserAssignment) => {
     try {

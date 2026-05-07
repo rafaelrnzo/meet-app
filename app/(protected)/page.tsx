@@ -53,7 +53,7 @@ export default function HomePage() {
           if (liveData.status === 'fulfilled') setActiveRooms(liveData.value || [])
         }
       } finally {
-        setLoading(false)
+        setTimeout(() => setLoading(false), 500)
       }
     },
     [isAdmin]
