@@ -16,7 +16,7 @@ import { djs } from '@/lib/utils'
 import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { RoomForm } from '@/components/admin/RoomForm'
-import { useRealTimeRooms } from '@/hooks/use-real-time-rooms'
+import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 
 export default function RoomsPage() {
   const { hasPermission } = useAuth({ requirePermission: 'room:read' })
@@ -69,8 +69,11 @@ export default function RoomsPage() {
     }
   }, [authLoading, loadData])
 
-  useRealTimeRooms(() => {
-    loadData()
+  useRealTimeRooms((event) => {
+    setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
+    if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
+      loadData()
+    }
   })
 
   const handleCreate = () => {
@@ -181,7 +184,7 @@ export default function RoomsPage() {
         isOpen={isDetailOpen}
         onClose={() => setIsDetailOpen(false)}
         room={selectedRoom}
-        activeRoom={selectedRoom ? getActiveRoomData(selectedRoom.name) : undefined}
+        activeRoom={selectedRoom ? getActiveRoomData(selectedRoom.room_code) : undefined}
         canDelete={canDelete}
         onDelete={handleDelete}
         onEditSuccess={loadData}

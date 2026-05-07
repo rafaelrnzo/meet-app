@@ -80,14 +80,30 @@ export async function fetchToken(
   }
 }
 
-export async function leaveRoomBackend(): Promise<void> {
+export async function updateRoomPresence(roomCode: string, status: 'active' | 'left'): Promise<void> {
+  const jwt = getAuthToken()
+  await fetch(`${BASE}/api/livekit/presence`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${jwt}`,
+    },
+    cache: 'no-store',
+    body: JSON.stringify({ room_code: roomCode, status }),
+  })
+}
+
+export async function leaveRoomBackend(roomCode?: string): Promise<void> {
   const jwt = getAuthToken()
   await fetch(`${BASE}/api/livekit/leave`, {
     method: 'POST',
     headers: {
+      ...(roomCode ? { 'Content-Type': 'application/json' } : {}),
       Authorization: `Bearer ${jwt}`,
     },
     cache: 'no-store',
+    keepalive: true,
+    ...(roomCode ? { body: JSON.stringify({ room_code: roomCode }) } : {}),
   })
 }
 

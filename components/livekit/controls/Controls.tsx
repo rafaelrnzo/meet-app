@@ -345,7 +345,7 @@ export function Controls({
       if (room) {
         await room.disconnect()
       }
-      await leaveRoomBackend()
+      await leaveRoomBackend(roomName)
       router.push('/')
     } catch (e) {
       console.error('leave error:', e)

@@ -19,7 +19,7 @@ import { TableViewHeader } from '@/compounds/table-view/header'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Loader } from 'lucide-react'
 import { toast } from 'sonner'
-import { useRealTimeRooms } from '@/hooks/use-real-time-rooms'
+import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 
 export default function HomePage() {
   const router = useRouter()
@@ -60,8 +60,11 @@ export default function HomePage() {
   )
 
   // SSE for real-time updates
-  useRealTimeRooms(() => {
-    loadData()
+  useRealTimeRooms((event) => {
+    setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
+    if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
+      loadData()
+    }
   })
 
   useEffect(() => {
