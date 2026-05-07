@@ -95,6 +95,7 @@ api.interceptors.response.use(
           const params = new URLSearchParams({
             grant_type: 'refresh_token',
             client_id: keycloakConfig.clientId,
+            client_secret: keycloakConfig.clientSecret,
             refresh_token: tokens.refreshToken,
           })
 

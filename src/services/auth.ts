@@ -21,6 +21,7 @@ export const authService = {
     const params = new URLSearchParams({
       client_id: keycloakConfig.clientId,
       redirect_uri: `${origin}${keycloakConfig.routes.callback}`,
+      client_secret: keycloakConfig.clientSecret,
       response_type: 'code',
       scope: 'openid profile email',
     })
@@ -39,6 +40,7 @@ export const authService = {
     const params = new URLSearchParams({
       grant_type: 'authorization_code',
       client_id: keycloakConfig.clientId,
+      client_secret: keycloakConfig.clientSecret,
       redirect_uri: `${origin}${keycloakConfig.routes.callback}`,
       code,
     })
@@ -116,12 +118,15 @@ export const authService = {
       client_id: keycloakConfig.clientId,
       refresh_token: localStorage.getItem('refresh_token') ?? '',
       post_logout_redirect_uri: window.location.origin,
+      client_secret: keycloakConfig.clientSecret,
     })
 
     // Clear local tokens
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('id_token')
+    localStorage.removeItem('vc_token')
+    localStorage.removeItem('vc_user')
 
     await axios.post(keycloakConfig.urls.logout, params, {
       headers: {
@@ -138,7 +143,7 @@ export const authService = {
   getTokens: () => {
     if (typeof window === 'undefined') return null
     return {
-      accessToken: localStorage.getItem('access_token'),
+      accessToken: localStorage.getItem('vc_token') || localStorage.getItem('access_token'),
       refreshToken: localStorage.getItem('refresh_token'),
       idToken: localStorage.getItem('id_token'),
     }
@@ -162,6 +167,6 @@ export const authService = {
    */
   isAuthenticated: () => {
     if (typeof window === 'undefined') return false
-    return !!localStorage.getItem('access_token')
+    return !!(localStorage.getItem('vc_token') || localStorage.getItem('access_token'))
   },
 }
