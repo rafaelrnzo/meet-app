@@ -125,6 +125,8 @@ export const authService = {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     localStorage.removeItem('id_token')
+    localStorage.removeItem('vc_token')
+    localStorage.removeItem('vc_user')
 
     await axios.post(keycloakConfig.urls.logout, params, {
       headers: {
@@ -141,7 +143,7 @@ export const authService = {
   getTokens: () => {
     if (typeof window === 'undefined') return null
     return {
-      accessToken: localStorage.getItem('access_token'),
+      accessToken: localStorage.getItem('vc_token') || localStorage.getItem('access_token'),
       refreshToken: localStorage.getItem('refresh_token'),
       idToken: localStorage.getItem('id_token'),
     }
@@ -165,6 +167,6 @@ export const authService = {
    */
   isAuthenticated: () => {
     if (typeof window === 'undefined') return false
-    return !!localStorage.getItem('access_token')
+    return !!(localStorage.getItem('vc_token') || localStorage.getItem('access_token'))
   },
 }
