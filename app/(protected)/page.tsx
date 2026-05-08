@@ -4,12 +4,7 @@ import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  fetchDbRooms,
-  fetchActiveRooms,
-  fetchUserDbRooms,
-  fetchRoomByCode,
-} from '@/lib/api/admin-api'
+import { fetchDbRooms, fetchActiveRooms, fetchUserDbRooms } from '@/lib/api/admin-api'
 import type { DbRoom, ActiveRoom, RoomParams } from '@/lib/api/admin-api'
 import { useAuth } from '@/hooks/use-auth'
 import { RoomList } from '@/components/features/rooms/RoomList'
@@ -18,8 +13,8 @@ import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Loader } from 'lucide-react'
-import { toast } from 'sonner'
 import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
+import { joinRoomAction } from '@/feat/rooms/helper'
 
 export default function HomePage() {
   const router = useRouter()
@@ -32,6 +27,7 @@ export default function HomePage() {
   const [isPendingJoin, startTransitionJoin] = useTransition()
   const isMobile = useIsMobile()
   const params = useRef<RoomParams>({})
+  const [isEmptyRoomCode, setIsEmptyRoomCode] = useState(false)
 
   const loadData = useCallback(
     async (params?: RoomParams) => {
@@ -73,23 +69,6 @@ export default function HomePage() {
     }
   }, [authLoading, loadData])
 
-  const handleJoin = async (code: string) => {
-    const targetCode = code.trim()
-    if (!targetCode) return
-
-    try {
-      await fetchRoomByCode(targetCode)
-      startTransitionJoin(() => {
-        router.push(`/meeting/${encodeURIComponent(targetCode)}`)
-      })
-    } catch {
-      // TODO: get error jika kode meeting sudah berakhir
-      toast.error('Kode ruangan salah', {
-        description: `Kode '${targetCode}' tidak valid. Coba salin kode ruang lainnya.`,
-      })
-    }
-  }
-
   const displayedRooms = (isAdmin ? dbRooms : dbUserRooms).filter(({ end_date }) =>
     djs().isBefore(end_date)
   )
@@ -102,13 +81,22 @@ export default function HomePage() {
       insertAfterTitle={
         <div className='flex gap-2 max-md:w-full max-md:flex-col md:items-center'>
           <Input
-            className='w-full bg-white md:w-87.5'
+            className='aria-invalid:text-error w-full bg-white aria-invalid:border-red-200 aria-invalid:bg-red-200 md:w-87.5'
             placeholder='Masukkan kode ruangan di sini ...'
             value={roomCodeInput}
             onChange={(e) => setRoomCodeInput(e.target.value)}
+            aria-invalid={isEmptyRoomCode && !roomCodeInput.trim().length}
           />
           <Button
-            onClick={() => handleJoin(roomCodeInput)}
+            onClick={() =>
+              startTransitionJoin(async () => {
+                await joinRoomAction({
+                  code: roomCodeInput,
+                  setIsEmptyRoomCode,
+                  onSuccess: (code) => router.push(`/meeting/${encodeURIComponent(code)}`),
+                })
+              })
+            }
             variant='primary'
             disabled={isPendingJoin}
           >
@@ -126,7 +114,7 @@ export default function HomePage() {
       <div className='space-y-4 md:space-y-8'>
         <TableViewHeader
           search={{
-            placeholder: 'Cari nama atau kode ruangan ...',
+            placeholder: 'Cari ruangan',
             onSearch: ({ value }) => {
               const updateParams = { ...params.current, search: value }
               params.current = updateParams

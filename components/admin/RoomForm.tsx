@@ -34,9 +34,10 @@ import { roomSchema } from '@/feat/rooms/schema'
 import type { AnyFormApi } from '@tanstack/react-form'
 import { useForm, useStore } from '@tanstack/react-form'
 import { Modal } from '@/components/ui/modal'
-import { Eye, EyeClosed, Plus } from 'lucide-react'
+import { Eye, EyeClosed, Plus, X } from 'lucide-react'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { toast } from 'sonner'
+import { buttonVariants } from '../ui/button'
 
 interface RoomFormProps {
   open: boolean
@@ -390,48 +391,71 @@ export function RoomForm({
                   }}
                 />
                 <Card className='rounded-md'>
-                  <CardContent className='px-2 pt-1 pb-3.5'>
-                    <Field orientation='horizontal'>
-                      <Checkbox
-                        id='all'
-                        name='all'
-                        onCheckedChange={(val) => {
-                          const allUser = users.map((user) => `${user.id}`)
-                          if (val) {
-                            handleChange((prev) => [...new Set([...prev, ...allUser])])
-                            return
-                          }
-                          handleChange((prev) => prev.filter((userId) => !allUser.includes(userId)))
-                        }}
-                        disabled={!users.length}
-                        checked={users.every((user) => assignTo.includes(`${user.id}`))}
-                      />
-                      <Label htmlFor='all' className='w-full'>
-                        All
-                      </Label>
-                    </Field>
-                    <Separator className='my-2' />
-                    <div className='grid max-h-[113px] grid-cols-2 gap-2 overflow-y-auto'>
-                      {users.map((user) => (
-                        <Field key={user.id} orientation='horizontal'>
+                  <CardContent className='flex min-h-37.5 flex-col px-2 pt-1 pb-3.5'>
+                    {/* TODO: buat reusable */}
+                    {!users.length ? (
+                      <div className='flex flex-1 flex-col items-center justify-center gap-2 text-lg font-semibold text-red-800'>
+                        <div
+                          className={cn(
+                            buttonVariants({
+                              variant: 'secondary-outline',
+                            }),
+                            'size-12 cursor-default hover:bg-white'
+                          )}
+                        >
+                          <X className='size-6 text-red-800' />
+                        </div>
+                        Tidak Ada Anggota
+                      </div>
+                    ) : (
+                      <>
+                        <Field orientation='horizontal'>
                           <Checkbox
-                            id={`${user.id}`}
-                            name={name}
-                            checked={value.includes(`${user.id}`)}
-                            onCheckedChange={() => {
-                              if (!value.includes(`${user.id}`)) {
-                                handleChange((prev) => [...prev, `${user.id}`])
+                            id='all'
+                            name='all'
+                            onCheckedChange={(val) => {
+                              const allUser = users.map((user) => `${user.id}`)
+                              if (val) {
+                                handleChange((prev) => [...new Set([...prev, ...allUser])])
                                 return
                               }
-                              handleChange((prev) => prev.filter((item) => item !== `${user.id}`))
+                              handleChange((prev) =>
+                                prev.filter((userId) => !allUser.includes(userId))
+                              )
                             }}
+                            disabled={!users.length}
+                            checked={users.every((user) => assignTo.includes(`${user.id}`))}
                           />
-                          <Label htmlFor={`${user.id}`} className='w-full'>
-                            {user.username}
+                          <Label htmlFor='all' className='w-full'>
+                            All
                           </Label>
                         </Field>
-                      ))}
-                    </div>
+                        <Separator className='my-2' />
+                        <div className='grid max-h-[113px] grid-cols-2 gap-2 overflow-y-auto'>
+                          {users.map((user) => (
+                            <Field key={user.id} orientation='horizontal'>
+                              <Checkbox
+                                id={`${user.id}`}
+                                name={name}
+                                checked={value.includes(`${user.id}`)}
+                                onCheckedChange={() => {
+                                  if (!value.includes(`${user.id}`)) {
+                                    handleChange((prev) => [...prev, `${user.id}`])
+                                    return
+                                  }
+                                  handleChange((prev) =>
+                                    prev.filter((item) => item !== `${user.id}`)
+                                  )
+                                }}
+                              />
+                              <Label htmlFor={`${user.id}`} className='w-full'>
+                                {user.username}
+                              </Label>
+                            </Field>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </FormField>

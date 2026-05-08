@@ -114,7 +114,7 @@ export default function RoomsPage() {
       <div className='space-y-4 md:space-y-8'>
         <TableViewHeader
           search={{
-            placeholder: 'Cari nama atau kode ruangan ...',
+            placeholder: 'Cari ruangan',
             onSearch: ({ value }) => {
               const updateParams = { ...params.current, search: value }
               params.current = updateParams
@@ -124,6 +124,7 @@ export default function RoomsPage() {
           }}
           {...(canCreate && { add: { onClick: handleCreate } })}
           filter={{
+            placeholder: 'Urut',
             options: [
               {
                 value: 'newest',

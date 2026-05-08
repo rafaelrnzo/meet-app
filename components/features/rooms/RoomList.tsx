@@ -11,8 +11,8 @@ import { Input } from '@/components/ui/input'
 import { generateCode } from '@/lib/api/admin-api'
 import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
 import { cn, djs } from '@/lib/utils'
-import { Calendar, Copy, ExternalLink, RefreshCcw, Users } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { Calendar, Copy, ExternalLink, Loader, RefreshCcw, Users } from 'lucide-react'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useRouter } from 'next/navigation'
@@ -20,6 +20,7 @@ import Cookies from 'js-cookie'
 import { toast } from 'sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Skeleton } from '@/components/ui/skeleton'
+import { joinRoomAction } from '@/feat/rooms/helper'
 
 interface RoomCode {
   roomId: number
@@ -54,6 +55,7 @@ const ButtonJoin = ({
   const startDate = djs(room.start_date)
   const endDate = djs(room.end_date)
   const [now, setNow] = useState(djs())
+  const [isPendingJoin, startTransitionJoin] = useTransition()
   const status = useMemo(() => (now.isBefore(startDate) ? 'upcoming' : 'open'), [now, startDate])
 
   useEffect(() => {
@@ -75,11 +77,19 @@ const ButtonJoin = ({
   return (
     <Button
       size='lg'
-      className='w-full p-0 disabled:opacity-100'
+      className={cn('w-full p-0', !isPendingJoin && 'disabled:opacity-100')}
       variant={!isAdmin && (status !== 'open' || isFull) ? 'secondary' : 'primary'}
-      disabled={!isAdmin && (status !== 'open' || isFull)}
-      onClick={() => router.push(`/meeting/${encodeURIComponent(room.room_code)}`)}
+      disabled={(!isAdmin && (status !== 'open' || isFull)) || isPendingJoin}
+      onClick={() =>
+        startTransitionJoin(async () => {
+          await joinRoomAction({
+            code: room.room_code,
+            onSuccess: (code) => router.push(`/meeting/${encodeURIComponent(code)}`),
+          })
+        })
+      }
     >
+      {isPendingJoin && <Loader className='animate-spin' />}
       {!isAdmin && status === 'upcoming'
         ? `Mulai di ${djs(room.start_date).format('DD MMMM YYYY, HH.mm')} WIB`
         : !isAdmin && isFull
@@ -198,9 +208,7 @@ function RoomList(props: SummaryCardProps) {
           <div className='grid-cols grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
             {displayedRooms.slice(0, visibleCards).map((room) => {
               const startDate = djs(room.start_date)
-              const isFull =
-                room.assigned_to?.length > 0 &&
-                (room.currentParticipants ?? 0) >= room.max_participants
+              const isFull = (room.currentParticipants ?? 0) >= room.max_participants
               const ownRoomCode =
                 roomCode.type === 'changed'
                   ? room.id === roomCode.roomId
