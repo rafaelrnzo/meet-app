@@ -17,6 +17,8 @@ import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { RoomForm } from '@/components/admin/RoomForm'
 import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
+import type { SortRoomType } from '@/feat/rooms/dto'
+import { SORT_ROOM } from '@/feat/rooms/dto'
 
 export default function RoomsPage() {
   const { hasPermission } = useAuth({ requirePermission: 'room:read' })
@@ -26,7 +28,7 @@ export default function RoomsPage() {
   const [users, setUsers] = useState<User[]>([])
   const { isAdmin, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
-  const params = useRef<RoomParams>({})
+  const params = useRef<RoomParams>({ sort: 'newest' })
 
   // Modal State
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -45,7 +47,7 @@ export default function RoomsPage() {
       setLoading(true)
       try {
         const [r, g, ar, u] = await Promise.all([
-          fetchDbRooms({ ...params }),
+          fetchDbRooms({ ...params, sort: params?.sort ?? 'newest' }), // set default newest
           isAdmin ? fetchGroups() : Promise.resolve([]),
           fetchActiveRooms().catch(() => []),
           isAdmin ? fetchUsers() : Promise.resolve([]),
@@ -105,6 +107,10 @@ export default function RoomsPage() {
 
   const displayedRooms = rooms.filter(({ end_date }) => djs().isBefore(end_date))
 
+  const isTypeSort = (sort: string): sort is SortRoomType => {
+    return !!sort && SORT_ROOM.some((item) => item === sort)
+  }
+
   return (
     <PageContainer
       icon='room'
@@ -149,10 +155,13 @@ export default function RoomsPage() {
             ],
             selectProps: {
               select: {
+                value: params.current.sort,
                 onValueChange: (value) => {
-                  const updateParams = { ...params.current, sort: value }
-                  params.current = updateParams
-                  loadData(updateParams)
+                  if (isTypeSort(value)) {
+                    const updateParams = { ...params.current, sort: value }
+                    params.current = updateParams
+                    loadData(updateParams)
+                  }
                 },
               },
             },

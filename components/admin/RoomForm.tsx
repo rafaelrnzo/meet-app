@@ -391,7 +391,7 @@ export function RoomForm({
                   }}
                 />
                 <Card className='rounded-md'>
-                  <CardContent className='flex min-h-37.5 flex-col px-2 pt-1 pb-3.5'>
+                  <CardContent className='flex min-h-[113px] flex-col px-2 pt-1 pb-3.5'>
                     {/* TODO: buat reusable */}
                     {!users.length ? (
                       <div className='flex flex-1 flex-col items-center justify-center gap-2 text-lg font-semibold text-red-800'>

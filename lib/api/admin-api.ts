@@ -1,4 +1,4 @@
-import type { SearchParams } from 'next/dist/server/request/search-params'
+import type { RoomPayload, SortRoomType } from '@/feat/rooms/dto'
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'
 
@@ -67,7 +67,7 @@ export type DbRoom = {
 
 export type RoomParams = {
   search?: string
-  sort?: string
+  sort?: SortRoomType
 }
 
 export async function fetchDbRooms(searchParams?: RoomParams): Promise<DbRoom[]> {
@@ -99,35 +99,17 @@ export async function fetchRoomByCode(code: string): Promise<DbRoom> {
   })
 }
 
-export async function createDbRoom(payload: any): Promise<DbRoom> {
+export async function createDbRoom(payload: RoomPayload): Promise<DbRoom> {
   return apiRequest<DbRoom>('/admin/rooms', {
     method: 'POST',
-    body: JSON.stringify({
-      name: payload.name,
-      description: payload.description,
-      max_participants: Number(payload.maxParticipants),
-      assigned_to: payload.assignedTo || [],
-      group_id: payload.groupId ? Number(payload.groupId) : 0,
-      start_date: new Date(payload.startDate).toISOString(),
-      end_date: new Date(payload.endDate).toISOString(),
-      password: payload.password,
-    }),
+    body: JSON.stringify(payload),
   })
 }
 
-export async function updateDbRoom(id: number, payload: any): Promise<DbRoom> {
+export async function updateDbRoom(id: number, payload: RoomPayload): Promise<DbRoom> {
   return apiRequest<DbRoom>(`/admin/rooms/${id}`, {
     method: 'PATCH',
-    body: JSON.stringify({
-      name: payload.name,
-      description: payload.description,
-      max_participants: Number(payload.maxParticipants),
-      assigned_to: payload.assignedTo || [],
-      group_id: payload.groupId ? Number(payload.groupId) : 0,
-      start_date: new Date(payload.startDate).toISOString(),
-      end_date: new Date(payload.endDate).toISOString(),
-      password: payload.password,
-    }),
+    body: JSON.stringify(payload),
   })
 }
 

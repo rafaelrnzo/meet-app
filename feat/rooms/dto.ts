@@ -1,9 +1,21 @@
 import type * as yup from 'yup'
 import type { roomSchema } from './schema'
 import type { DbRoom } from '@/lib/api/admin-api'
-import { djs, omit } from '@/lib/utils'
+import { djs } from '@/lib/utils'
 
 type RoomSchemaValue = yup.InferType<ReturnType<typeof roomSchema>>
+
+interface RoomPayload {
+  name: string
+  description: string
+  max_participants: number
+  assigned_to: string[]
+  group_id: number
+  start_date: string
+  end_date: string
+  password: string
+  is_mute_on_start: boolean
+}
 
 interface SelectOptions {
   value: string
@@ -24,9 +36,23 @@ const getRoomDefaultValue = (data: DbRoom): RoomSchemaValue => {
   }
 }
 
-const getRoomPayload = (data: RoomSchemaValue) => {
-  return { ...omit(data, ['isMuteOnStart']), is_mute_on_start: data.isMuteOnStart }
+const getRoomPayload = (data: RoomSchemaValue): RoomPayload => {
+  return {
+    name: data.name.trim(),
+    description: data.description.trim(),
+    max_participants: Number(data.maxParticipants),
+    assigned_to: data.assignedTo,
+    group_id: data.groupId ? Number(data.groupId) : 0,
+    start_date: data.startDate?.toISOString() ?? '',
+    end_date: data.endDate?.toISOString() ?? '',
+    password: data.password,
+    is_mute_on_start: data.isMuteOnStart,
+  }
 }
 
-export type { RoomSchemaValue, SelectOptions }
-export { getRoomDefaultValue, getRoomPayload }
+const SORT_ROOM = ['newest', 'oldest', 'name_asc', 'name_desc', 'group'] as const
+
+type SortRoomType = (typeof SORT_ROOM)[number]
+
+export type { RoomSchemaValue, SelectOptions, SortRoomType, RoomPayload }
+export { getRoomDefaultValue, getRoomPayload, SORT_ROOM }
