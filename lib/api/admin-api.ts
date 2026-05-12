@@ -1,5 +1,6 @@
 import type { RoomPayload, SortRoomType } from '@/feat/rooms/dto'
 import Cookies from 'js-cookie'
+import type { StatusOption } from '@/components/admin/RoomDetailSheet'
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'
 
@@ -77,6 +78,17 @@ export type DbRoom = {
   is_mute_on_start: boolean
 }
 
+export type MemberRoom = {
+  id: string | number
+  username: string
+  role: {
+    id: number
+    name: string
+  }
+  global_presence: 'waiting' | 'banned'[]
+  room_presence: 'waiting' | 'banned'
+}
+
 export type RoomParams = {
   search?: string
   sort?: SortRoomType
@@ -116,6 +128,23 @@ export async function createDbRoom(payload: RoomPayload): Promise<DbRoom> {
     method: 'POST',
     body: JSON.stringify(payload),
   })
+}
+
+export async function fetchMemberRoom({
+  roomId,
+  searchParams,
+}: {
+  roomId: number
+  searchParams?: RoomParams & { status?: StatusOption }
+}): Promise<MemberRoom[]> {
+  return apiRequest<MemberRoom[]>(
+    `/admin/rooms/${roomId}/members`,
+    {
+      method: 'GET',
+      cache: 'no-store',
+    },
+    { ...searchParams }
+  )
 }
 
 export async function updateDbRoom(id: number, payload: RoomPayload): Promise<DbRoom> {

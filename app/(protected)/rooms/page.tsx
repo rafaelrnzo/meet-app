@@ -7,6 +7,8 @@ import {
   fetchGroups,
   fetchActiveRooms,
   fetchUsers,
+  MemberRoom,
+  fetchMemberRoom,
 } from '@/lib/api/admin-api'
 import type { DbRoom, Group as GroupDto, ActiveRoom, User, RoomParams } from '@/lib/api/admin-api'
 import { useAuth } from '@/hooks/use-auth'
@@ -93,11 +95,9 @@ export default function RoomsPage() {
   }
 
   const handleDelete = async (id: number) => {
-    if (confirm('Delete this room?')) {
-      await deleteDbRoom(id)
-      if (selectedRoom?.id === id) setIsDetailOpen(false)
-      loadData()
-    }
+    await deleteDbRoom(id)
+    // if (selectedRoom?.id === id) setIsDetailOpen(false)
+    loadData()
   }
 
   const handleViewDetails = (room: DbRoom) => {
@@ -202,8 +202,6 @@ export default function RoomsPage() {
         canDelete={canDelete}
         onDelete={handleDelete}
         onEditSuccess={loadData}
-        groups={groups}
-        users={users}
         handleEdit={(room: DbRoom) => handleEdit(room)}
       />
     </PageContainer>
