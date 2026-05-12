@@ -59,7 +59,9 @@ export async function fetchToken(
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({}))
     const errorMessage = errorData.error || (await res.text())
-    throw new Error(`Failed to fetch LiveKit token: ${res.status} - ${errorMessage}`)
+    throw new Error(`Failed to fetch LiveKit token: ${res.status} - ${errorMessage}`, {
+      cause: { status: res.status },
+    })
   }
 
   const data = (await res.json()) as TokenResponse
@@ -80,14 +82,33 @@ export async function fetchToken(
   }
 }
 
-export async function leaveRoomBackend(): Promise<void> {
+export async function updateRoomPresence(
+  roomCode: string,
+  status: 'active' | 'left'
+): Promise<void> {
+  const jwt = getAuthToken()
+  await fetch(`${BASE}/api/livekit/presence`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${jwt}`,
+    },
+    cache: 'no-store',
+    body: JSON.stringify({ room_code: roomCode, status }),
+  })
+}
+
+export async function leaveRoomBackend(roomCode?: string): Promise<void> {
   const jwt = getAuthToken()
   await fetch(`${BASE}/api/livekit/leave`, {
     method: 'POST',
     headers: {
+      ...(roomCode ? { 'Content-Type': 'application/json' } : {}),
       Authorization: `Bearer ${jwt}`,
     },
     cache: 'no-store',
+    keepalive: true,
+    ...(roomCode ? { body: JSON.stringify({ room_code: roomCode }) } : {}),
   })
 }
 
