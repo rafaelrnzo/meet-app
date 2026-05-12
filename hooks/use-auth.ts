@@ -10,6 +10,7 @@ import {
   setUser as persistUser,
 } from '@/lib/api/auth-client'
 import { authService } from '@/src/services/auth'
+import { toast } from 'sonner'
 
 export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: string }) {
   const router = useRouter()
@@ -22,7 +23,8 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    const token = getToken() || (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null)
+    const token =
+      getToken() || (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null)
     const storedUser = getUser()
     setUser(storedUser)
 
@@ -101,8 +103,13 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
   }, [router, pathname, options?.requireAdmin, options?.requirePermission])
 
   const logout = async () => {
+    const { error } = await authService.logout()
+    if (error) {
+      toast.error('Error', { description: error })
+      return
+    }
+
     clearAuth()
-    await authService.logout()
     router.replace('/login')
   }
 

@@ -1,4 +1,4 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { keycloakConfig } from '../config/keycloak'
 import Cookies from 'js-cookie'
 
@@ -128,21 +128,24 @@ export const authService = {
       post_logout_redirect_uri: window.location.origin,
     })
 
-    // Clear local tokens regardless of server response
-    const keys = ['token', 'vc_token', 'access_token', 'refresh_token', 'id_token', 'vc_user']
-    keys.forEach((key) => {
-      Cookies.remove(key)
-      localStorage.removeItem(key)
-    })
-
     try {
       await axios.post(keycloakConfig.urls.logout, params, {
         headers: {
           'Content-Type': 'application/x-www-form-urlencoded',
         },
       })
+      return { error: null }
     } catch (e) {
       console.error('Keycloak logout request failed', e)
+      if (e instanceof AxiosError) {
+        return { error: e.response?.data.error_description ?? e.message }
+      }
+
+      if (e instanceof Error) {
+        return { error: e.message }
+      }
+
+      return { error: 'Gagal logout' }
     }
   },
 
