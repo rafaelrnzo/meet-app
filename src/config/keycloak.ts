@@ -22,6 +22,6 @@ export const keycloakConfig = {
   routes: {
     login: '/login',
     callback: '/callback',
-    dashboard: '/dashboard',
+    dashboard: '/',
   },
 }

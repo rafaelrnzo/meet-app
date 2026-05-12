@@ -1,16 +1,29 @@
+import Cookies from 'js-cookie'
+
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null
   try {
-    return localStorage.getItem('vc_token')
+    return (
+      Cookies.get('token') ||
+      Cookies.get('vc_token') ||
+      Cookies.get('access_token') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('vc_token') ||
+      localStorage.getItem('access_token')
+    )
   } catch (e) {
-    console.error('Failed to access localStorage', e)
+    console.error('Failed to access storage', e)
     return null
   }
 }
 
-export async function apiRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+export async function apiRequest<T>(
+  path: string,
+  options: RequestInit = {},
+  searchParams = {}
+): Promise<T> {
   const token = getToken()
 
   const headers: Record<string, string> = {
@@ -22,19 +35,25 @@ export async function apiRequest<T>(path: string, options: RequestInit = {}): Pr
     headers.Authorization = `Bearer ${token}`
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
+  const params = new URLSearchParams(searchParams)
+  const queryString = params.toString()
+  const url = queryString ? `${API_BASE}${path}?${queryString}` : `${API_BASE}${path}`
+  console.log(`[API Request] ${options.method || 'GET'} ${url}`)
+  const res = await fetch(url, {
     ...options,
     headers,
   })
 
   if (!res.ok) {
-    const text = await res.text().catch(() => '')
-    throw new Error(text || `Request failed with status ${res.status}`)
+    const data = await res.json().catch(() => '')
+    throw new Error(data?.error || `Request failed with status ${res.status}`)
   }
 
   // Handle empty responses (like 204 No Content)
   const text = await res.text()
-  return text ? JSON.parse(text) : (null as any)
+  const data = text ? JSON.parse(text) : null
+  console.log(`[API Response] ${url}:`, data)
+  return data
 }
 
 export type DbRoom = {
