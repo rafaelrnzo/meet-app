@@ -161,7 +161,7 @@ export default function RoomTabs({
               <DropFile
                 multiple={true}
                 maxFilesSizeInMB={5}
-                onUploadFile={(files) => console.log(files)}
+                onUploadFile={(files) => handleUploadFile(files)}
               />
             </div>
           </div>
