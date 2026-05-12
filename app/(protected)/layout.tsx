@@ -45,7 +45,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
       <SidebarList user={user} />
       <SidebarInset>
         <main>
-          <header className='fixed top-0 z-51 flex h-12 w-full shrink-0 items-center justify-between gap-2 border-b border-neutral-200 bg-white px-3 transition-[width,height] ease-linear md:sticky md:h-14'>
+          <header className='fixed top-0 z-50 flex h-12 w-full shrink-0 items-center justify-between gap-2 border-b border-neutral-200 bg-white px-3 transition-[width,height] ease-linear md:sticky md:h-14'>
             {isMobile && <SidebarTrigger />}
 
             <div className='flex items-center gap-2'>
