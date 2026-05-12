@@ -49,7 +49,7 @@ export default function RoomsPage() {
       setLoading(true)
       try {
         const [r, g, ar, u] = await Promise.allSettled([
-          fetchDbRooms({ ...params, sort: params?.sort ?? 'newest' }),
+          fetchDbRooms({ ...params }),
           isAdmin ? fetchGroups() : Promise.resolve([]),
           fetchActiveRooms(),
           isAdmin ? fetchUsers() : Promise.resolve([]),

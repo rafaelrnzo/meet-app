@@ -94,25 +94,31 @@ export type RoomParams = {
   sort?: SortRoomType
 }
 
-export async function fetchDbRooms(searchParams?: RoomParams): Promise<DbRoom[]> {
+export async function fetchDbRooms({
+  search = '',
+  sort = 'newest',
+}: RoomParams): Promise<DbRoom[]> {
   return apiRequest<DbRoom[]>(
     '/admin/rooms',
     {
       method: 'GET',
       cache: 'no-store',
     },
-    { ...searchParams }
+    { search, sort }
   )
 }
 
-export async function fetchUserDbRooms(searchParams?: { search?: string }): Promise<DbRoom[]> {
+export async function fetchUserDbRooms({
+  search = '',
+  sort = 'newest',
+}: RoomParams): Promise<DbRoom[]> {
   return apiRequest<DbRoom[]>(
     '/api/rooms',
     {
       method: 'GET',
       cache: 'no-store',
     },
-    { ...searchParams }
+    { search, sort }
   )
 }
 

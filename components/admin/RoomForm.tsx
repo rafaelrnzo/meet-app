@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -153,9 +153,14 @@ export function RoomForm({
     }
   }
 
+  const updateUserParams = useCallback((userParams?: ParamsUserAssignment) => {
+    params.current = { ...userParams }
+    fetchUsers(userParams)
+  }, [])
+
   useEffect(() => {
-    fetchUsers(initialData ? { exclude_group_id: initialData.group_id } : {})
-  }, [initialData])
+    updateUserParams(initialData ? { exclude_group_id: initialData.group_id } : {})
+  }, [initialData, updateUserParams])
 
   return (
     <Modal
@@ -166,6 +171,7 @@ export function RoomForm({
           onOpenChange(val)
           form.reset()
           setShowPassword(false)
+          updateUserParams({})
         },
         modal: false,
       }}
@@ -333,8 +339,7 @@ export function RoomForm({
                         ...omit(params.current, ['exclude_group_id']),
                         ...(val ? { exclude_group_id: +val.value } : {}),
                       }
-                      params.current = updateParams
-                      fetchUsers(updateParams)
+                      updateUserParams(updateParams)
                       field.form.setFieldValue('assignedTo', [])
                     }}
                   >
@@ -396,8 +401,7 @@ export function RoomForm({
                   placeholder='Cari anggota ...'
                   onSearch={({ value: search }) => {
                     const updateParams = { ...params.current, search }
-                    params.current = updateParams
-                    fetchUsers(updateParams)
+                    updateUserParams(updateParams)
                   }}
                 />
                 <Card className='rounded-md'>
