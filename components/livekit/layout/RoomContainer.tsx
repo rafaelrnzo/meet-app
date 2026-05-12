@@ -35,6 +35,7 @@ import { Toaster, toast } from 'sonner'
 import { MediaChoices } from '@/components/features/meeting/PreJoin'
 import { PollingProvider } from '../tools/Polling'
 import { fetchUserDbRooms, fetchRoomByCode, updateRoomPermissions } from '@/lib/api/admin-api'
+import { leaveRoomBackend, updateRoomPresence } from '@/lib/api/api'
 import dynamic from 'next/dynamic'
 import { YouTubeSyncWrapper } from '@/components/features/meeting/YouTubeSyncWrapper'
 
@@ -670,6 +671,22 @@ export default function RoomContainer({
     })()
   }, [roomName])
 
+  useEffect(() => {
+    const clearPresence = () => {
+      void leaveRoomBackend(roomName).catch((err) => {
+        console.error('[LiveKit] failed to clear room presence on unload:', err)
+      })
+    }
+
+    window.addEventListener('pagehide', clearPresence)
+    window.addEventListener('beforeunload', clearPresence)
+
+    return () => {
+      window.removeEventListener('pagehide', clearPresence)
+      window.removeEventListener('beforeunload', clearPresence)
+    }
+  }, [roomName])
+
   // Construct full presentation URL
   const fullPresentationPath = useMemo(() => {
     if (!presentationPath) return null
@@ -829,9 +846,17 @@ export default function RoomContainer({
           resolution: { width: 1280, height: 720 },
         },
       }}
-      onConnected={() => console.log('[LiveKit] connected to room:', roomName)}
+      onConnected={() => {
+        console.log('[LiveKit] connected to room:', roomName)
+        updateRoomPresence(roomName, 'active').catch((err) =>
+          console.error('[LiveKit] failed to update room presence:', err)
+        )
+      }}
       onDisconnected={(reason) => {
         console.log('[LiveKit] disconnected', reason)
+        leaveRoomBackend(roomName).catch((err) =>
+          console.error('[LiveKit] failed to clear room presence:', err)
+        )
         if (reason === DisconnectReason.PARTICIPANT_REMOVED) {
           // We need to attempt to clean up tracks if possible, forcing them to stop.
           // Since we don't have direct access to the room object here (it's internal to LiveKitRoom unless ref is used),

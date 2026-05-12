@@ -2,8 +2,15 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
-import { getToken, getUser, clearAuth, fetchProfile } from '@/lib/api/auth-client'
+import {
+  getToken,
+  getUser,
+  clearAuth,
+  fetchProfile,
+  setUser as persistUser,
+} from '@/lib/api/auth-client'
 import { authService } from '@/src/services/auth'
+import { toast } from 'sonner'
 
 export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: string }) {
   const router = useRouter()
@@ -16,7 +23,8 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
   const [user, setUser] = useState<any>(null)
 
   useEffect(() => {
-    const token = getToken()
+    const token =
+      getToken() || (typeof window !== 'undefined' ? localStorage.getItem('access_token') : null)
     const storedUser = getUser()
     setUser(storedUser)
 
@@ -38,6 +46,7 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
 
     // Helper to process user object
     const processUser = (u: any) => {
+      console.log('[Auth] Processing user:', u)
       let roleName = 'user'
       let userPerms: string[] = []
 
@@ -52,7 +61,7 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
         }
       }
 
-      const admin = roleName === 'admin'
+      const admin = roleName === 'admin' || roleName === 'superadmin'
       setIsAdmin(admin)
       setPermissions(userPerms)
 
@@ -79,13 +88,14 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
     // Hydrate from backend to ensure permissions are fresh
     fetchProfile()
       .then((freshUser) => {
+        console.log('[Auth] Profile fetched:', freshUser)
         setUser(freshUser)
         processUser(freshUser)
-        // Optionally update localStorage here too
-        // localStorage.setItem("vc_user", JSON.stringify(freshUser))
+        persistUser(freshUser)
       })
       .catch((err) => {
-        console.error('Hydration failed', err)
+        console.error('[Auth] Profile fetch failed:', err)
+        console.warn('Profile refresh skipped', err)
       })
       .finally(() => {
         setLoading(false)
@@ -93,8 +103,13 @@ export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: 
   }, [router, pathname, options?.requireAdmin, options?.requirePermission])
 
   const logout = async () => {
+    const { error } = await authService.logout()
+    if (error) {
+      toast.error('Error', { description: error })
+      return
+    }
+
     clearAuth()
-    await authService.logout()
     router.replace('/login')
   }
 

@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { ActiveRoom } from '@/lib/api/admin-api'
 
+import Cookies from 'js-cookie'
+
 export type RoomEventType =
   | 'connected'
   | 'room_updated'
@@ -38,6 +40,17 @@ const REFRESH_EVENT_TYPES: RoomEventType[] = [
   'participant_left',
   'recording_started',
   'recording_stopped',
+]
+
+// All named event types the backend may send as SSE `event:` fields
+const ALL_NAMED_EVENT_TYPES: RoomEventType[] = [
+  'connected',
+  'room_updated',
+  'participant_joined',
+  'participant_left',
+  'recording_started',
+  'recording_stopped',
+  'ping',
 ]
 
 export function applyRoomEventToActiveRooms(
@@ -83,15 +96,46 @@ export function applyRoomEventToActiveRooms(
     {
       sid: roomName,
       name: roomName,
+      num_publishers: 0,
       num_participants: participantCount,
-      num_publishers: participantCount,
       creation_time: Math.floor(Date.now() / 1000),
     },
   ]
 }
 
 /**
+ * Handles a parsed SSE event — updates status and fires the onUpdate callback.
+ */
+function handleParsedEvent(
+  data: RoomSSEEvent,
+  setStatus: (s: RoomEventConnectionStatus) => void,
+  setLastEvent: (e: RoomSSEEvent) => void,
+  onUpdateRef: React.MutableRefObject<((event: RoomSSEEvent) => void) | undefined>
+) {
+  setLastEvent(data)
+
+  if (data.type === 'connected') {
+    setStatus('connected')
+    return
+  }
+
+  if (data.type === 'ping') {
+    return
+  }
+
+  if (REFRESH_EVENT_TYPES.includes(data.type)) {
+    console.log('[SSE] Room event received:', data)
+    onUpdateRef.current?.(data)
+  }
+}
+
+/**
  * Hook to subscribe to real-time room updates via SSE.
+ *
+ * Handles both:
+ *  - Named SSE events (event: room_updated\ndata:...) via addEventListener
+ *  - Unnamed/default SSE events (data:...) via onmessage
+ *
  * @param onUpdate Callback function to trigger when an update is received.
  */
 export function useRealTimeRooms(
@@ -108,8 +152,18 @@ export function useRealTimeRooms(
   }, [onUpdate])
 
   useEffect(() => {
-    // SSE for real-time updates
-    const token = typeof window !== 'undefined' ? localStorage.getItem('vc_token') : null
+    // SSE for real-time updates — token passed as query param because
+    // EventSource does not support custom headers.
+    const token =
+      typeof window !== 'undefined'
+        ? Cookies.get('token') ||
+          Cookies.get('vc_token') ||
+          Cookies.get('access_token') ||
+          localStorage.getItem('token') ||
+          localStorage.getItem('vc_token') ||
+          localStorage.getItem('access_token')
+        : null
+
     if (!token) {
       setStatus('idle')
       return
@@ -126,28 +180,31 @@ export function useRealTimeRooms(
     setError(null)
     const eventSource = new EventSource(`${baseUrl}/api/rooms/events?${params.toString()}`)
 
+    // ─── Handle unnamed/default SSE events (data: {...}) ───────────────────
     eventSource.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data) as RoomSSEEvent
-        setLastEvent(data)
-
-        if (data.type === 'connected') {
-          setStatus('connected')
-          return
-        }
-
-        if (data.type === 'ping') {
-          return
-        }
-
-        if (REFRESH_EVENT_TYPES.includes(data.type)) {
-          console.log('[SSE] Room event received:', data)
-          onUpdateRef.current?.(data)
-        }
+        handleParsedEvent(data, setStatus, setLastEvent, onUpdateRef)
       } catch (err) {
-        console.error('[SSE] Failed to parse room event:', err, event.data)
+        console.error('[SSE] Failed to parse room event (onmessage):', err, event.data)
       }
     }
+
+    // ─── Handle named SSE events (event: room_updated\ndata: {...}) ─────────
+    // Backend may send `event: <type>` headers — onmessage won't fire for these.
+    ALL_NAMED_EVENT_TYPES.forEach((eventType) => {
+      eventSource.addEventListener(eventType, (event) => {
+        try {
+          const raw = JSON.parse((event as MessageEvent).data)
+          // Normalise: backend may send {type, data} or just the data payload directly
+          const data: RoomSSEEvent =
+            raw?.type ? raw : { type: eventType, data: raw }
+          handleParsedEvent(data, setStatus, setLastEvent, onUpdateRef)
+        } catch (err) {
+          console.error(`[SSE] Failed to parse named event "${eventType}":`, err)
+        }
+      })
+    })
 
     eventSource.onopen = () => {
       setStatus('connected')
@@ -158,6 +215,7 @@ export function useRealTimeRooms(
       console.error('[SSE] EventSource failed:', error)
       setError(error)
       setStatus('disconnected')
+      eventSource.close()
     }
 
     return () => {

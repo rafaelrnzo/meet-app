@@ -52,6 +52,7 @@ export function LoginForm({ className, ...props }: React.ComponentProps<'form'>)
       }
 
       if (typeof window !== 'undefined') {
+        localStorage.setItem('token', token)
         localStorage.setItem('vc_token', token)
         localStorage.setItem(
           'vc_user',
