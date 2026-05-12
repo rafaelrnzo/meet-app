@@ -1,5 +1,6 @@
-import axios from 'axios'
+import axios, { AxiosError } from 'axios'
 import { keycloakConfig } from '../config/keycloak'
+import Cookies from 'js-cookie'
 
 interface Tokens {
   access_token: string
@@ -7,6 +8,13 @@ interface Tokens {
   id_token: string
   expires_in: number
 }
+
+const getBackendUrl = () =>
+  (
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'http://localhost:8080'
+  ).replace(/\/+$/, '')
 
 /**
  * Authentication service handling login, token exchange, and logout
@@ -53,57 +61,55 @@ export const authService = {
 
     // SYNC WITH BACKEND
     try {
-      // Need to decode id_token to get username/email or call userinfo
-      // Simple way: just ignore detailed error if sync fails, but ideally we want it.
-      // Let's assume we decode ID token or just pass it?
-      // The backend endpoint `/sso-login` expects { username, email }.
-      // Let's rely on `id_token` decoding.
-      // Since we don't have a jwt decoder handy here (maybe), we can try to simplistic parse.
-
       const payload = JSON.parse(atob(response.data.id_token.split('.')[1]))
       const username = payload.preferred_username || payload.name || payload.sub
       const email = payload.email || ''
-      const backendUrl = `${process.env.NEXT_PUBLIC_API_URL}`
+      const backendUrl = getBackendUrl()
 
-      const apiRes = await axios.post(`${backendUrl}/sso-login`, {
-        username,
-        email,
-      })
+      const apiRes = await axios.post(
+        `${backendUrl}/sso-login`,
+        {
+          username,
+          email,
+          token: response.data.access_token,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${response.data.access_token}`,
+          },
+        }
+      )
 
-      // Backend returns a new token, but we might want to keep using Keycloak's token for ID?
-      // Or backend token?
-      // The current app seems to use `localStorage` directly in `auth-client.ts`.
-      // Wait, `auth.ts` uses `access_token` from Keycloak?
-      // If the app uses Keycloak token for backend, then backend must validate Keycloak token!
-      // BUT my backend `JWTAuthMiddleware` validates its OWN tokens (HS256 with "my-secret").
-      // So we MUST use the token returned by `/sso-login`.
+      const cookieOptions = { expires: 7, sameSite: 'lax' } as const
+      Cookies.set('token', response.data.access_token, cookieOptions)
+      Cookies.set('vc_token', response.data.access_token, cookieOptions)
+      Cookies.set('access_token', response.data.access_token, cookieOptions)
+      Cookies.set('refresh_token', response.data.refresh_token, cookieOptions)
+      Cookies.set('id_token', response.data.id_token, cookieOptions)
 
-      if (apiRes.data.token) {
-        // OVERRIDE user token with Backend Token?
-        // This is tricky. If we use 2 systems.
-        // But the user said "sso is already successfully used", implies previous setup worked?
-        // If previous setup worked, how did backend validate?
-        // Previous backend didn't seem to have valid OIDC validation logic (I didn't see verify).
-        // It had `utility.ParseJWT`.
+      localStorage.setItem('token', response.data.access_token)
+      localStorage.setItem('vc_token', response.data.access_token)
+      localStorage.setItem('access_token', response.data.access_token)
 
-        // My plan: Keep the Keycloak logic for frontend state, but store Backend Token for API calls?
-        // `auth-client.ts` uses `vc_token`. `auth.ts` uses `access_token`.
-        // This suggests `auth.ts` is the new one for Keycloak?
-
-        // Let's store the backend token in 'vc_token' (which `auth-client.ts` uses)
-        // and Keycloak token in 'access_token' (which `auth.ts` uses).
-
-        localStorage.setItem('vc_token', apiRes.data.token)
-        localStorage.setItem(
-          'vc_user',
-          JSON.stringify({
-            username: apiRes.data.username,
-            role: apiRes.data.role, // This is likely an object now
-          })
-        )
+      if (apiRes.data.username) {
+        const userData = JSON.stringify({
+          id: apiRes.data.user_id,
+          username: apiRes.data.username,
+          role: apiRes.data.role,
+        })
+        Cookies.set('vc_user', userData, cookieOptions)
+        localStorage.setItem('vc_user', userData)
       }
     } catch (e) {
       console.error('Failed to sync SSO user with backend', e)
+      // Fallback: Store access_token in cookies even if backend synchronization failed.
+      const cookieOptions = { expires: 7, sameSite: 'lax' } as const
+      if (typeof window !== 'undefined' && !Cookies.get('token')) {
+        Cookies.set('token', response.data.access_token, cookieOptions)
+        Cookies.set('vc_token', response.data.access_token, cookieOptions)
+        localStorage.setItem('token', response.data.access_token)
+        localStorage.setItem('vc_token', response.data.access_token)
+      }
     }
 
     return response.data
@@ -114,59 +120,122 @@ export const authService = {
    * and redirecting to the Keycloak logout endpoint.
    */
   logout: async () => {
+    const refreshToken = Cookies.get('refresh_token') || localStorage.getItem('refresh_token') || ''
     const params = new URLSearchParams({
       client_id: keycloakConfig.clientId,
-      refresh_token: localStorage.getItem('refresh_token') ?? '',
-      post_logout_redirect_uri: window.location.origin,
       client_secret: keycloakConfig.clientSecret,
+      refresh_token: refreshToken,
+      post_logout_redirect_uri: window.location.origin,
     })
 
-    // Clear local tokens
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    localStorage.removeItem('id_token')
-    localStorage.removeItem('vc_token')
-    localStorage.removeItem('vc_user')
+    try {
+      await axios.post(keycloakConfig.urls.logout, params, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      })
+      return { error: null }
+    } catch (e) {
+      console.error('Keycloak logout request failed', e)
+      if (e instanceof AxiosError) {
+        return { error: e.response?.data.error_description ?? e.message }
+      }
 
-    await axios.post(keycloakConfig.urls.logout, params, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-    })
+      if (e instanceof Error) {
+        return { error: e.message }
+      }
+
+      return { error: 'Gagal logout' }
+    }
   },
 
   /**
-   * Retrieves the stored authentication tokens from local storage.
+   * Retrieves the stored authentication tokens from cookies or local storage.
    *
    * @returns {Object|null} An object containing accessToken, refreshToken, and idToken.
    */
   getTokens: () => {
     if (typeof window === 'undefined') return null
     return {
-      accessToken: localStorage.getItem('vc_token') || localStorage.getItem('access_token'),
-      refreshToken: localStorage.getItem('refresh_token'),
-      idToken: localStorage.getItem('id_token'),
+      accessToken:
+        Cookies.get('token') ||
+        Cookies.get('vc_token') ||
+        Cookies.get('access_token') ||
+        localStorage.getItem('token') ||
+        localStorage.getItem('vc_token') ||
+        localStorage.getItem('access_token'),
+      refreshToken: Cookies.get('refresh_token') || localStorage.getItem('refresh_token'),
+      idToken: Cookies.get('id_token') || localStorage.getItem('id_token'),
     }
   },
 
   /**
-   * Stores the given authentication tokens into local storage.
+   * Stores the given authentication tokens into cookies and local storage.
    *
    * @param {Tokens} tokens - The token payload from Keycloak.
    */
   setTokens: (tokens: Tokens) => {
+    const cookieOptions = { expires: 7, sameSite: 'lax' } as const
+    Cookies.set('access_token', tokens.access_token, cookieOptions)
+    Cookies.set('refresh_token', tokens.refresh_token, cookieOptions)
+    Cookies.set('id_token', tokens.id_token, cookieOptions)
+    Cookies.set('token', tokens.access_token, cookieOptions)
+    Cookies.set('vc_token', tokens.access_token, cookieOptions)
+
     localStorage.setItem('access_token', tokens.access_token)
     localStorage.setItem('refresh_token', tokens.refresh_token)
     localStorage.setItem('id_token', tokens.id_token)
+    localStorage.setItem('token', tokens.access_token)
+    localStorage.setItem('vc_token', tokens.access_token)
   },
 
   /**
-   * Checks if the user is currently authenticated based on local storage token presence.
+   * Checks if the user is currently authenticated based on token presence.
    *
    * @returns {boolean} True if an access token exists, false otherwise.
    */
   isAuthenticated: () => {
     if (typeof window === 'undefined') return false
-    return !!(localStorage.getItem('vc_token') || localStorage.getItem('access_token'))
+    return !!(
+      Cookies.get('token') ||
+      Cookies.get('vc_token') ||
+      Cookies.get('access_token') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('vc_token') ||
+      localStorage.getItem('access_token')
+    )
   },
+}
+
+// Token Refresh Logic
+if (typeof window !== 'undefined') {
+  const refreshToken = async () => {
+    const tokens = authService.getTokens()
+    if (tokens?.accessToken && tokens?.refreshToken) {
+      try {
+        // Simple decode to check expiry
+        const payload = JSON.parse(atob(tokens.accessToken.split('.')[1]))
+        const expiresIn = payload.exp - Date.now() / 1000
+
+        if (expiresIn < 300) {
+          // 5 minutes before expire
+          const params = new URLSearchParams({
+            grant_type: 'refresh_token',
+            client_id: keycloakConfig.clientId,
+            client_secret: keycloakConfig.clientSecret,
+            refresh_token: tokens.refreshToken,
+          })
+
+          const response = await axios.post(keycloakConfig.urls.token, params, {
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+          })
+
+          authService.setTokens(response.data)
+        }
+      } catch (e) {
+        console.error('Failed to auto-refresh token', e)
+      }
+    }
+  }
+  setInterval(refreshToken, 60000) // Check every minute
 }
