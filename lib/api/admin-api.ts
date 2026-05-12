@@ -223,8 +223,15 @@ export async function fetchActiveRooms(): Promise<ActiveRoom[]> {
   })
 }
 
+export async function fetchActiveRoomsForAll(): Promise<DbRoom[]> {
+  return apiRequest<DbRoom[]>('/api/rooms', {
+    method: 'GET',
+    cache: 'no-store',
+  })
+}
+
 export async function closeActiveRoom(name: string): Promise<void> {
-  await apiRequest(`/admin/livekit/rooms/${encodeURIComponent(name)}`, {
+  await apiRequest(`/admin/rooms/${encodeURIComponent(name)}`, {
     method: 'DELETE',
   })
 }

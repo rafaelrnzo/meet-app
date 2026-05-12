@@ -79,6 +79,21 @@ const FormField = (props: FormFieldProps) => {
   )
 }
 
+function getRoomSaveErrorMessage(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  const lowerMessage = message.toLowerCase()
+
+  if (
+    lowerMessage.includes('duplicate key') ||
+    lowerMessage.includes('idx_rooms_name') ||
+    lowerMessage.includes('sqlstate 23505')
+  ) {
+    return 'Nama ruangan sudah digunakan. Gunakan nama lain.'
+  }
+
+  return message || 'Gagal menyimpan ruangan.'
+}
+
 export function RoomForm({
   open,
   onOpenChange,
@@ -122,12 +137,7 @@ export function RoomForm({
         onSuccess()
         formApi.reset()
       } catch (error) {
-        toast.error(`Gagal ${initialData ? 'memperbarui' : 'membuat'} ruang rapat`, {
-          description:
-            error instanceof Error
-              ? error?.message
-              : 'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman',
-        })
+        getRoomSaveErrorMessage(error)
       }
     },
   })

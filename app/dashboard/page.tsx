@@ -2,7 +2,7 @@
 
 import ProtectedRoute from '@/src/components/ProtectedRoute'
 import { authService } from '@/src/services/auth'
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import api from '@/src/services/api'
 import { motion } from 'framer-motion'
 import {
@@ -19,9 +19,9 @@ import {
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { useRealTimeRooms, applyRoomEventToActiveRooms } from '@/hooks/use-real-time-rooms'
-import { fetchActiveRooms } from '@/lib/api/admin-api'
-import type { ActiveRoom } from '@/lib/api/admin-api'
+import { useRealTimeRooms } from '@/hooks/use-real-time-rooms'
+import { fetchActiveRoomsForAll } from '@/lib/api/admin-api'
+import type { DbRoom } from '@/lib/api/admin-api'
 
 interface UserProfile {
   id?: number
@@ -33,34 +33,28 @@ export default function DashboardPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
-  const loadingActiveRoomsRef = useRef(false)
+  const [rooms, setRooms] = useState<DbRoom[]>([])
+  const loadingRoomsRef = useRef(false)
 
-  const loadActiveRooms = useCallback(async () => {
-    if (loadingActiveRoomsRef.current) return
-    loadingActiveRoomsRef.current = true
+  const loadRooms = useCallback(async () => {
+    if (loadingRoomsRef.current) return
+    loadingRoomsRef.current = true
     try {
-      const rooms = await fetchActiveRooms()
-      setActiveRooms(rooms || [])
+      const data = await fetchActiveRoomsForAll()
+      setRooms(data || [])
     } catch (err) {
-      console.error('Failed to fetch active rooms', err)
+      console.error('Failed to fetch rooms', err)
     } finally {
-      loadingActiveRoomsRef.current = false
+      loadingRoomsRef.current = false
     }
   }, [])
 
   useEffect(() => {
-    loadActiveRooms()
-  }, [loadActiveRooms])
+    loadRooms()
+  }, [loadRooms])
 
-  useEffect(() => {
-    const intervalId = window.setInterval(loadActiveRooms, 2000)
-    return () => window.clearInterval(intervalId)
-  }, [loadActiveRooms])
-
-  const { status: roomEventStatus, lastEvent } = useRealTimeRooms((event) => {
-    setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
-    loadActiveRooms()
+  const { status: roomEventStatus, lastEvent } = useRealTimeRooms(() => {
+    loadRooms()
   })
 
   const handleLogout = () => {
@@ -86,12 +80,7 @@ export default function DashboardPage() {
   const participantCount =
     lastEvent?.data?.participant_count ?? lastEvent?.data?.participants ?? undefined
   const roomId = lastEvent?.data?.room_id
-  const totalParticipants = useMemo(
-    () => activeRooms.reduce((acc, room) => acc + (room.num_publishers || 0), 0),
-    [activeRooms]
-  )
-  const hasLiveRooms = activeRooms.length > 0
-  const hasLiveParticipants = totalParticipants > 0
+  const hasRooms = rooms.length > 0
 
   return (
     <ProtectedRoute>
@@ -224,29 +213,24 @@ export default function DashboardPage() {
                         <span className='text-xs text-slate-400'>Total Live Rooms</span>
                         <div className='flex items-center gap-2 text-lg font-semibold text-slate-200'>
                           <span className='relative flex h-2.5 w-2.5'>
-                            {hasLiveRooms && (
+                            {hasRooms && (
                               <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-red-400 opacity-75'></span>
                             )}
                             <span
-                              className={`relative inline-flex h-2.5 w-2.5 rounded-full ${hasLiveRooms ? 'bg-red-500' : 'bg-slate-500'}`}
+                              className={`relative inline-flex h-2.5 w-2.5 rounded-full ${hasRooms ? 'bg-red-500' : 'bg-slate-500'}`}
                             ></span>
                           </span>
-                          {activeRooms.length}
+                          {rooms.length}
                         </div>
                       </div>
                       <div className='flex flex-col gap-1 rounded border border-slate-800/60 bg-slate-900/40 p-2'>
                         <span className='text-xs text-slate-400'>Total Participants</span>
                         <div className='flex items-center gap-2 text-lg font-semibold text-slate-200'>
                           <span className='relative flex h-2.5 w-2.5'>
-                            {hasLiveParticipants && (
-                              <span className='absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75'></span>
-                            )}
-                            <span
-                              className={`relative inline-flex h-2.5 w-2.5 rounded-full ${hasLiveParticipants ? 'bg-emerald-500' : 'bg-slate-500'}`}
-                            ></span>
+                            <span className='relative inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500'></span>
                           </span>
                           <Users className='h-4 w-4 text-emerald-500' />
-                          {totalParticipants}
+                          {rooms.length}
                         </div>
                       </div>
                     </div>

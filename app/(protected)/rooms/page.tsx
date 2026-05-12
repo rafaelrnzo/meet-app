@@ -46,16 +46,20 @@ export default function RoomsPage() {
     async (params?: RoomParams) => {
       setLoading(true)
       try {
-        const [r, g, ar, u] = await Promise.all([
-          fetchDbRooms({ ...params, sort: params?.sort ?? 'newest' }), // set default newest
+        const [r, g, ar, u] = await Promise.allSettled([
+          fetchDbRooms({ ...params, sort: params?.sort ?? 'newest' }),
           isAdmin ? fetchGroups() : Promise.resolve([]),
-          fetchActiveRooms().catch(() => []),
+          fetchActiveRooms(),
           isAdmin ? fetchUsers() : Promise.resolve([]),
         ])
-        setRooms(r || [])
-        setGroups(g || [])
-        setActiveRooms(ar || [])
-        setUsers(u || [])
+        if (r.status === 'fulfilled') setRooms(r.value || [])
+        else console.error('Failed to load rooms:', r.reason)
+        if (g.status === 'fulfilled') setGroups(g.value || [])
+        else console.error('Failed to load groups:', g.reason)
+        if (ar.status === 'fulfilled') setActiveRooms(ar.value || [])
+        else console.error('Failed to load active rooms:', ar.reason)
+        if (u.status === 'fulfilled') setUsers(u.value || [])
+        else console.error('Failed to load users:', u.reason)
       } catch (error) {
         console.error('Failed to load data', error)
       } finally {
