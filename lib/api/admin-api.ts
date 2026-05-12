@@ -1,13 +1,21 @@
 import type { RoomPayload, SortRoomType } from '@/feat/rooms/dto'
+import Cookies from 'js-cookie'
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'
 
 function getToken(): string | null {
   if (typeof window === 'undefined') return null
   try {
-    return localStorage.getItem('vc_token')
+    return (
+      Cookies.get('token') ||
+      Cookies.get('vc_token') ||
+      Cookies.get('access_token') ||
+      localStorage.getItem('token') ||
+      localStorage.getItem('vc_token') ||
+      localStorage.getItem('access_token')
+    )
   } catch (e) {
-    console.error('Failed to access localStorage', e)
+    console.error('Failed to access storage', e)
     return null
   }
 }
@@ -29,7 +37,9 @@ export async function apiRequest<T>(
   }
 
   const params = new URLSearchParams(searchParams)
-  const url = `${API_BASE}${path}?${params}`
+  const queryString = params.toString()
+  const url = queryString ? `${API_BASE}${path}?${queryString}` : `${API_BASE}${path}`
+  console.log(`[API Request] ${options.method || 'GET'} ${url}`)
   const res = await fetch(url, {
     ...options,
     headers,
@@ -42,7 +52,9 @@ export async function apiRequest<T>(
 
   // Handle empty responses (like 204 No Content)
   const text = await res.text()
-  return text ? JSON.parse(text) : (null as any)
+  const data = text ? JSON.parse(text) : null
+  console.log(`[API Response] ${url}:`, data)
+  return data
 }
 
 export type DbRoom = {
