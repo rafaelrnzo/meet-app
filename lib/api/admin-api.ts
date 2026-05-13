@@ -197,6 +197,23 @@ export async function uploadRoomPresentation(id: number, file: File): Promise<{ 
   return res.json()
 }
 
+export async function getOnePresentation(roomId: number) {
+  try {
+    return await apiRequest(`/admin/presentations/${roomId}`, {
+      method: 'GET',
+      cache: 'no-store',
+    })
+  } catch {
+    return []
+  }
+}
+
+export async function deleteRoomPresentation(roomId: number) {
+  await apiRequest(`/admin/rooms/${roomId}/presentation`, {
+    method: 'DELETE',
+  })
+}
+
 export type Group = {
   id: number
   name: string

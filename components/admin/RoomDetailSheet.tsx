@@ -48,6 +48,7 @@ export function RoomDetailSheet({
   const [status, setStatus] = useState<StatusOption>('all')
   const [searchMembers, setSearchMember] = useState('')
   const [userIdentity, setUserIdentity] = useState('')
+
   const { isAdmin } = useAuth()
   const ROLE_USER = 'user'
   const params = useRef<RoomParams>({})
@@ -143,6 +144,7 @@ export function RoomDetailSheet({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.id])
+
   return (
     <AnimatePresence>
       {isOpen && room && (
@@ -217,7 +219,7 @@ export function RoomDetailSheet({
               </div>
             </div>
 
-            <div className='my-2 flex h-full flex-col'>
+            <div className='flex h-full flex-col overflow-y-auto'>
               <Tabs defaultValue={activeTab} className='h-full overflow-auto'>
                 <TabsList variant='line'>
                   {tabsTrigger.map((tabs) => (
@@ -268,7 +270,7 @@ export function RoomDetailSheet({
                   />
                 </TabsContent>
               </Tabs>
-              <div className='animate-in fade-in slide-in-from-bottom-4 space-y-6 duration-300'>
+              <div className='animate-in fade-in slide-in-from-bottom-4 mt-2 space-y-6 duration-300'>
                 <Button
                   onClick={onClose}
                   className='mt-0 w-full cursor-pointer rounded-md bg-red-800 py-2.5 text-sm font-semibold text-white'
