@@ -1,12 +1,10 @@
 'use client'
 
-import { RoomDetailSheetProps, StatusOption } from '@/components/admin/RoomDetailSheet'
+import type { RoomDetailSheetProps, StatusOption } from '@/components/admin/RoomDetailSheet'
 import { Button } from '@/components/ui/button'
-import DropFile, { FileOption } from '@/components/ui/dropfile'
-import { Input } from '@/components/ui/input'
+import DropFile from '@/components/ui/dropfile'
+import type { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
-import { Modal, ModalDelete } from '@/components/ui/modal'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import {
   Select,
   SelectContent,
@@ -14,12 +12,11 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select'
-import { TableViewHeader } from '@/compounds/table-view/header'
 import { useAuth } from '@/hooks/use-auth'
+import type { MemberRoom } from '@/lib/api/admin-api'
 import {
-  DbRoom,
-  MemberRoom,
-  RoomParams,
+  deleteRoomPresentation,
+  getOnePresentation,
   updateRoomPermissions,
   uploadRoomPresentation,
 } from '@/lib/api/admin-api'
@@ -28,19 +25,15 @@ import {
   Ban,
   Calendar1,
   DoorOpen,
-  FileText,
   Filter,
-  Funnel,
   Hourglass,
   LockKeyholeOpen,
   Search,
-  Trash,
   Trash2,
-  User,
   Users,
   X,
 } from 'lucide-react'
-import { SetStateAction, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 
 interface RoomTabsProps extends Omit<RoomDetailSheetProps, 'isOpen' | 'groups' | 'handleEdit'> {
@@ -60,14 +53,17 @@ interface RoomTabsProps extends Omit<RoomDetailSheetProps, 'isOpen' | 'groups' |
   setUserIdentity: (val: string) => void
 }
 
+type FileResponse = {
+  file_name: string
+  file_url: string
+  size: number
+}
+
 export default function RoomTabs({
   value,
   activeRoom,
   room,
-  canDelete,
-  onDelete,
   onEditSuccess,
-  getPresentationUrl,
   onClose,
   allParticipants,
   searchParticipants,
@@ -77,6 +73,18 @@ export default function RoomTabs({
   setUserIdentity,
 }: RoomTabsProps) {
   const { isAdmin } = useAuth()
+  const [files, setFiles] = useState<FileResponse[]>([])
+  const MAX_FILE = 5
+
+  const loadPresentations = async () => {
+    try {
+      const file = await getOnePresentation(room?.id || 0)
+      setFiles(Array.isArray(file) ? file : file ? [file] : [])
+    } catch (error) {
+      console.error('Failed to load data', error)
+    }
+  }
+
   const handleUploadFile = async (files: File[]) => {
     try {
       toast.loading('Uploading presentation...')
@@ -108,6 +116,23 @@ export default function RoomTabs({
       console.error(error)
     }
   }
+
+  const handleRemoveFile = async () => {
+    try {
+      await deleteRoomPresentation(room?.id ?? 0)
+      toast.success('Berhasil menghapus file')
+    } catch (error) {
+      toast.error('Gagal menghapus file')
+      console.error(error)
+    }
+  }
+
+  useEffect(() => {
+    if (room?.id) {
+      loadPresentations()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [room?.id])
 
   const type = () => {
     switch (value) {
@@ -152,16 +177,25 @@ export default function RoomTabs({
             </div>
             <div className='my-2'>
               <p className='pb-2'>Deskripsi ruangan</p>
-              <div className='h-16 rounded-md border border-slate-400 px-3 py-1 shadow-sm'>
+              <div className='min-h-16 rounded-md border border-slate-400 px-3 py-1 shadow-sm'>
                 {room?.description || '-'}
               </div>
             </div>
             <div className='my-2'>
               <p className='pb-2'>Unggah berkas presentasi</p>
               <DropFile
-                multiple={true}
-                maxFilesSizeInMB={5}
-                onUploadFile={(files) => handleUploadFile(files)}
+                files={
+                  files.map((item) => ({
+                    name: item.file_name,
+                    url: item.file_url,
+                    size: item.size,
+                  })) || []
+                }
+                maxFilesSizeInMB={MAX_FILE}
+                onUploadFile={(files) => {
+                  handleUploadFile(files)
+                }}
+                onRemoveFile={handleRemoveFile}
               />
             </div>
           </div>
@@ -236,9 +270,16 @@ export default function RoomTabs({
                   </Select>
                 </div>
               </div>
-              {allParticipants.users.length < 0 ? (
-                <div>
-                  <p>Tidak ada</p>
+              {allParticipants.users.length <= 0 ? (
+                <div className='text-center'>
+                  <div className='flex justify-center'>
+                    <div className='border-error flex size-12 items-center justify-center rounded-md border'>
+                      <X className='size-6 text-red-800' />
+                    </div>
+                  </div>
+                  <p className='text-error text-[18px] font-medium'>
+                    Tidak Ada Peserta yang Menunggu <br /> Persetujuan maupun yang Diblokir
+                  </p>
                 </div>
               ) : (
                 allParticipants.users.map((user, idx) => {
