@@ -6,7 +6,7 @@ import {
   SelectItem,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import React, { useState } from 'react'
+import React from 'react'
 
 interface TableViewFilterProps {
   options: { value: string; label: string }[]
@@ -22,17 +22,9 @@ interface TableViewFilterProps {
 
 function TableViewFilter(props: TableViewFilterProps) {
   const { options = [], placeholder = 'Filter', selectProps } = props
-  const [filterValue, setFilterValue] = useState('')
 
   return (
-    <Select
-      {...selectProps?.select}
-      value={selectProps?.select?.value ?? filterValue}
-      onValueChange={(currentValue) =>
-        selectProps?.select?.onValueChange?.(currentValue) ??
-        setFilterValue(currentValue === 'all' ? '' : currentValue)
-      }
-    >
+    <Select {...selectProps?.select}>
       <SelectTrigger
         {...selectProps?.selectTrigger}
         className={cn(
@@ -50,9 +42,6 @@ function TableViewFilter(props: TableViewFilterProps) {
         className='wrap-anywhere max-md:w-[calc(100vw-48px)]'
       >
         <SelectGroup>
-          <SelectItem value='all' key={`table-filter-all`}>
-            Semua
-          </SelectItem>
           {options.map((item, index) => (
             <SelectItem value={item.value} key={`table-filter-${index}`}>
               {item.label}
