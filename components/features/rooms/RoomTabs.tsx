@@ -175,29 +175,33 @@ export default function RoomTabs({
                 <p className='text-xs'>{activeRoom?.num_participants ?? 0} peserta</p>
               </div>
             </div>
-            <div className='my-2'>
-              <p className='pb-2'>Deskripsi ruangan</p>
-              <div className='min-h-16 rounded-md border border-slate-400 px-3 py-1 shadow-sm'>
-                {room?.description || '-'}
+            {isAdmin && (
+              <div>
+                <div className='my-2'>
+                  <p className='pb-2'>Deskripsi ruangan</p>
+                  <div className='min-h-16 rounded-md border border-slate-400 px-3 py-1 shadow-sm'>
+                    {room?.description || '-'}
+                  </div>
+                </div>
+                <div className='my-2'>
+                  <p className='pb-2'>Unggah berkas presentasi</p>
+                  <DropFile
+                    files={
+                      files.map((item) => ({
+                        name: item.file_name,
+                        url: item.file_url,
+                        size: item.size,
+                      })) || []
+                    }
+                    maxFilesSizeInMB={MAX_FILE}
+                    onUploadFile={(files) => {
+                      handleUploadFile(files)
+                    }}
+                    onRemoveFile={handleRemoveFile}
+                  />
+                </div>
               </div>
-            </div>
-            <div className='my-2'>
-              <p className='pb-2'>Unggah berkas presentasi</p>
-              <DropFile
-                files={
-                  files.map((item) => ({
-                    name: item.file_name,
-                    url: item.file_url,
-                    size: item.size,
-                  })) || []
-                }
-                maxFilesSizeInMB={MAX_FILE}
-                onUploadFile={(files) => {
-                  handleUploadFile(files)
-                }}
-                onRemoveFile={handleRemoveFile}
-              />
-            </div>
+            )}
           </div>
         )
       case 'participants':
