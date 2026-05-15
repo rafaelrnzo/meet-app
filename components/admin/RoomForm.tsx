@@ -37,7 +37,7 @@ import { Modal } from '@/components/ui/modal'
 import { Eye, EyeClosed, Plus, X } from 'lucide-react'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { toast } from 'sonner'
-import { buttonVariants } from '../ui/button'
+import { buttonVariants } from '@/components/ui/button'
 
 interface RoomFormProps {
   open: boolean
@@ -57,6 +57,8 @@ interface FormFieldProps {
   errors?: ({ message?: string } | undefined)[]
   className?: HTMLDivElement['className']
 }
+
+type GroupOptions = SelectOptions & { totalMember: number }
 
 const FormField = (props: FormFieldProps) => {
   const {
@@ -109,7 +111,7 @@ export function RoomForm({
     () => !!activeRooms.find((ar) => ar.name === initialData?.room_code),
     [activeRooms, initialData?.room_code]
   )
-  const currentParticipant = useMemo(
+  const activeParticipant = useMemo(
     () => activeRooms.find((ar) => ar.name === initialData?.room_code)?.num_participants,
     [activeRooms, initialData?.room_code]
   )
@@ -120,7 +122,7 @@ export function RoomForm({
   const form = useForm({
     defaultValues,
     validators: {
-      onChangeAsync: roomSchema({ isLive: isActiveRoom, currentParticipant }),
+      onChangeAsync: roomSchema({ isLive: isActiveRoom, activeParticipant }),
     },
     onSubmit: async ({ value, formApi }: { value: RoomSchemaValue; formApi: AnyFormApi }) => {
       const payload = getRoomPayload(value)
@@ -161,6 +163,18 @@ export function RoomForm({
   useEffect(() => {
     updateUserParams(initialData ? { exclude_group_id: initialData.group_id } : {})
   }, [initialData, updateUserParams])
+
+  const remainingParticipant = useStore(form.store, (state) => {
+    const { assignedTo, maxParticipants, totalGroupMember } = state.values
+    const remainingParticipant = (maxParticipants ?? 0) - (assignedTo.length + totalGroupMember)
+
+    return remainingParticipant > 0 ? remainingParticipant : 0
+  })
+
+  const handleGetTotalGroupMember = useCallback(
+    (id: number) => groups.find((item) => item.id === id)?.members?.length ?? 0,
+    [groups]
+  )
 
   return (
     <Modal
@@ -315,13 +329,31 @@ export function RoomForm({
         </Field>
 
         <Field orientation='horizontal' className='items-start max-[519px]:flex-col'>
-          <form.Field name='groupId'>
+          <form.Field
+            name='groupId'
+            listeners={{
+              onChange: ({ value, fieldApi }) => {
+                const totalGroupMember = handleGetTotalGroupMember(+value)
+                fieldApi.form.setFieldValue('totalGroupMember', totalGroupMember)
+                fieldApi.form.setFieldValue('assignedTo', [])
+              },
+              onMount: ({ fieldApi, value }) => {
+                const totalGroupMember = handleGetTotalGroupMember(+value)
+                fieldApi.form.setFieldValue('totalGroupMember', totalGroupMember)
+              },
+            }}
+            validators={{ onChangeListenTo: ['maxParticipants', 'assignedTo'] }}
+          >
             {(field) => {
               const { name, state, handleChange } = field
               const { value: defaultValue, meta } = state
               const { errors, isTouched } = meta
               const isInvalid = isTouched && errors.length > 0
-              const options = groups.map((item) => ({ value: `${item.id}`, label: item.name }))
+              const options: GroupOptions[] = groups.map((item) => ({
+                value: `${item.id}`,
+                label: item.name,
+                totalMember: item.members?.length ?? 0,
+              }))
               const value = options.find((item) => item.value === defaultValue) ?? {
                 value: '',
                 label: '',
@@ -340,16 +372,24 @@ export function RoomForm({
                         ...(val ? { exclude_group_id: +val.value } : {}),
                       }
                       updateUserParams(updateParams)
-                      field.form.setFieldValue('assignedTo', [])
                     }}
                   >
-                    <ComboboxInput placeholder='Pilih kelompok ...' showClear={!!value.value} />
+                    <ComboboxInput
+                      aria-invalid={isInvalid}
+                      placeholder='Pilih kelompok ...'
+                      showClear={!!value.value}
+                    />
                     <ComboboxContent>
                       <ComboboxEmpty>Tidak ada data.</ComboboxEmpty>
                       <ComboboxList>
-                        {(group) => (
-                          <ComboboxItem key={group.value} value={group}>
-                            {group.label}
+                        {(group: GroupOptions) => (
+                          <ComboboxItem
+                            key={group.value}
+                            value={group}
+                            className='flex items-center justify-between gap-2.5'
+                          >
+                            <span>{group.label.trim() || '-'}</span>
+                            <span>{group.totalMember}</span>
                           </ComboboxItem>
                         )}
                       </ComboboxList>
@@ -384,13 +424,17 @@ export function RoomForm({
           </form.Field>
         </Field>
 
-        <form.Field name='assignedTo'>
+        <form.Field
+          name='assignedTo'
+          validators={{ onChangeListenTo: ['maxParticipants', 'groupId'] }}
+        >
           {(field) => {
             const { name, state, handleChange } = field
             const { value, meta } = state
             const { errors, isTouched } = meta
             const isInvalid = isTouched && errors.length > 0
-            const assignTo = field.form.state.values.assignedTo
+            const isCheckedAll = users.every((user) => value.includes(`${user.id}`))
+            const uncheckedUser = users.filter((user) => !value.includes(`${user.id}`)).length
 
             return (
               <FormField
@@ -437,10 +481,13 @@ export function RoomForm({
                                 prev.filter((userId) => !allUser.includes(userId))
                               )
                             }}
-                            disabled={!users.length}
-                            checked={users.every((user) => assignTo.includes(`${user.id}`))}
+                            disabled={
+                              !users.length ||
+                              (uncheckedUser > remainingParticipant && !isCheckedAll)
+                            }
+                            checked={isCheckedAll}
                           />
-                          <Label htmlFor='all' className='w-full'>
+                          <Label htmlFor='all' className='w-full opacity-100!'>
                             All
                           </Label>
                         </Field>
@@ -461,8 +508,9 @@ export function RoomForm({
                                     prev.filter((item) => item !== `${user.id}`)
                                   )
                                 }}
+                                disabled={!remainingParticipant && !value.includes(`${user.id}`)}
                               />
-                              <Label htmlFor={`${user.id}`} className='w-full'>
+                              <Label htmlFor={`${user.id}`} className='w-full opacity-100!'>
                                 {user.username}
                               </Label>
                             </Field>
