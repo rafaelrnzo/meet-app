@@ -6,9 +6,9 @@ import { toast } from 'sonner'
 const DEFAULT_ERROR_MESSAGE =
   'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman'
 
-const showGenericError = () =>
+const showGenericError = (message?: string) =>
   toast.error('Gagal masuk ke ruang rapat', {
-    description: DEFAULT_ERROR_MESSAGE,
+    description: message || DEFAULT_ERROR_MESSAGE,
   })
 
 const showMeetingNotStartedError = (startDate?: string) =>
@@ -75,7 +75,7 @@ const joinRoomAction = async ({
     onSuccess(targetCode)
   } catch (error) {
     if (!(error instanceof Error)) {
-      return showGenericError()
+      return showGenericError(typeof error === 'string' ? error : '')
     }
 
     const { message, cause } = error
@@ -106,7 +106,7 @@ const joinRoomAction = async ({
         return showInvalidCodeError(targetCode)
 
       default:
-        return showGenericError()
+        return showGenericError(message)
     }
   }
 }
