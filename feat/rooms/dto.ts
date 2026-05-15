@@ -33,6 +33,7 @@ const getRoomDefaultValue = (data: DbRoom): RoomSchemaValue => {
     endDate: djs(data.end_date).toDate(),
     password: data.password || '',
     isMuteOnStart: data.is_mute_on_start,
+    totalGroupMember: 0, // TODO: get from API
   }
 }
 
