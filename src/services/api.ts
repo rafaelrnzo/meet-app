@@ -7,15 +7,18 @@ interface CustomAxiosRequestConfig extends InternalAxiosRequestConfig {
   _retry?: boolean
 }
 
+const getBackendApiUrl = () => {
+  const configured = process.env.NEXT_PUBLIC_API_URL || process.env.NEXT_PUBLIC_BACKEND_URL
+  const base = (configured || 'http://localhost:8080').replace(/\/+$/, '')
+  return base.endsWith('/api') ? base : `${base}/api`
+}
+
 /**
  * Custom Axios instance configured for API communication.
  * Sets the base URL appropriately depending on the runtime environment (browser vs SSR).
  */
 const api = axios.create({
-  baseURL:
-    typeof window !== 'undefined'
-      ? `${window.location.protocol}//${window.location.hostname}:8080/api`
-      : 'http://localhost:8080/api',
+  baseURL: getBackendApiUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
@@ -51,9 +54,12 @@ const processQueue = (error: any, token: string | null = null) => {
  */
 api.interceptors.request.use(
   (config) => {
-    const tokens = authService.getTokens()
-    if (tokens?.accessToken) {
-      config.headers.Authorization = `Bearer ${tokens.accessToken}`
+    const token =
+      typeof window !== 'undefined'
+        ? localStorage.getItem('token') || localStorage.getItem('vc_token')
+        : null
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
     }
     return config
   },
@@ -95,8 +101,12 @@ api.interceptors.response.use(
           const params = new URLSearchParams({
             grant_type: 'refresh_token',
             client_id: keycloakConfig.clientId,
+            client_secret: keycloakConfig.clientSecret,
             refresh_token: tokens.refreshToken,
           })
+          if (keycloakConfig.clientSecret) {
+            params.set('client_secret', keycloakConfig.clientSecret)
+          }
 
           const response = await axios.post(keycloakConfig.urls.token, params, {
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

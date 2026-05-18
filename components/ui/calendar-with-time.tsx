@@ -21,10 +21,21 @@ type CalendarWithTimeProps = Omit<React.ComponentProps<typeof Input>, 'popover' 
     endTime?: Date
   }
   onSelect?: ({ startTime, endTime }: { startTime?: Date; endTime?: Date }) => void
+  startTimeProps?: React.ComponentProps<'input'>
+  endTimeProps?: React.ComponentProps<'input'>
 }
 
 function CalendarWithTime(props: CalendarWithTimeProps) {
-  const { popover, popoverContent, calendar, selected, onSelect, ...rest } = props
+  const {
+    popover,
+    popoverContent,
+    calendar,
+    selected,
+    onSelect,
+    startTimeProps,
+    endTimeProps,
+    ...rest
+  } = props
   const [startTime, setStartTime] = React.useState<Date | undefined>(selected?.startTime)
   const [endTime, setEndTime] = React.useState<Date | undefined>(selected?.endTime)
 
@@ -142,10 +153,14 @@ function CalendarWithTime(props: CalendarWithTimeProps) {
                 <FieldLabel htmlFor='time-from'>Jam mulai</FieldLabel>
                 <InputGroup>
                   <InputGroupInput
+                    {...startTimeProps}
                     id='time-from'
                     type='time'
                     step='1'
-                    className='appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none'
+                    className={cn(
+                      'appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none',
+                      startTimeProps?.className
+                    )}
                     value={startTime ? djs(startTime).format('HH:mm:ss') : ''}
                     onChange={(event) =>
                       handleGetTime({ value: event.target.value, target: 'startTime' })
@@ -160,10 +175,14 @@ function CalendarWithTime(props: CalendarWithTimeProps) {
                 <FieldLabel htmlFor='time-to'>Jam berakhir</FieldLabel>
                 <InputGroup>
                   <InputGroupInput
+                    {...endTimeProps}
                     id='time-to'
                     type='time'
                     step='1'
-                    className='appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none'
+                    className={cn(
+                      'appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none',
+                      endTimeProps?.className
+                    )}
                     value={endTime ? djs(endTime).format('HH:mm:ss') : ''}
                     onChange={(event) =>
                       handleGetTime({ value: event.target.value, target: 'endTime' })
