@@ -76,7 +76,7 @@ function CalendarWithTime(props: CalendarWithTimeProps) {
     value: string
     target: 'startTime' | 'endTime'
   }) => {
-    const [hour, minute, second] = value.split(':').map(Number)
+    const [hour = 0, minute = 0, second = 0] = value.split(':').map(Number)
     const base = (target === 'startTime' ? startTime : endTime) ?? new Date()
     const currentTime = djs(base).hour(hour).minute(minute).second(second).toDate()
     if (target === 'startTime') {
