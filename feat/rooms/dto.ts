@@ -22,6 +22,16 @@ interface SelectOptions {
   label: string
 }
 
+interface NewRoomCode {
+  roomId: number
+  code: string
+}
+
+interface GenerateRoomCodeExp {
+  roomId: number
+  exp: number
+}
+
 const getRoomDefaultValue = (data: DbRoom): RoomSchemaValue => {
   return {
     name: data.name,
@@ -55,5 +65,12 @@ const SORT_ROOM = ['newest', 'oldest', 'name_asc', 'name_desc', 'group'] as cons
 
 type SortRoomType = (typeof SORT_ROOM)[number]
 
-export type { RoomSchemaValue, SelectOptions, SortRoomType, RoomPayload }
+export type {
+  RoomSchemaValue,
+  SelectOptions,
+  SortRoomType,
+  RoomPayload,
+  NewRoomCode,
+  GenerateRoomCodeExp,
+}
 export { getRoomDefaultValue, getRoomPayload, SORT_ROOM }
