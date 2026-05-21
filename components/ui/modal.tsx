@@ -59,11 +59,14 @@ function Modal({
     cbName: 'onEscapeKeyDown' | 'onInteractOutside' | 'onPointerDownOutside'
   ) => {
     return <T extends Event>(event: T) => {
-      if (!isPrevented() || event.defaultPrevented) {
+      if (isPrevented()) {
+        return event.preventDefault()
+      }
+
+      if (event.defaultPrevented) {
         return
       }
 
-      event.preventDefault()
       content?.[cbName]?.(event as never)
     }
   }
