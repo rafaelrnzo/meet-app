@@ -124,7 +124,12 @@ function CalendarWithTime(props: CalendarWithTimeProps) {
           type='button'
           value={placeholder}
           onChange={() => void 0}
-          className={cn('text-left', !startTime && !endTime && 'text-neutral-400', rest.className)}
+          className={cn(
+            'text-left',
+            !startTime && !endTime && 'text-neutral-400',
+            'disabled:border-neutral-400 disabled:bg-slate-300 disabled:text-slate-400 disabled:opacity-100',
+            rest.className
+          )}
           ref={inputRef}
         />
       </PopoverTrigger>
