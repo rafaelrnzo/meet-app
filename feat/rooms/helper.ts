@@ -1,14 +1,12 @@
+import { defaultErrorMessage } from '@/config'
 import { fetchRoomByCode } from '@/lib/api/admin-api'
 import { fetchToken } from '@/lib/api/api'
 import { djs } from '@/lib/utils'
 import { toast } from 'sonner'
 
-const DEFAULT_ERROR_MESSAGE =
-  'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman'
-
 const showGenericError = (message?: string) =>
   toast.error('Gagal masuk ke ruang rapat', {
-    description: message || DEFAULT_ERROR_MESSAGE,
+    description: message || defaultErrorMessage,
   })
 
 const showMeetingNotStartedError = (startDate?: string) =>

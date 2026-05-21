@@ -6,18 +6,18 @@ const PARTICIPANT_FULL_MESSAGE =
 
 function isParticipantFull(fieldName: 'groupId' | 'assignedTo') {
   return function (this: yup.TestContext, value?: string[] | string) {
-    const assignedTo: string[] = this.resolve(yup.ref('assignedTo'))
-    const maxParticipants: number | null = this.resolve(yup.ref('maxParticipants'))
-    const totalGroupMember: number = this.resolve(yup.ref('totalGroupMember'))
-    const totalParticipant = assignedTo.length + totalGroupMember
+    const assignedTo = this.resolve<string[]>(yup.ref('assignedTo')).length
+    const maxParticipants = this.resolve<number | null>(yup.ref('maxParticipants')) ?? 0
+    const totalGroupMember = this.resolve<number>(yup.ref('totalGroupMember'))
     const hasValue = typeof value === 'string' ? !!value : !!value?.length
-    const isError = hasValue && assignedTo.length + totalGroupMember > (maxParticipants ?? 0)
+    const isError =
+      hasValue && maxParticipants > 0 && assignedTo + totalGroupMember > maxParticipants
 
     if (isError) {
       return this.createError({
         message:
           fieldName === 'assignedTo'
-            ? `${totalParticipant} peserta telah dipilih, silakan atur ulang input maksimal peserta`
+            ? 'Jumlah peserta yang diceklis sudah melebih maksimal peserta, silakan atur ulang input maksimal peserta'
             : PARTICIPANT_FULL_MESSAGE,
       })
     }
@@ -26,14 +26,15 @@ function isParticipantFull(fieldName: 'groupId' | 'assignedTo') {
   }
 }
 
-const roomSchema = (props?: { isLive?: boolean; activeParticipant?: number }) =>
+const roomSchema = (props?: { isLive?: boolean; activeParticipant?: number; isEdit?: boolean }) =>
   yup.object().shape({
     name: yup
       .string()
+      .trim()
       .max(50, 'Nama Ruangan maksimal 50 karakter')
       .required('Nama Ruangan wajib diisi')
       .default(''),
-    description: yup.string().max(250, 'Deskripsi maksimal 250 karakter').default(''),
+    description: yup.string().max(250, 'Deskripsi maksimal 250 karakter').trim().default(''),
     startDate: yup
       .date()
       .nullable()
@@ -45,9 +46,6 @@ const roomSchema = (props?: { isLive?: boolean; activeParticipant?: number }) =>
       .test('isValid', 'Jam Mulai harus kurang dari Jam Berakhir', function (value) {
         const end: Date = this.resolve(yup.ref('endDate'))
         return !end || !value || djs(value).isBefore(end)
-      })
-      .test('isValid', 'Jam Mulai harus lebih dari atau sama dengan saat ini', function (value) {
-        return !value || props?.isLive || djs(value).isAfter() || djs(value).isSame()
       })
       .default(null),
     endDate: yup
@@ -66,10 +64,14 @@ const roomSchema = (props?: { isLive?: boolean; activeParticipant?: number }) =>
       .default(null)
       .nullable()
       .test('isRequired', 'Maksimal Anggota wajib diisi', (value) => !!value)
-      .min(
-        props?.activeParticipant || 1,
-        `Maksimal Anggota minimal ${props?.activeParticipant || 1}`
-      ),
+      .when([], (_, schema) => {
+        return props?.activeParticipant
+          ? schema.min(
+              props.activeParticipant,
+              `✕ Jumlah peserta rapat saat ini ${props?.activeParticipant} orang`
+            )
+          : schema.min(1, 'Maksimal Anggota minimal 1')
+      }),
     assignedTo: yup
       .array()
       .of(yup.string().defined())
