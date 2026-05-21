@@ -5,8 +5,8 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import type { AnyFormApi, useForm } from '@tanstack/react-form'
 import type { Combobox } from '@/components/ui/combobox'
-import InlineCombobox from '@/components/ui/inline-combobox'
 import type { Button } from '@/components/ui/button'
+import InlineCombobox from '@/app/(protected)/groups/_partials/inline-combobox'
 
 export type Option = {
   value: string
