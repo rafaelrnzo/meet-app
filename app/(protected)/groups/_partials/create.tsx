@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { SetStateAction } from 'react'
 import { Modal } from '@/components/ui/modal'
 import FormController from '@/app/(protected)/groups/_partials/form-controller'
@@ -29,9 +29,16 @@ export function CreateDialog({
     },
     onSubmit: ({ value }) => {
       handleCreate(value)
-      form.reset()
     },
   })
+
+  useEffect(() => {
+    if (open === false) {
+      form.reset()
+      setDesc('')
+    }
+  }, [form, open])
+
   return (
     <Modal
       root={{ open, onOpenChange }}
@@ -45,16 +52,12 @@ export function CreateDialog({
       }}
       cancel={{
         children: 'Batal',
-        onClick: () => form.reset(),
       }}
       title={{
-        children: 'Buat kelompok baru',
+        children: 'Tambah kelompok',
       }}
       description={{
         children: 'Buat kelompok untuk mengatur anggota.',
-      }}
-      close={{
-        onClick: () => form.reset(),
       }}
     >
       <FormController
@@ -62,14 +65,14 @@ export function CreateDialog({
         formApi={form}
         name='name'
         type='text'
-        label='Nama Kelompok'
+        label='Nama kelompok'
         placeholder='Contoh: kelompok pimpinan'
       />
       <FormController
         formApi={form}
         name='description'
         type='textarea'
-        label='Deskripsi Kelompok'
+        label='Deskripsi kelompok'
         placeholder='Contoh: kelompok ini khusus berisi pimpinan'
         listeners={{
           onChange: ({ value }) => setDesc(String(value)),

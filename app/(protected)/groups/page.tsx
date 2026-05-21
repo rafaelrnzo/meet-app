@@ -17,23 +17,25 @@ import { TableView } from '@/compounds/table-view'
 import { groupsColumn } from '@/column/groups'
 import { CreateDialog } from '@/app/(protected)/groups/_partials/create'
 import EditDialog from '@/app/(protected)/groups/_partials/edit'
+import { toast } from 'sonner'
 
 export default function GroupsPage() {
-  const { hasPermission, loading } = useAuth()
+  const { isAdmin, loading } = useAuth()
   const [groups, setGroups] = useState<Group[]>([])
   const [users, setUsers] = useState<UserDto>({ data: [] })
-
-  // Create Group State
   const [isCreateOpen, setIsCreateOpen] = useState(false)
-
-  // Manage Members State
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [isManageOpen, setIsManageOpen] = useState(false)
-  const [selectedUserId, setSelectedUserId] = useState('')
 
-  useEffect(() => {
-    loadData()
-  }, [])
+  const displayedError = (error: unknown, titleError: string) => {
+    const message = error instanceof Error ? error.message : String(error)
+    const displayedMessage = message
+      ? message
+      : 'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman'
+    toast.error(titleError, {
+      description: displayedMessage,
+    })
+  }
 
   const loadData = async () => {
     const [g, u] = await Promise.all([fetchGroups(), fetchUsers()])
@@ -49,49 +51,85 @@ export default function GroupsPage() {
     setUsers(u || [])
   }
 
-  const handleCreate = async (value: Pick<Group, 'name' | 'description'>) => {
-    await createGroup(value)
-    setIsCreateOpen(false)
+  useEffect(() => {
     loadData()
+  }, [])
+
+  const handleCreate = async (value: Pick<Group, 'name' | 'description'>) => {
+    try {
+      await createGroup(value)
+      setIsCreateOpen(false)
+      loadData()
+      toast.success('Kelompok berhasil dibuat', {
+        description: `Kelompok "${value.name}" berhasil dibuat`,
+      })
+    } catch (error) {
+      displayedError(error, 'Gagal membuat kelompok')
+    }
   }
 
-  const handleDelete = async (id: number) => {
-    await deleteGroup(id)
-    loadData()
+  const handleDelete = async ({ id, name }: { id: number; name: string }) => {
+    try {
+      await deleteGroup(id)
+      loadData()
+      toast.success('Kelompok berhasil dihapus', {
+        description: `Kelompok "${name}" berhasil dihapus`,
+      })
+    } catch (error) {
+      displayedError(error, 'Gagal menghapus kelompok')
+    }
   }
 
   const openManage = (g: Group) => {
     setSelectedGroup(g)
     setIsManageOpen(true)
-    setSelectedUserId('')
+    // setSelectedUserId('')
   }
 
-  const handleAddMember = async () => {
-    if (!selectedGroup || !selectedUserId) return
-    await addGroupMember(selectedGroup.id, Number(selectedUserId))
+  const handleAddMember = async (userId: number[]) => {
+    try {
+      if (!selectedGroup) return
+      await addGroupMember(selectedGroup.id, userId)
+      setIsManageOpen(false)
+      toast.success('Kelompok berhasil diperbarui', {
+        description: `Kelompok "${selectedGroup.name}" berhasil diperbarui`,
+      })
+      loadData()
+    } catch (error) {
+      displayedError(error, 'Gagal memperbarui kelompok')
+    }
 
-    // Refresh data
-    const updatedGroups = await fetchGroups()
-    setGroups(updatedGroups || [])
+    // // Refresh data
+    // const updatedGroups = await fetchGroups()
+    // setGroups(updatedGroups || [])
 
-    // Update selected group reference
-    const updatedSelected = updatedGroups?.find((g) => g.id === selectedGroup.id)
-    if (updatedSelected) setSelectedGroup(updatedSelected)
+    // // Update selected group reference
+    // const updatedSelected = updatedGroups?.find((g) => g.id === selectedGroup.id)
+    // if (updatedSelected) setSelectedGroup(updatedSelected)
 
-    setSelectedUserId('')
+    // setSelectedUserId('')
   }
 
-  const handleRemoveMember = async (userId: number) => {
-    if (!selectedGroup) return
-    await removeGroupMember(selectedGroup.id, userId)
+  const handleRemoveMember = async (userId: number[]) => {
+    try {
+      if (!selectedGroup) return
+      await removeGroupMember(selectedGroup?.id, userId)
+      setIsManageOpen(false)
+      toast.success('Kelompok berhasil diperbarui', {
+        description: `Kelompok "${selectedGroup.name}" berhasil diperbarui`,
+      })
+      loadData()
+    } catch (error) {
+      displayedError(error, 'Gagal memperbarui kelompok')
+    }
 
     // Refresh data
-    const updatedGroups = await fetchGroups()
-    setGroups(updatedGroups || [])
+    // const updatedGroups = await fetchGroups()
+    // setGroups(updatedGroups || [])
 
-    // Update selected group reference
-    const updatedSelected = updatedGroups?.find((g) => g.id === selectedGroup.id)
-    if (updatedSelected) setSelectedGroup(updatedSelected)
+    // // Update selected group reference
+    // const updatedSelected = updatedGroups?.find((g) => g.id === selectedGroup.id)
+    // if (updatedSelected) setSelectedGroup(updatedSelected)
   }
 
   // Filter users not in the group
@@ -122,6 +160,7 @@ export default function GroupsPage() {
               </>
             ),
             onClick: () => setIsCreateOpen(true),
+            hidden: !isAdmin,
           }}
         />
       )}
@@ -131,8 +170,6 @@ export default function GroupsPage() {
           isManageOpen,
           setIsManageOpen,
           selectedGroup,
-          selectedUserId,
-          setSelectedUserId,
           availableUsers,
           handleAddMember,
           handleRemoveMember,

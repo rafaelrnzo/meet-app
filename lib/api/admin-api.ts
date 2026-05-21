@@ -186,16 +186,17 @@ export async function deleteGroup(id: number): Promise<void> {
   })
 }
 
-export async function addGroupMember(groupId: number, userId: number): Promise<void> {
+export async function addGroupMember(groupId: number, userId: number[]): Promise<void> {
   await apiRequest(`/admin/groups/${groupId}/members`, {
     method: 'POST',
-    body: JSON.stringify({ user_id: userId }),
+    body: JSON.stringify({ user_ids: userId }),
   })
 }
 
-export async function removeGroupMember(groupId: number, userId: number): Promise<void> {
-  await apiRequest(`/admin/groups/${groupId}/members/${userId}`, {
+export async function removeGroupMember(groupId: number, payload: number[]): Promise<void> {
+  await apiRequest(`/admin/groups/${groupId}/members`, {
     method: 'DELETE',
+    body: JSON.stringify({ user_ids: payload }),
   })
 }
 

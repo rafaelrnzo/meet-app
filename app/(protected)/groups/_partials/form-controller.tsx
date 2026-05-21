@@ -4,21 +4,23 @@ import { Field, FieldError, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import type { AnyFormApi, useForm } from '@tanstack/react-form'
-import {
-  Select,
-  SelectTrigger,
-  SelectValue,
-  SelectContent,
-  SelectGroup,
-  SelectItem,
-} from '@/components/ui/select'
+import type { Combobox } from '@/components/ui/combobox'
+import InlineCombobox from '@/components/ui/inline-combobox'
+import type { Button } from '@/components/ui/button'
+
+export type Option = {
+  value: string
+  label: string
+}
 
 type FormControllerProps =
   | ({ type: 'textarea' } & React.ComponentProps<typeof Textarea>)
   | ({ type: 'text' } & React.ComponentProps<typeof Input>)
-  | ({ type: 'combobox' } & React.ComponentProps<typeof Select> & {
+  | ({ type: 'combobox' } & React.ComponentProps<typeof Combobox> & {
         placeholder?: string
-        items: { value: string; label: string }[]
+        items: Option[]
+        onValueChange?: (e: number[]) => void
+        buttonProps?: React.ComponentProps<typeof Button>
       })
 
 type FormProps = {
@@ -58,31 +60,18 @@ export default function FormController({
                 {...props}
               />
             ) : type === 'combobox' ? (
-              <Select {...props}>
-                <SelectTrigger className='h-11 cursor-pointer border border-neutral-400 shadow-sm focus:ring-0 focus:ring-offset-0'>
-                  <SelectValue placeholder={placeholder} />
-                </SelectTrigger>
-                <SelectContent className='data-[side=bottom]:slide-in-from-top-0! data-[side=left]:slide-in-from-right-0! data-[side=right]:slide-in-from-left-0! data-[side=top]:slide-in-from-bottom-0! max-h-28'>
-                  <SelectGroup>
-                    {props.items?.map(({ value, label }) => {
-                      return (
-                        <SelectItem
-                          className='my-2 cursor-pointer px-3 py-1'
-                          key={value}
-                          value={value}
-                        >
-                          <div className='flex items-center gap-3'>
-                            <div className='text-primary flex h-8 w-8 items-center justify-center rounded-full border border-neutral-400 bg-transparent text-xs font-medium'>
-                              {label.substring(0, 2).toUpperCase()}
-                            </div>
-                            <span className='text-sm font-medium'>{label}</span>
-                          </div>
-                        </SelectItem>
-                      )
-                    })}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
+              <>
+                <InlineCombobox
+                  placeholder={placeholder}
+                  items={props.items}
+                  onValueChange={(values) => {
+                    const changed = values.map((v) => Number(v.value))
+                    field.handleChange(changed)
+                    if (props.onValueChange) props.onValueChange(changed)
+                  }}
+                  buttonProps={props.buttonProps}
+                />
+              </>
             ) : (
               <Input
                 value={(field.state.value as string) ?? ''}

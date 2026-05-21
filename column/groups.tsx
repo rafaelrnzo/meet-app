@@ -5,10 +5,9 @@ import ActionButton from '@/compounds/action-button'
 import type { Group } from '@/lib/api/admin-api'
 import type { CellContext, ColumnDef } from '@tanstack/react-table'
 import { Info, Settings, Users } from 'lucide-react'
-// import { useState } from 'react'
 
 interface GroupsColumnProps {
-  handleDelete: (id: number) => void
+  handleDelete: ({ id, name }: { id: number; name: string }) => void
   openManage: (e: Group) => void
 }
 
@@ -18,8 +17,7 @@ interface ActionButtonProps extends GroupsColumnProps {
 
 const ActionColumn = (props: ActionButtonProps) => {
   const { handleDelete, openManage, row } = props
-  const { id } = row.original
-  // const [checked, setChecked] = useState(false)
+  const { id, name } = row.original
   return (
     <ActionButton
       buttonComp={[
@@ -36,7 +34,7 @@ const ActionColumn = (props: ActionButtonProps) => {
         },
         submit: {
           children: 'Hapus Kelompok',
-          onClick: () => handleDelete(Number(id)),
+          onClick: () => handleDelete({ id: Number(id), name }),
         },
         description: {
           children:
@@ -75,32 +73,38 @@ export const groupsColumn = ({
 }: GroupsColumnProps): ColumnDef<Group>[] => [
   {
     accessorKey: 'name',
-    header: 'Nama Kelompok',
+    header: 'Nama kelompok',
     minSize: 250,
+    maxSize: 250,
     cell: ({ row }) => {
       return (
         <div className='flex flex-row items-center gap-2'>
           <Users className='size-5 fill-red-800' />
-          <p className='font-medium text-neutral-950'>{row.original.name}</p>
+          <p className='w-[250px] max-w-[250px] font-medium text-neutral-950'>
+            {row.original.name}
+          </p>
         </div>
       )
     },
   },
   {
     accessorKey: 'description',
-    header: 'Deskripsi Kelompok',
+    header: 'Deskripsi kelompok',
     minSize: 474,
+    maxSize: 474,
     accessorFn: ({ description }) => description,
   },
   {
     accessorKey: 'members',
-    header: 'Jumlah Pengguna',
+    header: 'Jumlah peserta',
     minSize: 200,
+    maxSize: 200,
     accessorFn: ({ members }) => members?.length,
   },
   {
     accessorKey: 'action',
     minSize: 100,
+    maxSize: 100,
     header: () => {
       return (
         <div className='flex items-center gap-2'>

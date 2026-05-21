@@ -2,9 +2,11 @@
 
 import { Button } from '@/components/ui/button'
 import { Plus, X } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
 import type { SetStateAction } from 'react'
 import type { Group, UserResponse } from '@/lib/api/admin-api'
 import { Modal } from '@/components/ui/modal'
+import type { Option } from '@/app/(protected)/groups/_partials/form-controller'
 import FormController from '@/app/(protected)/groups/_partials/form-controller'
 import { useForm } from '@tanstack/react-form'
 import type { InferType } from 'yup'
@@ -14,23 +16,64 @@ interface EditDialogProps {
   isManageOpen: boolean
   setIsManageOpen: React.Dispatch<SetStateAction<boolean>>
   selectedGroup: Group | null
-  selectedUserId: string
-  setSelectedUserId: React.Dispatch<SetStateAction<string>>
   availableUsers: UserResponse[]
-  handleAddMember: () => void
-  handleRemoveMember: (e: number) => void
+  handleAddMember: (e: number[]) => void
+  handleRemoveMember: (e: number[]) => void
+}
+
+type DisplayParticipants = {
+  id: string
+  username: string
 }
 
 export default function EditDialog({
   isManageOpen: open,
   setIsManageOpen: onOpenChange,
   selectedGroup,
-  selectedUserId,
-  setSelectedUserId,
   availableUsers,
   handleAddMember,
   handleRemoveMember,
 }: EditDialogProps) {
+  ''
+  const [displayedParticipants, setDisplayedParticipants] = useState<DisplayParticipants[]>([])
+  const [allOptions, setAllOptions] = useState<Option[]>([])
+  const [unstoreIds, setUnstoreIds] = useState<number[]>([])
+  const [isDisabledAdd, setDisabledAdd] = useState<number[]>([])
+  const [stateUpdate, setStateUpdate] = useState<{ state: 'create' | 'remove' | 'idle' }>({
+    state: 'idle',
+  })
+
+  const groupOption = useMemo(() => {
+    return (selectedGroup?.members || []).map((members) => ({
+      value: `${members.id}`,
+      label: members.username,
+    }))
+  }, [selectedGroup?.members])
+
+  const availableOption = useMemo(() => {
+    return availableUsers.map((users) => ({
+      value: `${users.id}`,
+      label: users.username,
+    }))
+  }, [availableUsers])
+
+  const mergedOption = useMemo(() => {
+    return Array.from(new Set([...groupOption, ...availableOption]))
+  }, [availableOption, groupOption])
+
+  const oldParticipants = useMemo(() => {
+    return (selectedGroup?.members || []).map((members) => ({
+      id: `${members.id}`,
+      username: members.username,
+    }))
+  }, [selectedGroup])
+
+  const filterOptions = useMemo(() => {
+    const displayedIds = new Set(displayedParticipants.map((p) => p.id))
+
+    return mergedOption.filter((opt) => !displayedIds.has(opt.value))
+  }, [mergedOption, displayedParticipants])
+
   const defaultValues: InferType<typeof editGroupSchema> = editGroupSchema.getDefault()
   const form = useForm({
     defaultValues,
@@ -38,60 +81,125 @@ export default function EditDialog({
       onSubmitAsync: editGroupSchema,
     },
     onSubmit: () => {
-      handleAddMember()
-      console.log('value', selectedUserId)
+      if (unstoreIds.length > 0 || displayedParticipants.length > 0) {
+        if (unstoreIds.length > 0) {
+          handleRemoveMember(unstoreIds.map((ids) => ids))
+        }
+        if (displayedParticipants.length > 0) {
+          handleAddMember(displayedParticipants.map((participant) => Number(participant.id)))
+        }
+      }
+      return
     },
   })
 
+  useEffect(() => {
+    if (open === false) {
+      form.reset()
+      setDisabledAdd([])
+      setDisplayedParticipants(oldParticipants)
+      setAllOptions(filterOptions)
+    }
+  }, [form, oldParticipants, open, filterOptions])
+
+  useEffect(() => {
+    setDisplayedParticipants(oldParticipants)
+  }, [oldParticipants])
+
+  useEffect(() => {
+    setAllOptions(filterOptions)
+  }, [filterOptions])
+
+  const handleStoreParticipants = (selectedValue: number[]) => {
+    setDisabledAdd([])
+    setStateUpdate({ state: 'create' })
+    const selectedParticipants = new Set(selectedValue.map(String))
+    const filterParticipants = filterOptions
+      .filter(({ value }) => selectedParticipants.has(value))
+      .map((obj) => ({
+        id: obj.value,
+        username: obj.label,
+      }))
+    setDisplayedParticipants((prev) => [...prev, ...filterParticipants])
+    setAllOptions(filterOptions.filter(({ value }) => !selectedParticipants.has(value)))
+  }
+
+  const handleUnstoreParticipants = (ids: string) => {
+    setStateUpdate({ state: 'remove' })
+    setUnstoreIds((prev) => [...prev, Number(ids)])
+    const unstoreParticipants = displayedParticipants.filter((obj) => obj.id !== ids)
+    const removedParticipants = displayedParticipants.find(({ id: userId }) => userId === ids)
+    setAllOptions((prev) => {
+      if (!removedParticipants) return prev
+      return [
+        ...prev,
+        {
+          value: removedParticipants.id,
+          label: removedParticipants.username,
+        },
+      ]
+    })
+    setDisplayedParticipants(unstoreParticipants)
+  }
+
   return (
     <Modal
-      root={{ open, onOpenChange }}
+      root={{ open, onOpenChange, modal: false }}
       title={{
-        children: 'Atur anggota',
+        children: `${selectedGroup?.name}`,
       }}
       description={{
-        children: 'Tambah atau hapus anggota dari kelompok',
+        children: 'Tambah atau hapus peserta dari kelompok',
       }}
-      close={{
-        onClick: () => form.reset(),
+      submit={{
+        children: 'Perbarui Kelompok',
+        onClick: () => form.handleSubmit(),
+        disabled: stateUpdate.state === 'idle',
       }}
-      footer={{
-        hidden: true,
+      cancel={{
+        children: 'Batal',
       }}
     >
       <form
         onSubmit={(e) => {
           e.preventDefault()
-          form.handleSubmit()
+          const selectedParticipants = form.getFieldValue('user_ids') as number[]
+          handleStoreParticipants(selectedParticipants)
         }}
       >
         <div className='block items-end gap-2 md:flex'>
           <FormController
             required
             formApi={form}
-            name='user_id'
+            name='user_ids'
             type='combobox'
-            label='Tambah Anggota'
-            placeholder='Ketik nama anggota di sini...'
-            value={selectedUserId}
-            onValueChange={(val) => setSelectedUserId(val)}
-            items={availableUsers.map((users) => ({
-              value: String(users.id),
-              label: users.username,
-            }))}
+            label='Tambah peserta kelompok'
+            placeholder='Ketik nama peserta di sini...'
+            items={allOptions}
+            onValueChange={(value) => {
+              if (!value) return
+              const numbers = (value as { value: number }[]).map((v) => Number(v))
+              setDisabledAdd(numbers)
+            }}
+            buttonProps={{
+              disabled: !isDisabledAdd.length,
+              children: (
+                <>
+                  <Plus />
+                  Tambah Peserta
+                </>
+              ),
+            }}
           />
-          <Button variant='primary' type='submit' className='mb-4 w-full md:w-fit'>
-            <Plus /> Tambah Anggota
-          </Button>
         </div>
       </form>
       <div>
         <div className='space-y-2'>
           <span className='mb-2 text-sm font-normal text-neutral-950'>
-            Anggota saat ini {`(${selectedGroup?.members?.length || 0})`}
+            Peserta saat ini {`(${displayedParticipants.length || 0})`}
           </span>
-          <div className='max-h-[125px] overflow-auto'>
-            {selectedGroup?.members?.map((member) => (
+          <div className='max-h-[281px] overflow-auto'>
+            {displayedParticipants.map((member) => (
               <div
                 key={member.id}
                 className='my-2 flex h-11 items-center justify-between rounded-md border border-neutral-400 bg-white px-3 py-1 shadow-sm'
@@ -106,13 +214,13 @@ export default function EditDialog({
                   variant='ghost'
                   size='sm'
                   className='p-0! hover:bg-transparent'
-                  onClick={() => handleRemoveMember(member.id)}
+                  onClick={() => handleUnstoreParticipants(member.id)}
                 >
                   <X className='text-error h-4 w-4' />
                 </Button>
               </div>
             ))}
-            {!selectedGroup?.members?.length && (
+            {!displayedParticipants.length && (
               <div className='text-muted-foreground p-8 text-center text-sm'>
                 No members in this group.
               </div>
