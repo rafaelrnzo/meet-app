@@ -366,10 +366,14 @@ export async function fetchUsers(): Promise<User[]> {
   })
 }
 
-export async function fetchUsersAssignment(params?: ParamsUserAssignment): Promise<User[]> {
+export async function fetchUsersAssignment(
+  params?: ParamsUserAssignment,
+  signal?: AbortSignal
+): Promise<User[]> {
   return apiRequest<User[]>(
     '/admin/users/assignment',
     {
+      signal,
       method: 'GET',
       cache: 'no-store',
     },

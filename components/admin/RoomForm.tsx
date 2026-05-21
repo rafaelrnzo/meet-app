@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import { Input } from '@/components/ui/input'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Label } from '@/components/ui/label'
@@ -38,6 +38,7 @@ import { Eye, EyeClosed, Plus, X } from 'lucide-react'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { toast } from 'sonner'
 import { buttonVariants } from '@/components/ui/button'
+import { defaultErrorMessage } from '@/config'
 
 interface RoomFormProps {
   open: boolean
@@ -81,21 +82,6 @@ const FormField = (props: FormFieldProps) => {
   )
 }
 
-function getRoomSaveErrorMessage(error: unknown) {
-  const message = error instanceof Error ? error.message : String(error)
-  const lowerMessage = message.toLowerCase()
-
-  if (
-    lowerMessage.includes('duplicate key') ||
-    lowerMessage.includes('idx_rooms_name') ||
-    lowerMessage.includes('sqlstate 23505')
-  ) {
-    return 'Nama ruangan sudah digunakan. Gunakan nama lain.'
-  }
-
-  return message || 'Gagal menyimpan ruangan.'
-}
-
 export function RoomForm({
   open,
   onOpenChange,
@@ -106,7 +92,7 @@ export function RoomForm({
 }: RoomFormProps) {
   const [users, setUsers] = useState<User[]>([])
   const [showPassword, setShowPassword] = useState(false)
-  const params = useRef<ParamsUserAssignment>({})
+  const [queryParams, setQueryParams] = useState<ParamsUserAssignment>({})
   const isActiveRoom = useMemo(
     () => !!activeRooms.find((ar) => ar.name === initialData?.room_code),
     [activeRooms, initialData?.room_code]
@@ -122,7 +108,11 @@ export function RoomForm({
   const form = useForm({
     defaultValues,
     validators: {
-      onChangeAsync: roomSchema({ isLive: isActiveRoom, activeParticipant }),
+      onChangeAsync: roomSchema({
+        isLive: isActiveRoom,
+        activeParticipant,
+        isEdit: !!initialData,
+      }),
     },
     onSubmit: async ({ value, formApi }: { value: RoomSchemaValue; formApi: AnyFormApi }) => {
       const payload = getRoomPayload(value)
@@ -139,37 +129,50 @@ export function RoomForm({
         onSuccess()
         formApi.reset()
       } catch (error) {
-        getRoomSaveErrorMessage(error)
+        const message =
+          error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+              ? error
+              : defaultErrorMessage
+        toast.error(initialData ? 'Gagal memperbarui ruang rapat' : 'Gagal membuat ruang rapat', {
+          description: message,
+        })
       }
     },
   })
 
   const isSubmittingForm = useStore(form.store, (state) => state.isSubmitting)
+  const maxParticipants = useStore(form.store, (state) => state.values.maxParticipants)
+  const remainingParticipant = useStore(form.store, (state) => {
+    const { assignedTo, maxParticipants, totalGroupMember } = state.values
+    const remainingParticipant = (maxParticipants ?? 0) - (assignedTo.length + totalGroupMember)
+    return remainingParticipant > 0 ? remainingParticipant : 0
+  })
 
-  const fetchUsers = async (params?: ParamsUserAssignment) => {
+  const fetchUsers = async (params?: ParamsUserAssignment, signal?: AbortSignal) => {
     try {
-      const response = await fetchUsersAssignment(params)
+      const response = await fetchUsersAssignment(params, signal)
       setUsers(response)
-    } catch {
+    } catch (error) {
+      if (error instanceof DOMException && error.name == 'AbortError') {
+        return
+      }
       setUsers([])
     }
   }
 
-  const updateUserParams = useCallback((userParams?: ParamsUserAssignment) => {
-    params.current = { ...userParams }
-    fetchUsers(userParams)
-  }, [])
+  useEffect(() => {
+    const controller = new AbortController()
+    fetchUsers(queryParams, controller.signal)
+    return () => {
+      controller.abort()
+    }
+  }, [queryParams])
 
   useEffect(() => {
-    updateUserParams(initialData ? { exclude_group_id: initialData.group_id } : {})
-  }, [initialData, updateUserParams])
-
-  const remainingParticipant = useStore(form.store, (state) => {
-    const { assignedTo, maxParticipants, totalGroupMember } = state.values
-    const remainingParticipant = (maxParticipants ?? 0) - (assignedTo.length + totalGroupMember)
-
-    return remainingParticipant > 0 ? remainingParticipant : 0
-  })
+    setQueryParams(initialData ? { exclude_group_id: initialData.group_id } : {})
+  }, [initialData])
 
   const handleGetTotalGroupMember = useCallback(
     (id: number) => groups.find((item) => item.id === id)?.members?.length ?? 0,
@@ -185,7 +188,7 @@ export function RoomForm({
           onOpenChange(val)
           form.reset()
           setShowPassword(false)
-          updateUserParams({})
+          setQueryParams({})
         },
         modal: false,
       }}
@@ -195,6 +198,8 @@ export function RoomForm({
       }}
       content={{
         className: 'max-w-[700px]!',
+        onInteractOutside: (event) => event.preventDefault(),
+        onCloseAutoFocus: (event) => event.preventDefault(),
       }}
       submit={{
         children: initialData ? (
@@ -335,7 +340,9 @@ export function RoomForm({
               onChange: ({ value, fieldApi }) => {
                 const totalGroupMember = handleGetTotalGroupMember(+value)
                 fieldApi.form.setFieldValue('totalGroupMember', totalGroupMember)
-                fieldApi.form.setFieldValue('assignedTo', [])
+                if (value) {
+                  fieldApi.form.setFieldValue('assignedTo', [])
+                }
               },
               onMount: ({ fieldApi, value }) => {
                 const totalGroupMember = handleGetTotalGroupMember(+value)
@@ -367,11 +374,11 @@ export function RoomForm({
                     {...{ value }}
                     onValueChange={(val) => {
                       handleChange(val?.value ?? '')
-                      const updateParams = {
-                        ...omit(params.current, ['exclude_group_id']),
-                        ...(val ? { exclude_group_id: +val.value } : {}),
-                      }
-                      updateUserParams(updateParams)
+                      setQueryParams((prev) =>
+                        val
+                          ? { ...prev, exclude_group_id: +val.value }
+                          : omit(prev, ['exclude_group_id'])
+                      )
                     }}
                   >
                     <ComboboxInput
@@ -414,7 +421,17 @@ export function RoomForm({
                     type='number'
                     {...{ name }}
                     value={`${value ?? ''}`}
-                    onChange={(event) => handleChange(+event.target.value)}
+                    onChange={(event) => {
+                      handleChange(+event.target.value)
+                      form.setFieldMeta('groupId', (meta) => ({
+                        ...meta,
+                        isTouched: true,
+                      }))
+                      form.setFieldMeta('assignedTo', (meta) => ({
+                        ...meta,
+                        isTouched: true,
+                      }))
+                    }}
                     placeholder='Contoh: 20'
                     aria-invalid={isInvalid}
                   />
@@ -443,10 +460,7 @@ export function RoomForm({
               >
                 <TableViewSearch
                   placeholder='Cari anggota ...'
-                  onSearch={({ value: search }) => {
-                    const updateParams = { ...params.current, search }
-                    updateUserParams(updateParams)
-                  }}
+                  onSearch={({ value: search }) => setQueryParams((prev) => ({ ...prev, search }))}
                 />
                 <Card className='rounded-md'>
                   <CardContent className='flex min-h-[113px] flex-col px-2 pt-1 pb-3.5'>
@@ -483,7 +497,9 @@ export function RoomForm({
                             }}
                             disabled={
                               !users.length ||
-                              (uncheckedUser > remainingParticipant && !isCheckedAll)
+                              (!!maxParticipants &&
+                                uncheckedUser > remainingParticipant &&
+                                !isCheckedAll)
                             }
                             checked={isCheckedAll}
                           />
@@ -508,7 +524,11 @@ export function RoomForm({
                                     prev.filter((item) => item !== `${user.id}`)
                                   )
                                 }}
-                                disabled={!remainingParticipant && !value.includes(`${user.id}`)}
+                                disabled={
+                                  !!maxParticipants &&
+                                  !remainingParticipant &&
+                                  !value.includes(`${user.id}`)
+                                }
                               />
                               <Label htmlFor={`${user.id}`} className='w-full opacity-100!'>
                                 {user.username}
