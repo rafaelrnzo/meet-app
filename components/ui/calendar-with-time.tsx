@@ -76,7 +76,7 @@ function CalendarWithTime(props: CalendarWithTimeProps) {
     value: string
     target: 'startTime' | 'endTime'
   }) => {
-    const [hour, minute, second] = value.split(':').map(Number)
+    const [hour = 0, minute = 0, second = 0] = value.split(':').map(Number)
     const base = (target === 'startTime' ? startTime : endTime) ?? new Date()
     const currentTime = djs(base).hour(hour).minute(minute).second(second).toDate()
     if (target === 'startTime') {
@@ -124,7 +124,12 @@ function CalendarWithTime(props: CalendarWithTimeProps) {
           type='button'
           value={placeholder}
           onChange={() => void 0}
-          className={cn('text-left', !startTime && !endTime && 'text-neutral-400', rest.className)}
+          className={cn(
+            'text-left',
+            !startTime && !endTime && 'text-neutral-400',
+            'disabled:border-neutral-400 disabled:bg-slate-300 disabled:text-slate-400 disabled:opacity-100',
+            rest.className
+          )}
           ref={inputRef}
         />
       </PopoverTrigger>
