@@ -14,7 +14,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang='en' suppressHydrationWarning>
       <body style={{ margin: 0 }}>
         <TooltipProvider>{children}</TooltipProvider>
-        <Toaster position='top-center' richColors />
+        <Toaster position='bottom-right' richColors />
       </body>
     </html>
   )

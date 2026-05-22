@@ -87,15 +87,15 @@ const CustomToast = ({
   return (
     <div
       className={cn(
-        `relative flex items-start gap-6 rounded-lg border border-neutral-600 p-4 shadow-sm drop-shadow`,
+        `relative flex items-start gap-2 rounded-lg border border-neutral-600 p-4 shadow-sm drop-shadow`,
         config.bg
       )}
     >
       <div className='flex items-start gap-2'>
         <div className='mt-1'>{config.icon}</div>
         <div className='flex-1'>
-          <p className={`text-md font-semibold capitalize ${config.text}`}>{title}</p>
-          <p className='mt-0.5 text-sm text-gray-600' style={{ lineHeight: '1.2' }}>
+          <p className={`text-base font-semibold ${config.text}`}>{title}</p>
+          <p className='mt-0.5 text-sm text-neutral-600' style={{ lineHeight: '1.2' }}>
             {description}
           </p>
         </div>
@@ -104,7 +104,7 @@ const CustomToast = ({
       <Button
         onClick={() => toastDefault.dismiss(id)}
         variant='outline'
-        className='bg-bg-transparent border border-black px-4 py-2 hover:bg-slate-100/50 active:bg-transparent active:text-black'
+        className='h-fit border border-black bg-transparent px-2 py-0.75 hover:bg-slate-100/50 active:bg-transparent active:text-black'
       >
         Tutup
       </Button>
@@ -123,7 +123,9 @@ const createToast =
           description={props?.description ?? ''}
         />
       ),
-      { duration: props?.duration ?? 5000 }
+      {
+        ...(props?.duration && { duration: props.duration }),
+      }
     )
 
 const toast = {
