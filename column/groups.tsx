@@ -17,7 +17,7 @@ interface ActionButtonProps extends GroupsColumnProps {
 
 const ActionColumn = (props: ActionButtonProps) => {
   const { handleDelete, openManage, row } = props
-  const { id, name } = row.original
+  const { id, name, is_editable } = row.original
   return (
     <ActionButton
       buttonComp={[
@@ -26,6 +26,7 @@ const ActionColumn = (props: ActionButtonProps) => {
           variant: 'secondary-light',
           icon: <Settings />,
           onClick: () => openManage(row.original),
+          disabled: !is_editable,
         },
       ]}
       deleteComp={{
@@ -39,6 +40,9 @@ const ActionColumn = (props: ActionButtonProps) => {
         description: {
           children:
             'Tindakan ini akan menghapus grup ini dan semua data terkait secara permanen. Tindakan ini tidak dapat dibatalkan.',
+        },
+        trigger: {
+          disabled: !is_editable,
         },
       }}
       // switchComp={{

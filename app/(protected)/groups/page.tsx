@@ -46,6 +46,7 @@ export default function GroupsPage() {
         description: items.description || '-',
         members: items.members,
         created_at: items.created_at,
+        is_editable: items.is_editable,
       })) || []
     )
     setUsers(u || [])
@@ -98,16 +99,6 @@ export default function GroupsPage() {
     } catch (error) {
       displayedError(error, 'Gagal memperbarui kelompok')
     }
-
-    // // Refresh data
-    // const updatedGroups = await fetchGroups()
-    // setGroups(updatedGroups || [])
-
-    // // Update selected group reference
-    // const updatedSelected = updatedGroups?.find((g) => g.id === selectedGroup.id)
-    // if (updatedSelected) setSelectedGroup(updatedSelected)
-
-    // setSelectedUserId('')
   }
 
   const handleRemoveMember = async (userId: number[]) => {
@@ -122,14 +113,6 @@ export default function GroupsPage() {
     } catch (error) {
       displayedError(error, 'Gagal memperbarui kelompok')
     }
-
-    // Refresh data
-    // const updatedGroups = await fetchGroups()
-    // setGroups(updatedGroups || [])
-
-    // // Update selected group reference
-    // const updatedSelected = updatedGroups?.find((g) => g.id === selectedGroup.id)
-    // if (updatedSelected) setSelectedGroup(updatedSelected)
   }
 
   // Filter users not in the group
@@ -147,7 +130,7 @@ export default function GroupsPage() {
     >
       {groups.length === 0 ? (
         <div className='bg-card border-border text-muted-foreground overflow-hidden rounded-lg border p-8 text-center text-sm shadow-sm'>
-          No groups are created
+          Tidak ada kelompok
         </div>
       ) : (
         <TableView

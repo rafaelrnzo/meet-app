@@ -51,10 +51,12 @@ export default function EditDialog({
   }, [selectedGroup?.members])
 
   const availableOption = useMemo(() => {
-    return availableUsers.map((users) => ({
-      value: `${users.id}`,
-      label: users.username,
-    }))
+    return availableUsers
+      .filter(({ status }) => status !== 'inactive')
+      .map((users) => ({
+        value: `${users.id}`,
+        label: users.username,
+      }))
   }, [availableUsers])
 
   const mergedOption = useMemo(() => {
@@ -193,7 +195,7 @@ export default function EditDialog({
           />
         </div>
       </form>
-      <div>
+      <div className='animate-in fade-in slide-in-from-top-4'>
         <div className='space-y-2'>
           <span className='mb-2 text-sm font-normal text-neutral-950'>
             Peserta saat ini {`(${displayedParticipants.length || 0})`}

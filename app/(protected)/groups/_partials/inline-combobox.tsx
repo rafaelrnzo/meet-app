@@ -65,7 +65,7 @@ export default function InlineCombobox({
   }
 
   useEffect(() => {
-    if (selected) onValueChange?.(selected)
+    if (selected) onValueChange(selected)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected])
 
@@ -97,7 +97,12 @@ export default function InlineCombobox({
         </div>
       </div>
       {open && (
-        <div className='rounded-md border border-neutral-400' style={{ maxHeight }}>
+        <div
+          className='rounded-md border border-neutral-400'
+          style={{
+            maxHeight: filtered.length === 0 ? 'max-h-fit' : maxHeight,
+          }}
+        >
           {filtered.length === 0 ? (
             <div className='p-3 text-sm text-slate-950'>Tidak ada data.</div>
           ) : (
@@ -110,7 +115,7 @@ export default function InlineCombobox({
                     key={item.value}
                     type='button'
                     onClick={() => toggleItem(item)}
-                    className='flex min-h-11 w-full items-center justify-between'
+                    className='flex min-h-11 w-full items-center justify-between hover:bg-transparent'
                   >
                     <div className='flex items-center gap-3'>
                       <div

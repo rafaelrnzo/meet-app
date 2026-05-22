@@ -164,6 +164,7 @@ export type Group = {
   description: string
   members?: { id: number; username: string }[]
   created_at?: string
+  is_editable: boolean
 }
 
 export async function fetchGroups(): Promise<Group[]> {
@@ -290,6 +291,7 @@ export type UserResponse = {
   username: string
   role?: Role
   role_id: number
+  status?: 'active' | 'inactive'
 }
 
 export type User = {
