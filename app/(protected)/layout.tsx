@@ -76,7 +76,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <div className='flex-1 overflow-y-auto p-6 max-md:pt-18'>
+          <div className='flex-1 overflow-y-auto p-8 max-md:pt-18'>
             <div className='animate-in fade-in mx-auto max-w-7xl duration-500'>{children}</div>
           </div>
         </main>

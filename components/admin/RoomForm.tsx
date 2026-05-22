@@ -36,7 +36,7 @@ import { useForm, useStore } from '@tanstack/react-form'
 import { Modal } from '@/components/ui/modal'
 import { Eye, EyeClosed, Plus, X } from 'lucide-react'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/sonner'
 import { buttonVariants } from '@/components/ui/button'
 import { defaultErrorMessage } from '@/config'
 
@@ -356,11 +356,13 @@ export function RoomForm({
               const { value: defaultValue, meta } = state
               const { errors, isTouched } = meta
               const isInvalid = isTouched && errors.length > 0
-              const options: GroupOptions[] = groups.map((item) => ({
-                value: `${item.id}`,
-                label: item.name,
-                totalMember: item.members?.length ?? 0,
-              }))
+              const options: GroupOptions[] = groups
+                .filter((item) => item.members && item.members?.length > 0)
+                .map((item) => ({
+                  value: `${item.id}`,
+                  label: item.name,
+                  totalMember: item.members?.length ?? 0,
+                }))
               const value = options.find((item) => item.value === defaultValue) ?? {
                 value: '',
                 label: '',
@@ -460,7 +462,7 @@ export function RoomForm({
               >
                 <TableViewSearch
                   placeholder='Cari anggota ...'
-                  onSearch={({ value: search }) => setQueryParams((prev) => ({ ...prev, search }))}
+                  onSearch={(search) => setQueryParams((prev) => ({ ...prev, search }))}
                 />
                 <Card className='rounded-md'>
                   <CardContent className='flex min-h-[113px] flex-col px-2 pt-1 pb-3.5'>

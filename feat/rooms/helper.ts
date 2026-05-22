@@ -2,7 +2,7 @@ import { defaultErrorMessage } from '@/config'
 import { fetchRoomByCode } from '@/lib/api/admin-api'
 import { fetchToken } from '@/lib/api/api'
 import { djs } from '@/lib/utils'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/sonner'
 
 const showGenericError = (message?: string) =>
   toast.error('Gagal masuk ke ruang rapat', {
