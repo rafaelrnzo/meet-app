@@ -5,6 +5,7 @@ import { Modal, ModalDelete } from '@/components/ui/modal'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import type { ActiveSwitchProps } from '@/components/ui/switch'
 import { ActiveSwitch } from '@/components/ui/switch'
+import { omit } from '@/lib/utils'
 import type { VariantProps } from 'class-variance-authority'
 import { Ellipsis, Trash2 } from 'lucide-react'
 import { useState } from 'react'
@@ -14,6 +15,7 @@ interface ButtonChildrenProps {
   variant: VariantProps<typeof buttonVariants>['variant']
   icon?: React.ReactNode
   onClick?: () => void
+  disabled?: boolean
 }
 
 interface ActionButtonProps {
@@ -43,6 +45,7 @@ const CategoryActionButton = ({ buttonComp, deleteComp, switchComp }: ActionButt
               size='icon-xs'
               className='my-1 h-11 w-full justify-start px-2 py-1 md:my-0 md:size-6 md:justify-center md:p-0'
               onClick={item.onClick}
+              disabled={item.disabled}
             >
               {item.icon} <span className='block md:hidden'>{item.text}</span>
             </Button>
@@ -52,20 +55,22 @@ const CategoryActionButton = ({ buttonComp, deleteComp, switchComp }: ActionButt
       <div>
         {deleteComp && (
           <ModalDelete
-            {...deleteComp}
+            {...omit(deleteComp, ['description'])}
             trigger={{
-              asChild: true,
-              children: (
-                <Button
-                  title='Delete'
-                  variant='destructive-light'
-                  size='icon-xs'
-                  className='my-1 h-11 w-full justify-start px-2 py-1 md:my-0 md:size-6 md:justify-center md:p-0'
-                >
-                  <Trash2 size={16} />
-                  <span className='block md:hidden'>{deleteComp.title?.children}</span>
-                </Button>
-              ),
+              ...deleteComp?.trigger,
+              ...((!deleteComp.trigger?.asChild || !deleteComp.trigger?.children) && {
+                asChild: true,
+                children: (
+                  <Button
+                    title='Delete'
+                    variant='destructive-light'
+                    size='icon-xs'
+                    className='my-1 h-11 w-full justify-start px-2 py-1 md:my-0 md:size-6 md:justify-center md:p-0'
+                  >
+                    <Trash2 size={16} />
+                  </Button>
+                ),
+              }),
             }}
             submit={{
               ...deleteComp.submit,
@@ -115,32 +120,35 @@ const CategoryActionButton = ({ buttonComp, deleteComp, switchComp }: ActionButt
               className: 'w-80',
             }}
             trigger={{
-              asChild: true,
-              children: (
-                <div
-                  onClick={(e) => {
-                    e.preventDefault()
-                    switchComp.setChecked(!switchComp.checked)
-                    if (switchComp.checked === true) {
-                      onOpenChange(true)
-                    }
-                  }}
-                >
-                  <ActiveSwitch
-                    checked={switchComp.checked}
-                    onCheckedChange={(value) => {
-                      switchComp.setChecked(value)
-                      if (value === false) {
+              ...switchComp.modal?.trigger,
+              ...((!switchComp.modal?.trigger?.asChild || !switchComp.modal?.trigger?.children) && {
+                asChild: true,
+                children: (
+                  <div
+                    onClick={(e) => {
+                      e.preventDefault()
+                      switchComp.setChecked(!switchComp.checked)
+                      if (switchComp.checked === true) {
                         onOpenChange(true)
                       }
                     }}
-                    label={{
-                      active: switchComp.text?.active ?? '',
-                      inactive: switchComp.text?.inactive ?? '',
-                    }}
-                  />
-                </div>
-              ),
+                  >
+                    <ActiveSwitch
+                      checked={switchComp.checked}
+                      onCheckedChange={(value) => {
+                        switchComp.setChecked(value)
+                        if (value === false) {
+                          onOpenChange(true)
+                        }
+                      }}
+                      label={{
+                        active: switchComp.text?.active ?? '',
+                        inactive: switchComp.text?.inactive ?? '',
+                      }}
+                    />
+                  </div>
+                ),
+              }),
             }}
           >
             {switchComp.modal?.description?.children}
