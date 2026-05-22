@@ -10,7 +10,7 @@ import {
   removeGroupMember,
   fetchUsers,
 } from '@/lib/api/admin-api'
-import type { Group, User as UserDto } from '@/lib/api/admin-api'
+import type { Group, UserResponse } from '@/lib/api/admin-api'
 import { useAuth } from '../../../hooks/use-auth'
 import PageContainer from '@/compounds/page-container'
 import { TableView } from '@/compounds/table-view'
@@ -22,7 +22,7 @@ import { toast } from 'sonner'
 export default function GroupsPage() {
   const { isAdmin, loading } = useAuth()
   const [groups, setGroups] = useState<Group[]>([])
-  const [users, setUsers] = useState<UserDto>({ data: [] })
+  const [users, setUsers] = useState<UserResponse>({ data: [] })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [isManageOpen, setIsManageOpen] = useState(false)

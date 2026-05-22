@@ -44,8 +44,8 @@ import { Badge } from '@/components/ui/badge'
 
 export default function UsersPage() {
   const { hasPermission } = useAuth({ requirePermission: 'user:read' })
-  const [users, setUsers] = useState<UserResponse[]>([])
-  const [filteredUsers, setFilteredUsers] = useState<UserResponse[]>([])
+  const [users, setUsers] = useState<UserDto[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<UserDto[]>([])
   const [roles, setRoles] = useState<RoleDto[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [formData, setFormData] = useState({ username: '', password: '', role_id: 0 })
@@ -90,7 +90,7 @@ export default function UsersPage() {
     loadData()
   }
 
-  const getRoleName = (user: UserResponse) => {
+  const getRoleName = (user: UserDto) => {
     if (user.role) return user.role.name
     const r = roles.find((r) => r.id === user.role_id)
     return r ? r.name : 'Unknown'

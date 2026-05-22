@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Plus, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { SetStateAction } from 'react'
-import type { Group, UserResponse } from '@/lib/api/admin-api'
+import type { Group, User } from '@/lib/api/admin-api'
 import { Modal } from '@/components/ui/modal'
 import type { Option } from '@/app/(protected)/groups/_partials/form-controller'
 import FormController from '@/app/(protected)/groups/_partials/form-controller'
@@ -16,7 +16,7 @@ interface EditDialogProps {
   isManageOpen: boolean
   setIsManageOpen: React.Dispatch<SetStateAction<boolean>>
   selectedGroup: Group | null
-  availableUsers: UserResponse[]
+  availableUsers: User[]
   handleAddMember: (e: number[]) => void
   handleRemoveMember: (e: number[]) => void
 }
