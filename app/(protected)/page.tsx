@@ -78,6 +78,7 @@ export default function HomePage() {
       icon='room'
       title='Beranda'
       subTitle='Bergabung dalam ruangan secara instan'
+      backToTopButton
       insertAfterTitle={
         <div className='flex gap-2 max-md:w-full max-md:flex-col md:items-center'>
           <Input
@@ -115,8 +116,8 @@ export default function HomePage() {
         <TableViewHeader
           search={{
             placeholder: 'Cari ruangan',
-            onSearch: ({ value }) => {
-              const updateParams = { ...params.current, search: value }
+            onSearch: (search) => {
+              const updateParams = { ...params.current, search }
               params.current = updateParams
               loadData(updateParams)
             },
