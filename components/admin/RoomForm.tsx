@@ -129,12 +129,17 @@ export function RoomForm({
         onSuccess()
         formApi.reset()
       } catch (error) {
-        const message =
+        let message =
           error instanceof Error
             ? error.message
             : typeof error === 'string'
               ? error
               : defaultErrorMessage
+
+        if (message.toLowerCase() === 'room name is already used by an active room') {
+          message = 'Nama ruangan sudah digunakan. Gunakan nama lain.'
+        }
+
         toast.error(initialData ? 'Gagal memperbarui ruang rapat' : 'Gagal membuat ruang rapat', {
           description: message,
         })

@@ -10,7 +10,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { generateCode } from '@/lib/api/admin-api'
 import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
-import { cn, djs } from '@/lib/utils'
+import { cn, copyToClipboardHandler, djs, shareLinkHandler } from '@/lib/utils'
 import { Calendar, Copy, ExternalLink, Loader, Users } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -177,11 +177,9 @@ function RoomList(props: SummaryCardProps) {
   }
 
   const handleCopyLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
-    try {
-      await navigator.clipboard.writeText(roomCode)
+    const response = await copyToClipboardHandler(roomCode)
+    if (!response?.error) {
       handleShowTooltip({ action: 'copy', roomId })
-    } catch {
-      toast.error('Gagal salin kode')
     }
   }
 
@@ -190,15 +188,9 @@ function RoomList(props: SummaryCardProps) {
       title: 'Join Meeting',
       url: new URL(`/meeting/${encodeURIComponent(roomCode)}`, window.location.origin).toString(),
     }
-
-    try {
-      await navigator.clipboard.writeText(`${data.url}`)
-      if (navigator.canShare?.(data)) {
-        await navigator.share(data)
-      }
+    const response = await shareLinkHandler(data)
+    if (!response?.error) {
       handleShowTooltip({ action: 'share', roomId })
-    } catch {
-      toast.error('Gagal bagikan kode')
     }
   }
 
@@ -317,7 +309,7 @@ function RoomList(props: SummaryCardProps) {
                             <Copy size={16} />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>kode disalin</TooltipContent>
+                        <TooltipContent>Kode disalin</TooltipContent>
                       </Tooltip>
 
                       {isAdmin && (
