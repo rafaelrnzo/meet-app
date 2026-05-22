@@ -7,49 +7,60 @@ import React, { useRef } from 'react'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 
 interface TableViewSearchProps extends React.ComponentProps<'input'> {
-  onSearch?: ({ event, value }: { event: React.FormEvent<HTMLFormElement>; value: string }) => void
+  onSearch?: (value: string) => void
   filter?: TableViewFilterProps
-  wrapper?: { className?: HTMLFormElement['className'] }
+  wrapper?: { className?: HTMLDivElement['className'] }
 }
 
 function TableViewSearch(props: TableViewSearchProps) {
-  const { className, onSearch, filter, wrapper, ...rest } = props
+  const { onSearch, filter, wrapper, ...rest } = props
   const currentSearch = useRef('')
 
+  const handleSearch = (value: string) => {
+    if (currentSearch.current === value) {
+      return
+    }
+
+    onSearch?.(value)
+    currentSearch.current = value
+  }
+
   return (
-    <form
-      className={cn('relative w-full min-[830px]:w-75', wrapper?.className)}
-      onSubmit={(event) => {
-        event.preventDefault()
-        const formData = new FormData(event.currentTarget)
-        const searchQuery = formData.get('searchQuery') ?? ''
-        const value = typeof searchQuery === 'string' ? searchQuery.trim() : ''
-
-        if (currentSearch.current === value) {
-          return
-        }
-
-        onSearch?.({ event, value })
-        currentSearch.current = value
-      }}
+    <InputGroup
+      {...wrapper}
+      className={cn(
+        'has-[[data-slot][aria-invalid=true]]:[&>input]:text-error has-[[data-slot][aria-invalid=true]]:border-red-200 has-[[data-slot][aria-invalid=true]]:bg-red-200 md:max-w-75',
+        wrapper?.className
+      )}
     >
-      <InputGroup className='has-[[data-slot][aria-invalid=true]]:[&>input]:text-error has-[[data-slot][aria-invalid=true]]:border-red-200 has-[[data-slot][aria-invalid=true]]:bg-red-200'>
-        <InputGroupInput
-          {...rest}
-          name='searchQuery'
-          type='search'
-          className={cn('w-full min-[830px]:w-75', className)}
-        />
-        <InputGroupAddon>
-          <Search />
+      <InputGroupInput
+        {...rest}
+        name='searchQuery'
+        type='search'
+        onChange={(event) => {
+          const value = event.target.value
+          if (!value) {
+            handleSearch(value)
+          }
+          rest.onChange?.(event)
+        }}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter') {
+            const value = event.currentTarget.value
+            handleSearch(value)
+          }
+          rest.onKeyDown?.(event)
+        }}
+      />
+      <InputGroupAddon>
+        <Search />
+      </InputGroupAddon>
+      {!!filter && (
+        <InputGroupAddon align='inline-end' className='mr-0! p-0 md:hidden'>
+          <TableViewFilter {...filter} />
         </InputGroupAddon>
-        {!!filter && (
-          <InputGroupAddon align='inline-end' className='mr-0! p-0 md:hidden'>
-            <TableViewFilter {...filter} />
-          </InputGroupAddon>
-        )}
-      </InputGroup>
-    </form>
+      )}
+    </InputGroup>
   )
 }
 

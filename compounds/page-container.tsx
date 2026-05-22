@@ -1,3 +1,4 @@
+import { BackToTopButton } from '@/compounds/back-to-top-button'
 import { cn } from '@/lib/utils'
 import { Play, Video, Gift, Users, ShieldHalf } from 'lucide-react'
 
@@ -6,6 +7,7 @@ interface VariantProps {
   title: string
   subTitle: string
   children: React.ReactNode
+  backToTopButton?: boolean
   insertAfterTitle?: React.ReactNode
 }
 
@@ -14,6 +16,7 @@ export default function PageContainer({
   title,
   subTitle,
   children,
+  backToTopButton,
   insertAfterTitle,
 }: VariantProps) {
   const showedVariant = (type: string) => {
@@ -32,6 +35,7 @@ export default function PageContainer({
   }
   return (
     <div>
+      {backToTopButton && <BackToTopButton />}
       <div
         className={cn(
           !insertAfterTitle && 'hidden',
