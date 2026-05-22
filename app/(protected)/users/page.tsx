@@ -12,6 +12,7 @@ import {
   fetchRoles,
   type User as UserDto,
   type Role as RoleDto,
+  UserResponse,
 } from '@/lib/api/admin-api'
 import { useAuth } from '../../../hooks/use-auth'
 import {
@@ -43,8 +44,8 @@ import { Badge } from '@/components/ui/badge'
 
 export default function UsersPage() {
   const { hasPermission } = useAuth({ requirePermission: 'user:read' })
-  const [users, setUsers] = useState<UserDto[]>([])
-  const [filteredUsers, setFilteredUsers] = useState<UserDto[]>([])
+  const [users, setUsers] = useState<UserResponse[]>([])
+  const [filteredUsers, setFilteredUsers] = useState<UserResponse[]>([])
   const [roles, setRoles] = useState<RoleDto[]>([])
   const [isOpen, setIsOpen] = useState(false)
   const [formData, setFormData] = useState({ username: '', password: '', role_id: 0 })
@@ -69,7 +70,7 @@ export default function UsersPage() {
   }, [users, searchQuery])
 
   const loadData = async () => {
-    const d = await fetchUsers()
+    const { data: d } = await fetchUsers()
     setUsers(d || [])
   }
 
@@ -89,7 +90,7 @@ export default function UsersPage() {
     loadData()
   }
 
-  const getRoleName = (user: UserDto) => {
+  const getRoleName = (user: UserResponse) => {
     if (user.role) return user.role.name
     const r = roles.find((r) => r.id === user.role_id)
     return r ? r.name : 'Unknown'
