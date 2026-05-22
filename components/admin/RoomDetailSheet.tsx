@@ -11,7 +11,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import RoomTabs from '@/components/features/rooms/RoomTabs'
 import { useAuth } from '@/hooks/use-auth'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/sonner'
 import { Modal, ModalDelete } from '@/components/ui/modal'
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
 

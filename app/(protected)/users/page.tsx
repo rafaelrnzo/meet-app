@@ -12,6 +12,7 @@ import {
   fetchRoles,
   type User as UserDto,
   type Role as RoleDto,
+  UserResponse,
 } from '@/lib/api/admin-api'
 import { useAuth } from '../../../hooks/use-auth'
 import {
@@ -69,7 +70,7 @@ export default function UsersPage() {
   }, [users, searchQuery])
 
   const loadData = async () => {
-    const d = await fetchUsers()
+    const { data: d } = await fetchUsers()
     setUsers(d || [])
   }
 

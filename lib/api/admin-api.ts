@@ -220,6 +220,7 @@ export type Group = {
   description: string
   members?: { id: number; username: string }[]
   created_at?: string
+  is_editable: boolean
 }
 
 export async function fetchGroups(): Promise<Group[]> {
@@ -242,16 +243,17 @@ export async function deleteGroup(id: number): Promise<void> {
   })
 }
 
-export async function addGroupMember(groupId: number, userId: number): Promise<void> {
+export async function addGroupMember(groupId: number, userId: number[]): Promise<void> {
   await apiRequest(`/admin/groups/${groupId}/members`, {
     method: 'POST',
-    body: JSON.stringify({ user_id: userId }),
+    body: JSON.stringify({ user_ids: userId }),
   })
 }
 
-export async function removeGroupMember(groupId: number, userId: number): Promise<void> {
-  await apiRequest(`/admin/groups/${groupId}/members/${userId}`, {
+export async function removeGroupMember(groupId: number, payload: number[]): Promise<void> {
+  await apiRequest(`/admin/groups/${groupId}/members`, {
     method: 'DELETE',
+    body: JSON.stringify({ user_ids: payload }),
   })
 }
 
@@ -352,6 +354,11 @@ export type User = {
   username: string
   role?: Role
   role_id: number
+  status?: 'active' | 'inactive'
+}
+
+export type UserResponse = {
+  data: User[]
 }
 
 export type ParamsUserAssignment = {
@@ -359,8 +366,8 @@ export type ParamsUserAssignment = {
   search?: string
 }
 
-export async function fetchUsers(): Promise<User[]> {
-  return apiRequest<User[]>('/admin/users', {
+export async function fetchUsers(): Promise<UserResponse> {
+  return apiRequest<UserResponse>('/admin/users', {
     method: 'GET',
     cache: 'no-store',
   })
