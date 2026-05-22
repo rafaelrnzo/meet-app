@@ -10,23 +10,19 @@ import {
 import { Input } from '@/components/ui/input'
 import { generateCode } from '@/lib/api/admin-api'
 import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
-import { cn, djs } from '@/lib/utils'
-import { Calendar, Copy, ExternalLink, Loader, RefreshCcw, Users } from 'lucide-react'
+import { cn, copyToClipboardHandler, djs, shareLinkHandler } from '@/lib/utils'
+import { Calendar, Copy, ExternalLink, Loader, Users } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Skeleton } from '@/components/ui/skeleton'
 import { joinRoomAction } from '@/feat/rooms/helper'
-
-interface RoomCode {
-  roomId: number
-  code: string
-  type: 'changed' | 'not yet'
-}
+import { GenerateRoomCode } from './GenerateRoomCode'
+import type { GenerateRoomCodeExp, NewRoomCode } from '@/feat/rooms/dto'
 
 interface SummaryCardProps {
   loading?: boolean
@@ -38,7 +34,7 @@ interface SummaryCardProps {
 }
 
 const CARD_PERPAGE = 6
-const COOKIE_KEY = 'remaining_generate'
+const COOKIE_GENERATE_EXP = 'remaining_generate'
 
 const ButtonJoin = ({
   isFull,
@@ -80,14 +76,15 @@ const ButtonJoin = ({
       className={cn('w-full p-0', !isPendingJoin && 'disabled:opacity-100')}
       variant={!isAdmin && (status !== 'open' || isFull) ? 'secondary' : 'primary'}
       disabled={(!isAdmin && (status !== 'open' || isFull)) || isPendingJoin}
-      onClick={() =>
+      onClick={(event) => {
+        event.stopPropagation()
         startTransitionJoin(async () => {
           await joinRoomAction({
             code: room.room_code,
             onSuccess: (code) => router.push(`/meeting/${encodeURIComponent(code)}`),
           })
         })
-      }
+      }}
     >
       {isPendingJoin && <Loader className='animate-spin' />}
       {!isAdmin && status === 'upcoming'
@@ -114,42 +111,52 @@ function RoomList(props: SummaryCardProps) {
     currentParticipants:
       activeRooms.find((ar) => ar.name === room.room_code)?.num_participants || 0,
   }))
-  const [roomCode, setRoomCode] = useState<RoomCode>({ roomId: 0, code: '', type: 'not yet' })
+  const [newRoomCode, setNewRoomCode] = useState<NewRoomCode[]>([])
   const [visibleCards, setVisibleCards] = useState(CARD_PERPAGE)
   const [isTooltipVisible, setIsTooltipVisible] = useState<{
     action: 'copy' | 'share'
     roomId: number
   } | null>(null)
-  const getGenerateExpiry = () => Number(Cookies.get(COOKIE_KEY) || 0)
-  const [isDisabledGenerate, setIsDisabledGenerate] = useState(() => {
-    const expiry = getGenerateExpiry()
-    return !!expiry && !!djs().isBefore(expiry)
-  })
   const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMobile = useIsMobile()
 
-  useEffect(() => {
-    const expiry = getGenerateExpiry()
+  const getGenerateCodeExp = () => {
+    const cookieData = Cookies.get(COOKIE_GENERATE_EXP)
+    if (!cookieData) return []
 
-    if (!isDisabledGenerate) return
+    const parsedCookieData: GenerateRoomCodeExp[] = JSON.parse(cookieData)
+    return parsedCookieData
+  }
 
-    const intervalGenerate = setInterval(() => {
-      if (djs().isAfter(expiry)) {
-        setIsDisabledGenerate(false)
-        Cookies.remove(COOKIE_KEY)
-        clearInterval(intervalGenerate)
-      }
-    }, 1000)
+  const [arrGenerateExp, setArrGenerateExp] = useState<GenerateRoomCodeExp[]>(getGenerateCodeExp())
 
-    return () => clearInterval(intervalGenerate)
-  }, [isDisabledGenerate])
+  const updateExpiryData = ({ type, roomId }: { type: 'set' | 'remove'; roomId: number }) => {
+    let payload: GenerateRoomCodeExp[] = []
+
+    if (type === 'set') {
+      const roomIndex = arrGenerateExp.findIndex((item) => item.roomId === roomId)
+      const exp = djs().add(5, 'minute').valueOf()
+      payload =
+        roomIndex < 0
+          ? [...arrGenerateExp, { roomId, exp }] // if not found, add to array
+          : arrGenerateExp.map((item, index) => (index === roomIndex ? { ...item, exp } : item))
+    } else {
+      payload = arrGenerateExp.filter((item) => item.roomId !== roomId)
+    }
+
+    Cookies.set(COOKIE_GENERATE_EXP, JSON.stringify(payload))
+    setArrGenerateExp(payload)
+  }
 
   const handleGenerateRoomCode = async (roomId: number) => {
     try {
       const { code } = await generateCode(roomId)
-      setIsDisabledGenerate(true)
-      Cookies.set(COOKIE_KEY, `${djs().add(5, 'minute').valueOf()}`)
-      setRoomCode({ roomId, code, type: 'changed' })
+      updateExpiryData({ type: 'set', roomId })
+      setNewRoomCode((prev) => {
+        const isExist = prev.find((item) => item.roomId === roomId)
+        if (!isExist) return [...prev, { roomId, code }]
+        return prev.map((item) => (item.roomId === roomId ? { ...item, code } : item))
+      })
     } catch {
       toast.error('Gagal membuat kode ruangan baru')
     }
@@ -170,11 +177,9 @@ function RoomList(props: SummaryCardProps) {
   }
 
   const handleCopyLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
-    try {
-      await navigator.clipboard.writeText(roomCode)
+    const response = await copyToClipboardHandler(roomCode)
+    if (!response?.error) {
       handleShowTooltip({ action: 'copy', roomId })
-    } catch {
-      toast.error('Gagal salin kode')
     }
   }
 
@@ -183,15 +188,9 @@ function RoomList(props: SummaryCardProps) {
       title: 'Join Meeting',
       url: new URL(`/meeting/${encodeURIComponent(roomCode)}`, window.location.origin).toString(),
     }
-
-    try {
-      await navigator.clipboard.writeText(`${data.url}`)
-      if (navigator.canShare?.(data)) {
-        await navigator.share(data)
-      }
+    const response = await shareLinkHandler(data)
+    if (!response?.error) {
       handleShowTooltip({ action: 'share', roomId })
-    } catch {
-      toast.error('Gagal bagikan kode')
     }
   }
 
@@ -210,11 +209,7 @@ function RoomList(props: SummaryCardProps) {
               const startDate = djs(room.start_date)
               const isFull = (room.currentParticipants ?? 0) >= room.max_participants
               const ownRoomCode =
-                roomCode.type === 'changed'
-                  ? room.id === roomCode.roomId
-                    ? roomCode.code
-                    : room.room_code
-                  : room.room_code
+                newRoomCode.find((item) => item.roomId === room.id)?.code ?? room.room_code
 
               return (
                 <Card
@@ -234,7 +229,7 @@ function RoomList(props: SummaryCardProps) {
                     )}
 
                     <div className='flex flex-wrap items-center justify-between'>
-                      <CardTitle className='mb-0 flex-1 truncate text-base font-semibold text-red-800 capitalize'>
+                      <CardTitle className='mb-0 flex-1 truncate text-base font-semibold text-red-800'>
                         {room.name}
                       </CardTitle>
                       <div className='flex gap-2'>
@@ -283,7 +278,7 @@ function RoomList(props: SummaryCardProps) {
                       </div>
                     </div>
 
-                    <CardDescription className='line-clamp-3'>
+                    <CardDescription className='line-clamp-3 wrap-anywhere'>
                       {room.description || 'Tidak ada deskripsi'}
                     </CardDescription>
                   </CardHeader>
@@ -314,18 +309,13 @@ function RoomList(props: SummaryCardProps) {
                             <Copy size={16} />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>kode disalin</TooltipContent>
+                        <TooltipContent>Kode disalin</TooltipContent>
                       </Tooltip>
 
                       {isAdmin && (
-                        <Button
-                          variant='secondary-outline'
-                          onClick={async () => await handleGenerateRoomCode(room.id)}
-                          size='icon'
-                          disabled={isDisabledGenerate}
-                        >
-                          <RefreshCcw size={16} />
-                        </Button>
+                        <GenerateRoomCode
+                          {...{ room, arrGenerateExp, handleGenerateRoomCode, updateExpiryData }}
+                        />
                       )}
                     </div>
                   </CardContent>

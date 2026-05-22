@@ -1,14 +1,12 @@
+import { defaultErrorMessage } from '@/config'
 import { fetchRoomByCode } from '@/lib/api/admin-api'
 import { fetchToken } from '@/lib/api/api'
 import { djs } from '@/lib/utils'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/sonner'
 
-const DEFAULT_ERROR_MESSAGE =
-  'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman'
-
-const showGenericError = () =>
+const showGenericError = (message?: string) =>
   toast.error('Gagal masuk ke ruang rapat', {
-    description: DEFAULT_ERROR_MESSAGE,
+    description: message || defaultErrorMessage,
   })
 
 const showMeetingNotStartedError = (startDate?: string) =>
@@ -33,6 +31,21 @@ const showEmptyCodeError = () =>
     description: 'Mohon masukkan kode ruangan agar bisa masuk ke ruang rapat',
   })
 
+const showSuccess = (roomName: string | undefined, targetCode: string) =>
+  toast.success('Sukses bergabung rapat', {
+    description: `Berhasil bergabung ke ruang rapat “${roomName ?? targetCode}”`,
+  })
+
+const showRoomIsFullError = () =>
+  toast.error('Gagal masuk ke ruang rapat', {
+    description: 'Jumlah maksimal peserta sudah tercapai',
+  })
+
+const showBannedUserError = () =>
+  toast.error('Gagal masuk ke ruang rapat', {
+    description: 'Anda tidak diizinkan untuk memulai rapat',
+  })
+
 const joinRoomAction = async ({
   code,
   setIsEmptyRoomCode,
@@ -43,6 +56,7 @@ const joinRoomAction = async ({
   onSuccess: (code: string) => void
 }) => {
   const targetCode = code.trim()
+
   if (!targetCode) {
     showEmptyCodeError()
     setIsEmptyRoomCode?.(true)
@@ -51,18 +65,19 @@ const joinRoomAction = async ({
 
   setIsEmptyRoomCode?.(false)
 
+  const room = await fetchRoomByCode(targetCode).catch(() => null)
+
   try {
     await fetchToken(targetCode)
+    showSuccess(room?.name, targetCode)
     onSuccess(targetCode)
   } catch (error) {
     if (!(error instanceof Error)) {
-      return showGenericError()
+      return showGenericError(typeof error === 'string' ? error : '')
     }
 
     const { message, cause } = error
     const status = (cause as { status?: number })?.status
-
-    const room = await fetchRoomByCode(targetCode).catch(() => null)
 
     switch (status) {
       case 403: {
@@ -74,7 +89,14 @@ const joinRoomAction = async ({
           return showMeetingHasEndedError(room?.name, targetCode)
         }
 
-        // TODO: handle full participant case
+        if (message.toLowerCase().includes('room is full')) {
+          return showRoomIsFullError()
+        }
+
+        if (message.toLowerCase().includes('you banned from this room')) {
+          return showBannedUserError()
+        }
+
         return
       }
 
@@ -82,7 +104,7 @@ const joinRoomAction = async ({
         return showInvalidCodeError(targetCode)
 
       default:
-        return showGenericError()
+        return showGenericError(message)
     }
   }
 }

@@ -95,24 +95,26 @@ export type RoomParams = {
 }
 
 export async function fetchDbRooms(searchParams?: RoomParams): Promise<DbRoom[]> {
+  const { search = '', sort = 'newest' } = searchParams ?? {}
   return apiRequest<DbRoom[]>(
     '/admin/rooms',
     {
       method: 'GET',
       cache: 'no-store',
     },
-    { ...searchParams }
+    { search, sort }
   )
 }
 
-export async function fetchUserDbRooms(searchParams?: { search?: string }): Promise<DbRoom[]> {
+export async function fetchUserDbRooms(searchParams?: RoomParams): Promise<DbRoom[]> {
+  const { search = '', sort = 'newest' } = searchParams ?? {}
   return apiRequest<DbRoom[]>(
     '/api/rooms',
     {
       method: 'GET',
       cache: 'no-store',
     },
-    { ...searchParams }
+    { search, sort }
   )
 }
 
@@ -364,10 +366,14 @@ export async function fetchUsers(): Promise<User[]> {
   })
 }
 
-export async function fetchUsersAssignment(params?: ParamsUserAssignment): Promise<User[]> {
+export async function fetchUsersAssignment(
+  params?: ParamsUserAssignment,
+  signal?: AbortSignal
+): Promise<User[]> {
   return apiRequest<User[]>(
     '/admin/users/assignment',
     {
+      signal,
       method: 'GET',
       cache: 'no-store',
     },

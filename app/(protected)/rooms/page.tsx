@@ -1,16 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  fetchDbRooms,
-  deleteDbRoom,
-  fetchGroups,
-  fetchActiveRooms,
-  fetchUsers,
-  MemberRoom,
-  fetchMemberRoom,
-} from '@/lib/api/admin-api'
-import type { DbRoom, Group as GroupDto, ActiveRoom, User, RoomParams } from '@/lib/api/admin-api'
+import { fetchDbRooms, deleteDbRoom, fetchGroups, fetchActiveRooms } from '@/lib/api/admin-api'
+import type { DbRoom, Group as GroupDto, ActiveRoom, RoomParams } from '@/lib/api/admin-api'
 import { useAuth } from '@/hooks/use-auth'
 import { RoomDetailSheet } from '@/components/admin/RoomDetailSheet'
 import { RoomList } from '@/components/features/rooms/RoomList'
@@ -21,13 +13,13 @@ import { RoomForm } from '@/components/admin/RoomForm'
 import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 import type { SortRoomType } from '@/feat/rooms/dto'
 import { SORT_ROOM } from '@/feat/rooms/dto'
+import { Plus } from 'lucide-react'
 
 export default function RoomsPage() {
   const { hasPermission } = useAuth({ requirePermission: 'room:read' })
   const [rooms, setRooms] = useState<DbRoom[]>([])
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
   const [groups, setGroups] = useState<GroupDto[]>([])
-  const [users, setUsers] = useState<User[]>([])
   const { isAdmin, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const params = useRef<RoomParams>({ sort: 'newest' })
@@ -48,11 +40,10 @@ export default function RoomsPage() {
     async (params?: RoomParams) => {
       setLoading(true)
       try {
-        const [r, g, ar, u] = await Promise.allSettled([
-          fetchDbRooms({ ...params, sort: params?.sort ?? 'newest' }),
+        const [r, g, ar] = await Promise.allSettled([
+          fetchDbRooms({ ...params }),
           isAdmin ? fetchGroups() : Promise.resolve([]),
           fetchActiveRooms(),
-          isAdmin ? fetchUsers() : Promise.resolve([]),
         ])
         if (r.status === 'fulfilled') setRooms(r.value || [])
         else console.error('Failed to load rooms:', r.reason)
@@ -60,8 +51,6 @@ export default function RoomsPage() {
         else console.error('Failed to load groups:', g.reason)
         if (ar.status === 'fulfilled') setActiveRooms(ar.value || [])
         else console.error('Failed to load active rooms:', ar.reason)
-        if (u.status === 'fulfilled') setUsers(u.value || [])
-        else console.error('Failed to load users:', u.reason)
       } catch (error) {
         console.error('Failed to load data', error)
       } finally {
@@ -120,19 +109,29 @@ export default function RoomsPage() {
       icon='room'
       title='Daftar Ruangan'
       subTitle='Kelola ruangan rapat untuk setiap kebutuhan rapat'
+      backToTopButton
     >
       <div className='space-y-4 md:space-y-8'>
         <TableViewHeader
           search={{
             placeholder: 'Cari ruangan',
-            onSearch: ({ value }) => {
-              const updateParams = { ...params.current, search: value }
+            onSearch: (search) => {
+              const updateParams = { ...params.current, search }
               params.current = updateParams
               loadData(updateParams)
             },
             'aria-invalid': !!params.current.search && !displayedRooms.length,
           }}
-          {...(canCreate && { add: { onClick: handleCreate } })}
+          {...(canCreate && {
+            add: {
+              onClick: handleCreate,
+              children: (
+                <>
+                  <Plus /> Tambah Ruangan
+                </>
+              ),
+            },
+          })}
           filter={{
             placeholder: 'Urut',
             options: [

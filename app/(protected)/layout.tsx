@@ -8,10 +8,15 @@ import { useAuth } from '@/hooks/use-auth'
 import { sidebarItems } from '@/lib/menu-items'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { SidebarList } from '@/compounds/sidebar/sidebar-list'
-import { SidebarInset, SidebarProvider, SidebarTrigger } from '@/components/ui/sidebar'
+import { SidebarInset, SidebarProvider, SidebarTrigger, useSidebar } from '@/components/ui/sidebar'
+import { cn } from '@/lib/utils'
 
 export default function ProtectedLayout({ children }: { children: React.ReactNode }) {
-  return <ProtectedContent>{children}</ProtectedContent>
+  return (
+    <SidebarProvider>
+      <ProtectedContent>{children}</ProtectedContent>
+    </SidebarProvider>
+  )
 }
 
 function ProtectedContent({ children }: { children: React.ReactNode }) {
@@ -19,6 +24,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
   const isMobile = useIsMobile()
   const { loading, isAuthenticated, isAdmin } = useAuth()
   const [user, setUser] = useState<StoredUser | null>(null)
+  const { openMobile } = useSidebar()
 
   useEffect(() => {
     setUser(getUser())
@@ -26,7 +32,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
 
   if (loading) {
     return (
-      <div className='bg-background text-foreground flex min-h-screen items-center justify-center'>
+      <div className='bg-background text-foreground flex min-h-screen w-full items-center justify-center'>
         <div className='border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent' />
       </div>
     )
@@ -41,11 +47,16 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
   const roleName = typeof role === 'object' ? role.name : role
 
   return (
-    <SidebarProvider>
+    <>
       <SidebarList user={user} />
       <SidebarInset>
         <main>
-          <header className='fixed top-0 z-50 flex h-12 w-full shrink-0 items-center justify-between gap-2 border-b border-neutral-200 bg-white px-3 transition-[width,height] ease-linear md:sticky md:h-14'>
+          <header
+            className={cn(
+              'fixed top-0 z-50 flex h-12 w-full shrink-0 items-center justify-between gap-2 border-b border-neutral-200 bg-white px-3 transition-[width,height] ease-linear md:sticky md:h-14',
+              isMobile && openMobile && 'z-51'
+            )}
+          >
             {isMobile && <SidebarTrigger />}
 
             <div className='flex items-center gap-2'>
@@ -65,11 +76,11 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
             </div>
           </header>
 
-          <div className='flex-1 overflow-y-auto p-6 max-md:pt-18'>
+          <div className='flex-1 overflow-y-auto p-8 max-md:pt-18'>
             <div className='animate-in fade-in mx-auto max-w-7xl duration-500'>{children}</div>
           </div>
         </main>
       </SidebarInset>
-    </SidebarProvider>
+    </>
   )
 }
