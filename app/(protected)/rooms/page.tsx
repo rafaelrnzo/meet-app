@@ -109,13 +109,14 @@ export default function RoomsPage() {
       icon='room'
       title='Daftar Ruangan'
       subTitle='Kelola ruangan rapat untuk setiap kebutuhan rapat'
+      backToTopButton
     >
       <div className='space-y-4 md:space-y-8'>
         <TableViewHeader
           search={{
             placeholder: 'Cari ruangan',
-            onSearch: ({ value }) => {
-              const updateParams = { ...params.current, search: value }
+            onSearch: (search) => {
+              const updateParams = { ...params.current, search }
               params.current = updateParams
               loadData(updateParams)
             },

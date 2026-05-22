@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useRouter } from 'next/navigation'
 import Cookies from 'js-cookie'
-import { toast } from 'sonner'
+import { toast } from '@/components/ui/sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Skeleton } from '@/components/ui/skeleton'
 import { joinRoomAction } from '@/feat/rooms/helper'
@@ -237,7 +237,7 @@ function RoomList(props: SummaryCardProps) {
                     )}
 
                     <div className='flex flex-wrap items-center justify-between'>
-                      <CardTitle className='mb-0 flex-1 truncate text-base font-semibold text-red-800 capitalize'>
+                      <CardTitle className='mb-0 flex-1 truncate text-base font-semibold text-red-800'>
                         {room.name}
                       </CardTitle>
                       <div className='flex gap-2'>
@@ -286,7 +286,7 @@ function RoomList(props: SummaryCardProps) {
                       </div>
                     </div>
 
-                    <CardDescription className='line-clamp-3'>
+                    <CardDescription className='line-clamp-3 wrap-anywhere'>
                       {room.description || 'Tidak ada deskripsi'}
                     </CardDescription>
                   </CardHeader>
