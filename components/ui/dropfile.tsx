@@ -123,7 +123,9 @@ export default function DropFile({
             )}
           </div>
           <Button variant='secondary-outline'>
-            {failedFile ? 'Unggah Berkas' : 'Ganti Berkas'}
+            {failedFile || !displayedFiles.length || (failedFile && displayedFiles.length > 0)
+              ? 'Unggah Berkas'
+              : 'Ganti Berkas'}
           </Button>
         </div>
         <Input
@@ -141,16 +143,14 @@ export default function DropFile({
         displayedFiles.length > 0 &&
         displayedFiles.map(({ name, size, url }, idx) => {
           return (
-            <div
+            <a
               key={idx}
+              href={url}
+              target='_blank'
+              rel='noopener noreferrer'
               className='flex h-[88px] w-full cursor-pointer items-center justify-between rounded-md border border-dashed border-slate-400 bg-red-50 p-6'
             >
-              <a
-                href={url}
-                target='_blank'
-                rel='noopener noreferrer'
-                className='flex items-center gap-2'
-              >
+              <div className='flex items-center justify-between gap-3'>
                 <div className='w-fit rounded-md border border-slate-400 p-2 text-center'>
                   <FileText className='size-4' />
                 </div>
@@ -158,15 +158,22 @@ export default function DropFile({
                   <p className='text-sm font-medium'>{name}</p>
                   <p className='text-sm text-slate-500'>{formatFileSize(size || 0)}</p>
                 </div>
-              </a>
-              <Button
-                variant='ghost'
-                className='text-error hover:text-error p-0 hover:bg-transparent'
-                onClick={() => handleRemoveFiles(idx)}
+              </div>
+              <div
+                onClick={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  handleRemoveFiles(idx)
+                }}
               >
-                <X className='size-5' />
-              </Button>
-            </div>
+                <Button
+                  variant='ghost'
+                  className='text-error hover:text-error p-0 hover:bg-transparent'
+                >
+                  <X className='size-5' />
+                </Button>
+              </div>
+            </a>
           )
         })}
     </div>
