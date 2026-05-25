@@ -72,7 +72,6 @@ const ButtonJoin = ({
 
   return (
     <Button
-      size='lg'
       className={cn('w-full p-0', !isPendingJoin && 'disabled:opacity-100')}
       variant={!isAdmin && (status !== 'open' || isFull) ? 'secondary' : 'primary'}
       disabled={(!isAdmin && (status !== 'open' || isFull)) || isPendingJoin}
@@ -229,12 +228,15 @@ function RoomList(props: SummaryCardProps) {
                     )}
 
                     <div className='flex flex-wrap items-center justify-between'>
-                      <CardTitle className='mb-0 flex-1 truncate text-base font-semibold text-red-800'>
+                      <CardTitle className='mb-0 min-w-1/2 flex-1 truncate text-base font-semibold text-red-800'>
                         {room.name}
                       </CardTitle>
-                      <div className='flex gap-2'>
+                      <div className='flex items-center gap-2'>
                         {room.group?.name && (
-                          <Badge className='mb-0 rounded-md border-neutral-400 bg-green-50 text-neutral-950 hover:bg-green-50 hover:text-neutral-950'>
+                          <Badge
+                            variant='outline'
+                            className='bg-green-50 wrap-anywhere text-neutral-950 not-italic'
+                          >
                             {room.group.name}
                           </Badge>
                         )}
@@ -247,7 +249,7 @@ function RoomList(props: SummaryCardProps) {
                         >
                           <TooltipTrigger asChild>
                             <Button
-                              size='icon-xs'
+                              className='size-6.5 px-0'
                               variant='secondary-outline'
                               onClick={(event) => {
                                 event.stopPropagation()

@@ -109,6 +109,14 @@ const joinRoomAction = async ({
   }
 }
 
+const handleSearchNotFound = ({ search, countData }: { search?: string; countData: number }) => {
+  if (!search || countData) return
+
+  return toast.error('Ruang rapat tidak ada', {
+    description: `Ruang rapat "${search}" tidak ditemukan.`,
+  })
+}
+
 export {
   showGenericError,
   showMeetingNotStartedError,
@@ -116,4 +124,5 @@ export {
   showInvalidCodeError,
   showEmptyCodeError,
   joinRoomAction,
+  handleSearchNotFound,
 }

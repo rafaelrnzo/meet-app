@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState, useTransition } from 'react'
+import { useCallback, useEffect, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -14,7 +14,7 @@ import { TableViewHeader } from '@/compounds/table-view/header'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Loader } from 'lucide-react'
 import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
-import { joinRoomAction } from '@/feat/rooms/helper'
+import { handleSearchNotFound, joinRoomAction } from '@/feat/rooms/helper'
 
 export default function HomePage() {
   const router = useRouter()
@@ -26,7 +26,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(false)
   const [isPendingJoin, startTransitionJoin] = useTransition()
   const isMobile = useIsMobile()
-  const params = useRef<RoomParams>({})
+  const [queryParams, setQueryParams] = useState<RoomParams>({})
   const [isEmptyRoomCode, setIsEmptyRoomCode] = useState(false)
 
   const loadData = useCallback(
@@ -73,6 +73,10 @@ export default function HomePage() {
     djs().isBefore(end_date)
   )
 
+  useEffect(() => {
+    handleSearchNotFound({ search: queryParams.search, countData: displayedRooms.length })
+  }, [displayedRooms.length, queryParams.search])
+
   return (
     <PageContainer
       icon='room'
@@ -117,11 +121,11 @@ export default function HomePage() {
           search={{
             placeholder: 'Cari ruangan',
             onSearch: (search) => {
-              const updateParams = { ...params.current, search }
-              params.current = updateParams
-              loadData(updateParams)
+              const updatedParams = { ...queryParams, search }
+              setQueryParams(updatedParams)
+              loadData(updatedParams)
             },
-            'aria-invalid': !!params.current.search && !displayedRooms.length,
+            'aria-invalid': !!queryParams.search && !displayedRooms.length,
           }}
           {...(!isMobile && {
             headerAddon: (

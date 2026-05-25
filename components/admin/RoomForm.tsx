@@ -93,10 +93,6 @@ export function RoomForm({
   const [users, setUsers] = useState<User[]>([])
   const [showPassword, setShowPassword] = useState(false)
   const [queryParams, setQueryParams] = useState<ParamsUserAssignment>({})
-  const isActiveRoom = useMemo(
-    () => !!activeRooms.find((ar) => ar.name === initialData?.room_code),
-    [activeRooms, initialData?.room_code]
-  )
   const activeParticipant = useMemo(
     () => activeRooms.find((ar) => ar.name === initialData?.room_code)?.num_participants,
     [activeRooms, initialData?.room_code]
@@ -109,7 +105,6 @@ export function RoomForm({
     defaultValues,
     validators: {
       onChangeAsync: roomSchema({
-        isLive: isActiveRoom,
         activeParticipant,
         isEdit: !!initialData,
       }),
@@ -297,7 +292,7 @@ export function RoomForm({
                         before: new Date(),
                       },
                     }}
-                    disabled={isActiveRoom}
+                    disabled={!!activeParticipant}
                   />
                 </FormField>
               )
@@ -469,7 +464,7 @@ export function RoomForm({
                   placeholder='Cari anggota ...'
                   onSearch={(search) => setQueryParams((prev) => ({ ...prev, search }))}
                 />
-                <Card className='rounded-md'>
+                <Card className='rounded-md border-neutral-400'>
                   <CardContent className='flex min-h-[113px] flex-col px-2 pt-1 pb-3.5'>
                     {/* TODO: buat reusable */}
                     {!users.length ? (
@@ -514,7 +509,7 @@ export function RoomForm({
                             All
                           </Label>
                         </Field>
-                        <Separator className='my-2' />
+                        <Separator className='my-2 bg-neutral-400' />
                         <div className='grid max-h-[113px] grid-cols-2 gap-2 overflow-y-auto'>
                           {users.map((user) => (
                             <Field key={user.id} orientation='horizontal'>
