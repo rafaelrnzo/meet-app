@@ -72,6 +72,7 @@ export default function HomePage() {
   const displayedRooms = (isAdmin ? dbRooms : dbUserRooms).filter(({ end_date }) =>
     djs().isBefore(end_date)
   )
+  const isSearchNotFound = !!queryParams.search && !displayedRooms.length
 
   useEffect(() => {
     handleSearchNotFound({ search: queryParams.search, countData: displayedRooms.length })
@@ -125,11 +126,11 @@ export default function HomePage() {
               setQueryParams(updatedParams)
               loadData(updatedParams)
             },
-            'aria-invalid': !!queryParams.search && !displayedRooms.length,
+            'aria-invalid': isSearchNotFound,
           }}
-          {...(!isMobile && {
+          {...((!isMobile || isSearchNotFound) && {
             headerAddon: (
-              <span className='text-base font-semibold text-red-800 max-md:hidden'>
+              <span className='text-base font-semibold text-red-800'>
                 {displayedRooms.length} Daftar Ruangan
               </span>
             ),

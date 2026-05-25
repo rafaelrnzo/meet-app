@@ -397,7 +397,7 @@ export function RoomForm({
                             value={group}
                             className='flex items-center justify-between gap-2.5'
                           >
-                            <span>{group.label.trim() || '-'}</span>
+                            <span className='wrap-anywhere'>{group.label.trim() || '-'}</span>
                             <span>{group.totalMember}</span>
                           </ComboboxItem>
                         )}
@@ -560,8 +560,8 @@ export function RoomForm({
                 {...{ name, isInvalid, errors }}
                 className='sm:w-[calc(50%-4px)]'
               >
-                <FieldLabel className='border-neutral-400 has-data-[state=checked]:border-neutral-400 has-data-[state=checked]:bg-transparent'>
-                  <Field orientation='horizontal' className='items-center! px-3! py-2!'>
+                <FieldLabel className='h-11 border-neutral-400 hover:bg-neutral-50 has-data-[state=checked]:border-neutral-400 has-data-[state=checked]:bg-transparent'>
+                  <Field orientation='horizontal' className='h-full items-center! py-0!'>
                     <Checkbox
                       id={name}
                       {...{ name }}

@@ -180,9 +180,9 @@ export default function RoomsPage() {
                 value: queryParams.sort,
                 onValueChange: (value) => {
                   if (isTypeSort(value)) {
-                    const updateParams = { ...queryParams, sort: value }
-                    setQueryParams(updateParams)
-                    loadData(updateParams)
+                    const updatedParams = { ...queryParams, sort: value }
+                    setQueryParams(updatedParams)
+                    loadData(updatedParams)
                   }
                 },
               },
