@@ -76,13 +76,16 @@ export async function shareLinkHandler(
   data: ShareData & Required<Pick<ShareData, 'url'>>
 ): Promise<{ error?: string } | undefined> {
   try {
+    let isShare = false
     if (navigator.canShare?.(data)) {
       await navigator.share(data)
-    } else {
-      const response = await copyToClipboardHandler(data.url, { silent: true })
-      if (response?.error) throw Error()
+      isShare = true
     }
-  } catch {
+    const response = await copyToClipboardHandler(data.url, { silent: true })
+    if (!isShare && response?.error) throw Error()
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') return
+    
     toast.error('Gagal bagikan kode', { description: defaultErrorMessage })
     return { error: 'Gagal bagikan kode' }
   }
