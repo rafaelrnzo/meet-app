@@ -167,7 +167,7 @@ export default function RoomTabs({
               <div className='rounded-md border border-red-800 px-5 py-3'>
                 <Calendar1 className='size-4 text-red-800' />
                 <p className='font-medium text-red-800'>Dibuat pada</p>
-                <p className='text-xs'>{djs(room?.start_date).format('DD/MM/YYYY, HH:mm:ss')}</p>
+                <p className='text-xs'>{djs(room?.createdAt).format('DD/MM/YYYY, HH:mm:ss')}</p>
               </div>
               <div className='block rounded-md border border-red-800 px-5 py-3'>
                 <Users className='size-4 text-red-800' />
