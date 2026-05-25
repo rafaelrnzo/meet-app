@@ -14,6 +14,17 @@ import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-
 import type { SortRoomType } from '@/feat/rooms/dto'
 import { SORT_ROOM } from '@/feat/rooms/dto'
 import { Plus } from 'lucide-react'
+import { toast } from '@/components/ui/sonner'
+
+export const displayedError = (error: unknown, titleError: string) => {
+  const message = error instanceof Error ? error.message : String(error)
+  const displayedMessage = message
+    ? message
+    : 'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman'
+  toast.error(titleError, {
+    description: displayedMessage,
+  })
+}
 
 export default function RoomsPage() {
   const { hasPermission } = useAuth({ requirePermission: 'room:read' })
@@ -84,9 +95,15 @@ export default function RoomsPage() {
   }
 
   const handleDelete = async (id: number) => {
-    await deleteDbRoom(id)
-    // if (selectedRoom?.id === id) setIsDetailOpen(false)
-    loadData()
+    try {
+      await deleteDbRoom(id)
+      loadData()
+      toast.success('Ruang rapat berhasil dihapus', {
+        description: `Ruang rapat "${selectedRoom?.name}" berhasil dihapus`,
+      })
+    } catch (error) {
+      displayedError(error, 'Gagal menghapus ruang rapat')
+    }
   }
 
   const handleViewDetails = (room: DbRoom) => {

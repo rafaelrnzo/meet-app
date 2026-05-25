@@ -1,5 +1,6 @@
 'use client'
 
+import { displayedError } from '@/app/(protected)/rooms/page'
 import type { RoomDetailSheetProps, StatusOption } from '@/components/admin/RoomDetailSheet'
 import { Button } from '@/components/ui/button'
 import DropFile from '@/components/ui/dropfile'
@@ -12,6 +13,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select'
+import { toast } from '@/components/ui/sonner'
 import { useAuth } from '@/hooks/use-auth'
 import type { MemberRoom } from '@/lib/api/admin-api'
 import {
@@ -34,7 +36,6 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 interface RoomTabsProps extends Omit<RoomDetailSheetProps, 'isOpen' | 'groups' | 'handleEdit'> {
   value: 'overview' | 'participants' | 'settings'
@@ -87,7 +88,7 @@ export default function RoomTabs({
 
   const handleUploadFile = async (files: File[]) => {
     try {
-      toast.loading('Uploading presentation...')
+      toast.loading('Sedang mengunggah...')
       const { path } = await uploadRoomPresentation(room?.id ?? 0, files[0])
       // If room is active, update metadata to sync immediately
       if (activeRoom) {
@@ -101,29 +102,24 @@ export default function RoomTabs({
             },
           }
           await updateRoomPermissions(room?.name ?? '', newMeta)
-          toast.success('Presentation synced to active meeting')
-        } catch (err) {
-          console.error('Failed to sync metadata', err)
+          toast.success('Presentasi berhasil disinkronkan')
+        } catch (error) {
+          displayedError(error, 'Presentasi gagal disinkronkan')
         }
       }
-
       toast.dismiss()
-      toast.success('Presentation uploaded successfully')
       onEditSuccess()
     } catch (error) {
       toast.dismiss()
-      toast.error('Failed to upload presentation')
-      console.error(error)
+      displayedError(error, 'Gagal menguopload file')
     }
   }
 
   const handleRemoveFile = async () => {
     try {
       await deleteRoomPresentation(room?.id ?? 0)
-      toast.success('Berhasil menghapus file')
     } catch (error) {
-      toast.error('Gagal menghapus file')
-      console.error(error)
+      displayedError(error, 'Gagal menghapus file')
     }
   }
 
