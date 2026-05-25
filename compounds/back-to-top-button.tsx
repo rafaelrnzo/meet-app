@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { ChevronUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-const MIN_SCROLL_Y = 300
+const MIN_SCROLL_Y = 250
 
 export function BackToTopButton() {
   const [scrollY, setScrollY] = useState<number>(0)
