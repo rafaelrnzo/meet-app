@@ -134,7 +134,7 @@ export default function DropFile({
           accept='application/pdf'
           className={cn(
             failedFile ? 'h-[182px] max-h-[182px]' : 'h-[238px] max-h-[238px]',
-            'absolute top-0 right-0 bottom-0 left-0 w-full cursor-pointer border-dashed p-0 text-transparent file:hidden'
+            'absolute top-0 right-0 bottom-0 left-0 w-full cursor-pointer border-dashed p-0 text-transparent file:hidden hover:bg-transparent'
           )}
           onChange={(e) => handleFiles(e.target.files)}
         />
