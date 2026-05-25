@@ -17,12 +17,13 @@ function TableViewSearch(props: TableViewSearchProps) {
   const currentSearch = useRef('')
 
   const handleSearch = (value: string) => {
-    if (currentSearch.current === value) {
+    const text = value.trim()
+    if (currentSearch.current === text) {
       return
     }
 
-    onSearch?.(value)
-    currentSearch.current = value
+    onSearch?.(text)
+    currentSearch.current = text
   }
 
   return (
