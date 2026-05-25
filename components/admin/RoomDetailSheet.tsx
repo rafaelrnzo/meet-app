@@ -13,6 +13,7 @@ import RoomTabs from '@/components/features/rooms/RoomTabs'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from '@/components/ui/sonner'
 import { Modal, ModalDelete } from '@/components/ui/modal'
+import { displayedError } from '@/lib/utils'
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
 
 export interface RoomDetailSheetProps {
@@ -101,7 +102,7 @@ export function RoomDetailSheet({
           )
         )
       } catch (error) {
-        console.error('Failed to load data', error)
+        displayedError(error, 'Gagal loading data')
       }
     },
     [status, room?.id]
@@ -114,16 +115,18 @@ export function RoomDetailSheet({
       })
       setAdminParticipants(member.filter(({ role }) => role.name !== ROLE_USER))
     } catch (error) {
-      console.error('Failed to load data', error)
+      displayedError(error, 'Gagal loading data')
     }
   }
 
   const handleUnbanParticipant = async (roomCode: string, identity: string) => {
     try {
       await unbanParticipant(roomCode, identity)
-      toast.success(`Blokir peserta ${identity} berhasil dibuka `)
+      toast.success(`Berhasil buka blokir peserta`, {
+        description: `Blokir peserta ${identity} berhasil dibuka`,
+      })
     } catch (error) {
-      console.error('Failed to load data', error)
+      displayedError(error, 'Gagal buka blokir peserta')
     }
   }
 

@@ -1,12 +1,12 @@
 'use client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { fetchDbRooms, deleteDbRoom, fetchGroups, fetchActiveRooms } from '@/lib/api/admin-api'
 import type { DbRoom, Group as GroupDto, ActiveRoom, RoomParams } from '@/lib/api/admin-api'
 import { useAuth } from '@/hooks/use-auth'
 import { RoomDetailSheet } from '@/components/admin/RoomDetailSheet'
 import { RoomList } from '@/components/features/rooms/RoomList'
-import { djs } from '@/lib/utils'
+import { cn, displayedError, djs } from '@/lib/utils'
 import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { RoomForm } from '@/components/admin/RoomForm'
@@ -14,6 +14,8 @@ import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-
 import type { SortRoomType } from '@/feat/rooms/dto'
 import { SORT_ROOM } from '@/feat/rooms/dto'
 import { Plus } from 'lucide-react'
+import { handleSearchNotFound } from '@/feat/rooms/helper'
+import { toast } from '@/components/ui/sonner'
 
 export default function RoomsPage() {
   const { hasPermission } = useAuth({ requirePermission: 'room:read' })
@@ -22,7 +24,7 @@ export default function RoomsPage() {
   const [groups, setGroups] = useState<GroupDto[]>([])
   const { isAdmin, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
-  const params = useRef<RoomParams>({ sort: 'newest' })
+  const [queryParams, setQueryParams] = useState<RoomParams>({ sort: 'newest' })
 
   // Modal State
   const [isFormOpen, setIsFormOpen] = useState(false)
@@ -84,9 +86,15 @@ export default function RoomsPage() {
   }
 
   const handleDelete = async (id: number) => {
-    await deleteDbRoom(id)
-    // if (selectedRoom?.id === id) setIsDetailOpen(false)
-    loadData()
+    try {
+      await deleteDbRoom(id)
+      loadData()
+      toast.success('Ruang rapat berhasil dihapus', {
+        description: `Ruang rapat "${selectedRoom?.name}" berhasil dihapus`,
+      })
+    } catch (error) {
+      displayedError(error, 'Gagal menghapus ruang rapat')
+    }
   }
 
   const handleViewDetails = (room: DbRoom) => {
@@ -99,10 +107,15 @@ export default function RoomsPage() {
   }
 
   const displayedRooms = rooms.filter(({ end_date }) => djs().isBefore(end_date))
+  const isSearchNotFound = !!queryParams.search && !displayedRooms.length
 
   const isTypeSort = (sort: string): sort is SortRoomType => {
     return !!sort && SORT_ROOM.some((item) => item === sort)
   }
+
+  useEffect(() => {
+    handleSearchNotFound({ search: queryParams.search, countData: displayedRooms.length })
+  }, [displayedRooms.length, queryParams.search])
 
   return (
     <PageContainer
@@ -116,11 +129,11 @@ export default function RoomsPage() {
           search={{
             placeholder: 'Cari ruangan',
             onSearch: (search) => {
-              const updateParams = { ...params.current, search }
-              params.current = updateParams
-              loadData(updateParams)
+              const updatedParams = { ...queryParams, search }
+              setQueryParams(updatedParams)
+              loadData(updatedParams)
             },
-            'aria-invalid': !!params.current.search && !displayedRooms.length,
+            'aria-invalid': isSearchNotFound,
           }}
           {...(canCreate && {
             add: {
@@ -151,24 +164,27 @@ export default function RoomsPage() {
                 value: 'name_desc',
                 label: 'Alfabet (Z - A)',
               },
-              {
-                value: 'group',
-                label: 'Kelompok',
-              },
             ],
             selectProps: {
               select: {
-                value: params.current.sort,
+                value: queryParams.sort,
                 onValueChange: (value) => {
                   if (isTypeSort(value)) {
-                    const updateParams = { ...params.current, sort: value }
-                    params.current = updateParams
-                    loadData(updateParams)
+                    const updatedParams = { ...queryParams, sort: value }
+                    setQueryParams(updatedParams)
+                    loadData(updatedParams)
                   }
                 },
               },
             },
           }}
+          headerAddon={
+            <span
+              className={cn('text-base font-semibold text-red-800', !isSearchNotFound && 'hidden')}
+            >
+              0 Daftar Ruangan
+            </span>
+          }
         />
 
         <RoomList
