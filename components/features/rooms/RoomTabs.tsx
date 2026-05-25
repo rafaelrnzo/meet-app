@@ -172,7 +172,7 @@ export default function RoomTabs({
               <div className='block rounded-md border border-red-800 px-5 py-3'>
                 <Users className='size-4 text-red-800' />
                 <p className='font-medium text-red-800'>Maksimal peserta</p>
-                <p className='text-xs'>{activeRoom?.num_participants ?? 0} peserta</p>
+                <p className='text-xs'>{room?.max_participants ?? 0} peserta</p>
               </div>
             </div>
             {isAdmin && (
