@@ -109,6 +109,64 @@ const joinRoomAction = async ({
   }
 }
 
+const handleSearchNotFound = ({ search, countData }: { search?: string; countData: number }) => {
+  if (!search || countData) return
+
+  return toast.error('Ruang rapat tidak ada', {
+    description: `Ruang rapat "${search}" tidak ditemukan.`,
+  })
+}
+
+function unsecuredCopyToClipboard(text: string) {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+
+  document.body.appendChild(textArea)
+
+  textArea.focus()
+  textArea.select()
+
+  document.execCommand('copy')
+  document.body.removeChild(textArea)
+}
+
+async function copyToClipboardHandler(
+  textToCopy: string,
+  options?: { silent?: boolean }
+): Promise<{ error?: string } | undefined> {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(textToCopy)
+    } else {
+      unsecuredCopyToClipboard(textToCopy)
+    }
+  } catch {
+    if (!options?.silent) {
+      toast.error('Gagal salin kode', { description: defaultErrorMessage })
+    }
+    return { error: 'Gagal salin kode' }
+  }
+}
+
+async function shareLinkHandler(
+  data: ShareData & Required<Pick<ShareData, 'url'>>
+): Promise<{ error?: string } | undefined> {
+  try {
+    const response = await copyToClipboardHandler(data.url, { silent: true })
+    const canShare = typeof navigator.share === 'function' && navigator.canShare?.(data)
+
+    if (canShare) {
+      await navigator.share(data)
+    }
+
+    if (!canShare && response?.error) throw Error()
+  } catch (error) {
+    if (error instanceof DOMException && error.name === 'AbortError') return
+    toast.error('Gagal bagikan kode', { description: defaultErrorMessage })
+    return { error: 'Gagal bagikan kode' }
+  }
+}
+
 export {
   showGenericError,
   showMeetingNotStartedError,
@@ -116,4 +174,8 @@ export {
   showInvalidCodeError,
   showEmptyCodeError,
   joinRoomAction,
+  handleSearchNotFound,
+  unsecuredCopyToClipboard,
+  copyToClipboardHandler,
+  shareLinkHandler,
 }

@@ -88,6 +88,8 @@ function TableViewHeader<TData>(props: TableViewHeaderProps<TData>) {
 
           {(!!filter || !!add || !!refresh || !!headerAddon) && (
             <div className='flex w-full grow justify-end gap-2 max-md:flex-col-reverse md:items-center'>
+              {headerAddon}
+
               {!!filter && (
                 <div className='max-md:hidden'>
                   <TableViewFilter {...filter} />
@@ -107,8 +109,6 @@ function TableViewHeader<TData>(props: TableViewHeaderProps<TData>) {
               )}
 
               {!!refresh && <ButtonRefresh className='max-md:hidden' refresh={refresh} />}
-
-              {headerAddon}
             </div>
           )}
         </div>

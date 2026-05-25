@@ -93,10 +93,6 @@ export function RoomForm({
   const [users, setUsers] = useState<User[]>([])
   const [showPassword, setShowPassword] = useState(false)
   const [queryParams, setQueryParams] = useState<ParamsUserAssignment>({})
-  const isActiveRoom = useMemo(
-    () => !!activeRooms.find((ar) => ar.name === initialData?.room_code),
-    [activeRooms, initialData?.room_code]
-  )
   const activeParticipant = useMemo(
     () => activeRooms.find((ar) => ar.name === initialData?.room_code)?.num_participants,
     [activeRooms, initialData?.room_code]
@@ -109,7 +105,6 @@ export function RoomForm({
     defaultValues,
     validators: {
       onChangeAsync: roomSchema({
-        isLive: isActiveRoom,
         activeParticipant,
         isEdit: !!initialData,
       }),
@@ -129,12 +124,17 @@ export function RoomForm({
         onSuccess()
         formApi.reset()
       } catch (error) {
-        const message =
+        let message =
           error instanceof Error
             ? error.message
             : typeof error === 'string'
               ? error
               : defaultErrorMessage
+
+        if (message.toLowerCase() === 'room name is already used by an active room') {
+          message = 'Nama ruangan sudah digunakan. Gunakan nama lain.'
+        }
+
         toast.error(initialData ? 'Gagal memperbarui ruang rapat' : 'Gagal membuat ruang rapat', {
           description: message,
         })
@@ -292,7 +292,7 @@ export function RoomForm({
                         before: new Date(),
                       },
                     }}
-                    disabled={isActiveRoom}
+                    disabled={!!activeParticipant}
                   />
                 </FormField>
               )
@@ -397,7 +397,7 @@ export function RoomForm({
                             value={group}
                             className='flex items-center justify-between gap-2.5'
                           >
-                            <span>{group.label.trim() || '-'}</span>
+                            <span className='wrap-anywhere'>{group.label.trim() || '-'}</span>
                             <span>{group.totalMember}</span>
                           </ComboboxItem>
                         )}
@@ -464,7 +464,7 @@ export function RoomForm({
                   placeholder='Cari anggota ...'
                   onSearch={(search) => setQueryParams((prev) => ({ ...prev, search }))}
                 />
-                <Card className='rounded-md'>
+                <Card className='rounded-md border-neutral-400'>
                   <CardContent className='flex min-h-[113px] flex-col px-2 pt-1 pb-3.5'>
                     {/* TODO: buat reusable */}
                     {!users.length ? (
@@ -509,7 +509,7 @@ export function RoomForm({
                             All
                           </Label>
                         </Field>
-                        <Separator className='my-2' />
+                        <Separator className='my-2 bg-neutral-400' />
                         <div className='grid max-h-[113px] grid-cols-2 gap-2 overflow-y-auto'>
                           {users.map((user) => (
                             <Field key={user.id} orientation='horizontal'>
@@ -560,8 +560,8 @@ export function RoomForm({
                 {...{ name, isInvalid, errors }}
                 className='sm:w-[calc(50%-4px)]'
               >
-                <FieldLabel className='border-neutral-400 has-data-[state=checked]:border-neutral-400 has-data-[state=checked]:bg-transparent'>
-                  <Field orientation='horizontal' className='items-center! px-3! py-2!'>
+                <FieldLabel className='h-11 border-neutral-400 hover:bg-neutral-50 has-data-[state=checked]:border-neutral-400 has-data-[state=checked]:bg-transparent'>
+                  <Field orientation='horizontal' className='h-full items-center! py-0!'>
                     <Checkbox
                       id={name}
                       {...{ name }}

@@ -20,7 +20,7 @@ import Cookies from 'js-cookie'
 import { toast } from '@/components/ui/sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Skeleton } from '@/components/ui/skeleton'
-import { joinRoomAction } from '@/feat/rooms/helper'
+import { copyToClipboardHandler, joinRoomAction, shareLinkHandler } from '@/feat/rooms/helper'
 import { GenerateRoomCode } from './GenerateRoomCode'
 import type { GenerateRoomCodeExp, NewRoomCode } from '@/feat/rooms/dto'
 
@@ -72,7 +72,6 @@ const ButtonJoin = ({
 
   return (
     <Button
-      size='lg'
       className={cn('w-full p-0', !isPendingJoin && 'disabled:opacity-100')}
       variant={!isAdmin && (status !== 'open' || isFull) ? 'secondary' : 'primary'}
       disabled={(!isAdmin && (status !== 'open' || isFull)) || isPendingJoin}
@@ -177,11 +176,9 @@ function RoomList(props: SummaryCardProps) {
   }
 
   const handleCopyLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
-    try {
-      await navigator.clipboard.writeText(roomCode)
+    const response = await copyToClipboardHandler(roomCode)
+    if (!response?.error) {
       handleShowTooltip({ action: 'copy', roomId })
-    } catch {
-      toast.error('Gagal salin kode')
     }
   }
 
@@ -190,15 +187,9 @@ function RoomList(props: SummaryCardProps) {
       title: 'Join Meeting',
       url: new URL(`/meeting/${encodeURIComponent(roomCode)}`, window.location.origin).toString(),
     }
-
-    try {
-      await navigator.clipboard.writeText(`${data.url}`)
-      if (navigator.canShare?.(data)) {
-        await navigator.share(data)
-      }
+    const response = await shareLinkHandler(data)
+    if (!response?.error) {
       handleShowTooltip({ action: 'share', roomId })
-    } catch {
-      toast.error('Gagal bagikan kode')
     }
   }
 
@@ -237,12 +228,15 @@ function RoomList(props: SummaryCardProps) {
                     )}
 
                     <div className='flex flex-wrap items-center justify-between'>
-                      <CardTitle className='mb-0 flex-1 truncate text-base font-semibold text-red-800'>
+                      <CardTitle className='mb-0 min-w-1/2 flex-1 truncate text-base font-semibold text-red-800'>
                         {room.name}
                       </CardTitle>
-                      <div className='flex gap-2'>
+                      <div className='flex items-center gap-2'>
                         {room.group?.name && (
-                          <Badge className='mb-0 rounded-md border-neutral-400 bg-green-50 text-neutral-950 hover:bg-green-50 hover:text-neutral-950'>
+                          <Badge
+                            variant='outline'
+                            className='bg-green-50 wrap-anywhere text-neutral-950 not-italic'
+                          >
                             {room.group.name}
                           </Badge>
                         )}
@@ -255,7 +249,7 @@ function RoomList(props: SummaryCardProps) {
                         >
                           <TooltipTrigger asChild>
                             <Button
-                              size='icon-xs'
+                              className='size-6.5 px-0'
                               variant='secondary-outline'
                               onClick={(event) => {
                                 event.stopPropagation()
@@ -317,7 +311,7 @@ function RoomList(props: SummaryCardProps) {
                             <Copy size={16} />
                           </Button>
                         </TooltipTrigger>
-                        <TooltipContent>kode disalin</TooltipContent>
+                        <TooltipContent>Kode disalin</TooltipContent>
                       </Tooltip>
 
                       {isAdmin && (
