@@ -69,7 +69,7 @@ export type DbRoom = {
   end_date: string
   group_id?: number
   group?: { id: number; name: string }
-  created_at?: string
+  createdAt?: string
   updated_at?: string
   banned_users?: string[]
   presentation_path?: string
