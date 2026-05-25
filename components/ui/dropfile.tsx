@@ -123,7 +123,9 @@ export default function DropFile({
             )}
           </div>
           <Button variant='secondary-outline'>
-            {failedFile ? 'Unggah Berkas' : 'Ganti Berkas'}
+            {failedFile || !displayedFiles.length || (failedFile && displayedFiles.length > 0)
+              ? 'Unggah Berkas'
+              : 'Ganti Berkas'}
           </Button>
         </div>
         <Input
