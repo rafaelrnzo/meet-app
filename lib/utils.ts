@@ -85,8 +85,17 @@ export async function shareLinkHandler(
     if (!isShare && response?.error) throw Error()
   } catch (error) {
     if (error instanceof DOMException && error.name === 'AbortError') return
-    
     toast.error('Gagal bagikan kode', { description: defaultErrorMessage })
     return { error: 'Gagal bagikan kode' }
   }
+}
+
+export const displayedError = (error: unknown, titleError: string) => {
+  const message = error instanceof Error ? error.message : String(error)
+  const displayedMessage = message
+    ? message
+    : 'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman'
+  toast.error(titleError, {
+    description: displayedMessage,
+  })
 }

@@ -6,7 +6,7 @@ import type { DbRoom, Group as GroupDto, ActiveRoom, RoomParams } from '@/lib/ap
 import { useAuth } from '@/hooks/use-auth'
 import { RoomDetailSheet } from '@/components/admin/RoomDetailSheet'
 import { RoomList } from '@/components/features/rooms/RoomList'
-import { cn, djs } from '@/lib/utils'
+import { cn, displayedError, djs } from '@/lib/utils'
 import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { RoomForm } from '@/components/admin/RoomForm'
@@ -16,16 +16,6 @@ import { SORT_ROOM } from '@/feat/rooms/dto'
 import { Plus } from 'lucide-react'
 import { handleSearchNotFound } from '@/feat/rooms/helper'
 import { toast } from '@/components/ui/sonner'
-
-export const displayedError = (error: unknown, titleError: string) => {
-  const message = error instanceof Error ? error.message : String(error)
-  const displayedMessage = message
-    ? message
-    : 'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman'
-  toast.error(titleError, {
-    description: displayedMessage,
-  })
-}
 
 export default function RoomsPage() {
   const { hasPermission } = useAuth({ requirePermission: 'room:read' })

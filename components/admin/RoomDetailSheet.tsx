@@ -13,7 +13,7 @@ import RoomTabs from '@/components/features/rooms/RoomTabs'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from '@/components/ui/sonner'
 import { Modal, ModalDelete } from '@/components/ui/modal'
-import { displayedError } from '@/app/(protected)/rooms/page'
+import { displayedError } from '@/lib/utils'
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
 
 export interface RoomDetailSheetProps {
