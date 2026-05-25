@@ -1,7 +1,8 @@
 import '@/lib/polyfill'
 import '@livekit/components-styles'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import './globals.css'
-import { Toaster } from 'sonner'
+import { Toaster } from '@/components/ui/sonner'
 
 export const metadata = {
   title: 'LiveKit Meeting',
@@ -12,8 +13,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang='en' suppressHydrationWarning>
       <body style={{ margin: 0 }}>
-        {children}
-        <Toaster position='top-center' richColors />
+        <TooltipProvider>{children}</TooltipProvider>
+        <Toaster position='bottom-right' richColors />
       </body>
     </html>
   )
