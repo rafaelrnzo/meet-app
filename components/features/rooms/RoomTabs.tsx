@@ -1,6 +1,5 @@
 'use client'
 
-import { displayedError } from '@/app/(protected)/rooms/page'
 import type { RoomDetailSheetProps, StatusOption } from '@/components/admin/RoomDetailSheet'
 import { Button } from '@/components/ui/button'
 import DropFile from '@/components/ui/dropfile'
@@ -22,7 +21,7 @@ import {
   updateRoomPermissions,
   uploadRoomPresentation,
 } from '@/lib/api/admin-api'
-import { cn, djs } from '@/lib/utils'
+import { cn, displayedError, djs } from '@/lib/utils'
 import {
   Ban,
   Calendar1,
