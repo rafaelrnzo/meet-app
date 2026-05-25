@@ -175,7 +175,7 @@ export default function RoomTabs({
               <div>
                 <div className='my-2'>
                   <p className='pb-2'>Deskripsi ruangan</p>
-                  <div className='min-h-16 rounded-md border border-slate-400 px-3 py-1 shadow-sm'>
+                  <div className='min-h-16 rounded-md border border-slate-400 px-3 py-1 wrap-break-word whitespace-pre-wrap shadow-sm'>
                     {room?.description || '-'}
                   </div>
                 </div>
