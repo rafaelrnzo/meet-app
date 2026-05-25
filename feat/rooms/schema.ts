@@ -26,7 +26,7 @@ function isParticipantFull(fieldName: 'groupId' | 'assignedTo') {
   }
 }
 
-const roomSchema = (props?: { isLive?: boolean; activeParticipant?: number; isEdit?: boolean }) =>
+const roomSchema = (props?: { activeParticipant?: number; isEdit?: boolean }) =>
   yup.object().shape({
     name: yup
       .string()

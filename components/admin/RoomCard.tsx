@@ -64,7 +64,7 @@ export function RoomCard({ room, activeRoom, onClick, onDelete }: RoomCardProps)
           <div className='text-muted-foreground bg-muted/50 flex items-center gap-2 rounded-lg p-2'>
             <Calendar className='h-4 w-4' />
             <span className='text-xs'>
-              {new Date(room.created_at || Date.now()).toLocaleDateString()}
+              {new Date(room.createdAt || Date.now()).toLocaleDateString()}
             </span>
           </div>
         </div>

@@ -111,7 +111,7 @@ function Modal({
               scroller?.className
             )}
           >
-            <DialogHeader {...header} className={cn('p-5', header?.className)}>
+            <DialogHeader {...header} className={cn('p-5 space-y-0', header?.className)}>
               <div className='flex justify-between'>
                 <DialogTitle
                   {...title}
@@ -122,10 +122,7 @@ function Modal({
                 />
                 <DialogClose
                   {...close}
-                  className={cn(
-                    'h-fit cursor-pointer rounded-md bg-red-200 p-2 hover:bg-red-300/70',
-                    close?.hidden && 'hidden'
-                  )}
+                  className={cn(close?.hidden && 'hidden')}
                   onClick={(event) => {
                     close?.onClick?.(event)
 
@@ -133,9 +130,12 @@ function Modal({
                       event.preventDefault()
                     }
                   }}
+                  asChild
                 >
-                  <X size={16} className='text-red-500' />
-                  <span className='sr-only'>Close</span>
+                  <Button className='bg-red-200 hover:bg-red-300/70'>
+                    <X size={16} className='text-red-500' />
+                    <span className='sr-only'>Close</span>
+                  </Button>
                 </DialogClose>
               </div>
               <DialogDescription

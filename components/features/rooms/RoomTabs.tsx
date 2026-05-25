@@ -12,6 +12,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select'
+import { toast } from '@/components/ui/sonner'
 import { useAuth } from '@/hooks/use-auth'
 import type { MemberRoom } from '@/lib/api/admin-api'
 import {
@@ -20,7 +21,7 @@ import {
   updateRoomPermissions,
   uploadRoomPresentation,
 } from '@/lib/api/admin-api'
-import { cn, djs } from '@/lib/utils'
+import { cn, displayedError, djs } from '@/lib/utils'
 import {
   Ban,
   Calendar1,
@@ -34,7 +35,6 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
-import { toast } from 'sonner'
 
 interface RoomTabsProps extends Omit<RoomDetailSheetProps, 'isOpen' | 'groups' | 'handleEdit'> {
   value: 'overview' | 'participants' | 'settings'
@@ -87,7 +87,7 @@ export default function RoomTabs({
 
   const handleUploadFile = async (files: File[]) => {
     try {
-      toast.loading('Uploading presentation...')
+      toast.loading('Sedang mengunggah...')
       const { path } = await uploadRoomPresentation(room?.id ?? 0, files[0])
       // If room is active, update metadata to sync immediately
       if (activeRoom) {
@@ -101,29 +101,24 @@ export default function RoomTabs({
             },
           }
           await updateRoomPermissions(room?.name ?? '', newMeta)
-          toast.success('Presentation synced to active meeting')
-        } catch (err) {
-          console.error('Failed to sync metadata', err)
+          toast.success('Presentasi berhasil disinkronkan')
+        } catch (error) {
+          displayedError(error, 'Presentasi gagal disinkronkan')
         }
       }
-
       toast.dismiss()
-      toast.success('Presentation uploaded successfully')
       onEditSuccess()
     } catch (error) {
       toast.dismiss()
-      toast.error('Failed to upload presentation')
-      console.error(error)
+      displayedError(error, 'Gagal menguopload file')
     }
   }
 
   const handleRemoveFile = async () => {
     try {
       await deleteRoomPresentation(room?.id ?? 0)
-      toast.success('Berhasil menghapus file')
     } catch (error) {
-      toast.error('Gagal menghapus file')
-      console.error(error)
+      displayedError(error, 'Gagal menghapus file')
     }
   }
 
@@ -167,19 +162,19 @@ export default function RoomTabs({
               <div className='rounded-md border border-red-800 px-5 py-3'>
                 <Calendar1 className='size-4 text-red-800' />
                 <p className='font-medium text-red-800'>Dibuat pada</p>
-                <p className='text-xs'>{djs(room?.start_date).format('DD/MM/YYYY, HH:mm:ss')}</p>
+                <p className='text-xs'>{djs(room?.createdAt).format('DD/MM/YYYY, HH:mm:ss')}</p>
               </div>
               <div className='block rounded-md border border-red-800 px-5 py-3'>
                 <Users className='size-4 text-red-800' />
                 <p className='font-medium text-red-800'>Maksimal peserta</p>
-                <p className='text-xs'>{activeRoom?.num_participants ?? 0} peserta</p>
+                <p className='text-xs'>{room?.max_participants ?? 0} peserta</p>
               </div>
             </div>
             {isAdmin && (
               <div>
                 <div className='my-2'>
                   <p className='pb-2'>Deskripsi ruangan</p>
-                  <div className='min-h-16 rounded-md border border-slate-400 px-3 py-1 shadow-sm'>
+                  <div className='min-h-16 rounded-md border border-slate-400 px-3 py-1 wrap-break-word whitespace-pre-wrap shadow-sm'>
                     {room?.description || '-'}
                   </div>
                 </div>

@@ -5,7 +5,7 @@ import { cn } from '@/lib/utils'
 import { ChevronUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
-const MIN_SCROLL_Y = 300
+const MIN_SCROLL_Y = 250
 
 export function BackToTopButton() {
   const [scrollY, setScrollY] = useState<number>(0)
@@ -22,9 +22,8 @@ export function BackToTopButton() {
   return (
     <div className={cn('fixed right-6 bottom-6 z-50', scrollY <= MIN_SCROLL_Y && 'hidden')}>
       <Button
-        asChild
         variant='primary'
-        className='flex size-10 items-center justify-center rounded-md p-3 text-center text-white'
+        className='size-11'
         onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
       >
         <ChevronUp />
