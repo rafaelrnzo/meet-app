@@ -28,7 +28,7 @@ function TableViewFilter(props: TableViewFilterProps) {
       <SelectTrigger
         {...selectProps?.selectTrigger}
         className={cn(
-          'h-9 cursor-pointer gap-2 font-semibold md:border md:border-red-800 md:bg-red-50 md:text-red-800 md:hover:bg-red-200 [&>svg]:opacity-100',
+          'cursor-pointer gap-2 font-semibold md:border md:border-red-800 md:bg-red-50 md:text-red-800 md:hover:bg-red-200 [&>svg]:opacity-100',
           'md:data-[state=open]:bg-red-800 md:data-[state=open]:text-white',
           selectProps?.selectTrigger?.className
         )}

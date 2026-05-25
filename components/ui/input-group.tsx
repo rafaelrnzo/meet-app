@@ -33,6 +33,9 @@ function InputGroup({ className, ...props }: React.ComponentProps<"div">) {
         // Error state.
         "has-[[data-slot][aria-invalid=true]]:border-destructive has-[[data-slot][aria-invalid=true]]:ring-destructive/20 dark:has-[[data-slot][aria-invalid=true]]:ring-destructive/40",
 
+        // hover
+        "hover:bg-neutral-50",
+
         className
       )}
       {...props}
@@ -140,7 +143,7 @@ function InputGroupInput({
     <Input
       data-slot="input-group-control"
       className={cn(
-        "flex-1 aria-invalid:text-error rounded-none border-0 hover:bg-neutral-50 hover:border-neutral-400 hover:border-y hover:rounded-md  bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent",
+        "flex-1 aria-invalid:text-error rounded-none border-0 bg-transparent shadow-none focus-visible:ring-0 dark:bg-transparent hover:bg-transparent hover:border-transparent",
 
         className
       )}
