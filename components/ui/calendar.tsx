@@ -2,10 +2,18 @@
 
 import * as React from 'react'
 import { ChevronDownIcon, ChevronLeftIcon, ChevronRightIcon } from 'lucide-react'
-import { DayPicker, getDefaultClassNames, type DayButton, type Locale } from 'react-day-picker'
-
+import { DayPicker, getDefaultClassNames } from 'react-day-picker'
+import type { DayButton, Locale, DropdownProps } from 'react-day-picker'
 import { cn } from '@/lib/utils'
 import { Button, buttonVariants } from '@/components/ui/button'
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 
 function Calendar({
   className,
@@ -60,7 +68,7 @@ function Calendar({
           defaultClassNames.month_caption
         ),
         dropdowns: cn(
-          'flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium',
+          'flex h-(--cell-size) w-full items-center justify-center gap-1.5 text-sm font-medium z-10',
           defaultClassNames.dropdowns
         ),
         dropdown_root: cn(
@@ -134,6 +142,7 @@ function Calendar({
             </td>
           )
         },
+        Dropdown: CalendarSelectDropdown,
         ...components,
       }}
       {...props}
@@ -159,7 +168,6 @@ function CalendarDayButton({
     <Button
       ref={ref}
       variant='ghost'
-      size='icon'
       data-day={day.date.toLocaleDateString(locale?.code)}
       data-selected-single={
         modifiers.selected &&
@@ -171,12 +179,64 @@ function CalendarDayButton({
       data-range-end={modifiers.range_end}
       data-range-middle={modifiers.range_middle}
       className={cn(
-        'group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground data-[selected-single=true]:bg-primary data-[selected-single=true]:text-primary-foreground dark:hover:text-accent-foreground flex aspect-square size-auto w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md [&>span]:text-xs [&>span]:opacity-70',
+        'group-data-[focused=true]/day:border-ring group-data-[focused=true]/day:ring-ring/50 data-[range-end=true]:bg-primary data-[range-end=true]:text-primary-foreground data-[range-middle=true]:bg-accent data-[range-middle=true]:text-accent-foreground data-[range-start=true]:bg-primary data-[range-start=true]:text-primary-foreground dark:hover:text-accent-foreground flex aspect-square size-9 w-full min-w-(--cell-size) flex-col gap-1 leading-none font-normal group-data-[focused=true]/day:relative group-data-[focused=true]/day:z-10 group-data-[focused=true]/day:ring-[3px] data-[range-end=true]:rounded-md data-[range-end=true]:rounded-r-md data-[range-middle=true]:rounded-none data-[range-start=true]:rounded-md data-[range-start=true]:rounded-l-md data-[selected-single=true]:bg-red-800 data-[selected-single=true]:text-neutral-50 [&>span]:text-xs [&>span]:opacity-70',
         defaultClassNames.day,
         className
       )}
       {...props}
     />
+  )
+}
+
+function CalendarSelectDropdown(props: DropdownProps) {
+  const {
+    options,
+    value,
+    defaultValue,
+    onChange,
+    'aria-label': ariaLabel,
+    dir,
+    ...restProps
+  } = props
+
+  const handleValueChange = (newValue: string) => {
+    if (onChange) {
+      const syntheticEvent = {
+        target: {
+          value: newValue,
+        },
+      } as React.ChangeEvent<HTMLSelectElement>
+
+      onChange(syntheticEvent)
+    }
+  }
+
+  return (
+    <Select
+      {...restProps}
+      value={value?.toString()}
+      defaultValue={defaultValue?.toString()}
+      dir={dir as 'ltr' | 'rtl'}
+      onValueChange={handleValueChange}
+    >
+      <SelectTrigger aria-label={ariaLabel} className='h-9 w-fit'>
+        <SelectValue />
+      </SelectTrigger>
+      <SelectContent className='max-h-(--radix-select-content-available-height)'>
+        <SelectGroup>
+          {options?.map((option) => (
+            <SelectItem
+              key={option.value}
+              value={option.value.toString()}
+              disabled={option.disabled}
+              className={cn(option.disabled && 'text-neutral-400')}
+            >
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectGroup>
+      </SelectContent>
+    </Select>
   )
 }
 
