@@ -14,6 +14,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { toast } from '@/components/ui/sonner'
 import { Modal, ModalDelete } from '@/components/ui/modal'
 import { displayedError } from '@/lib/utils'
+import { copyToClipboardHandler } from '@/feat/rooms/helper'
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
 
 export interface RoomDetailSheetProps {
@@ -74,15 +75,11 @@ export function RoomDetailSheet({
   }
 
   const handleCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(room?.room_code ?? '')
-      setShowTooltip(true)
-      setTimeout(() => {
-        setShowTooltip(false)
-      }, 1000)
-    } catch {
-      toast.error('Gagal salin kode')
-    }
+    await copyToClipboardHandler(room?.room_code ?? '')
+    setShowTooltip(true)
+    setTimeout(() => {
+      setShowTooltip(false)
+    }, 1000)
   }
 
   const loadUsers = useCallback(
