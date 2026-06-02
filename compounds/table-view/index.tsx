@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table'
 import { ARR_PAGE_SIZE, TableViewPagination } from '@/compounds/table-view/pagination'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { TableViewColumnHeader } from '@/compounds/table-view/column-header'
 import { cn } from '@/lib/utils'
 import type { VariantProps } from 'class-variance-authority'
@@ -25,6 +25,7 @@ import type { buttonVariants } from '@/components/ui/button'
 import type { TableViewSearchProps } from '@/compounds/table-view/search'
 import type { TableViewFilterProps } from '@/compounds/table-view/filter'
 import { TableViewHeader } from '@/compounds/table-view/header'
+import { Skeleton } from '@/components/ui/skeleton'
 
 type TableViewButtonProps = React.ComponentProps<'button'> &
   VariantProps<typeof buttonVariants> & {
@@ -39,6 +40,7 @@ interface TableViewProps {
   refresh?: TableViewButtonProps
   filter?: TableViewFilterProps
   headerAddon?: React.ReactNode
+  loading?: boolean
 }
 
 function isAlphabet(charCode: number) {
@@ -111,8 +113,8 @@ function handleSort<TData extends RowData>(rowA: Row<TData>, rowB: Row<TData>, c
 }
 
 function TableView<TData>({
-  columns,
-  data,
+  columns: defaultColumns,
+  data: defaultData,
   pageSizeOptions = ARR_PAGE_SIZE,
   wrapper,
   search,
@@ -120,6 +122,7 @@ function TableView<TData>({
   refresh,
   filter,
   headerAddon,
+  loading = false,
   ...rest
 }: Omit<TableOptions<TData>, 'getCoreRowModel'> & TableViewProps) {
   const [sorting, setSorting] = useState<SortingState>([])
@@ -127,6 +130,20 @@ function TableView<TData>({
     pageIndex: 0,
     pageSize: pageSizeOptions[0],
   })
+  const data = useMemo(
+    () => (loading ? Array<TData>(4).fill({} as TData) : defaultData),
+    [defaultData, loading]
+  )
+  const columns = useMemo(
+    () =>
+      loading
+        ? defaultColumns.map((column) => ({
+            ...column,
+            cell: () => <Skeleton className='h-6.5 w-full' />,
+          }))
+        : defaultColumns,
+    [defaultColumns, loading]
+  )
   const table = useReactTable({
     data,
     columns,
