@@ -1,6 +1,6 @@
 'use client'
 
-import type { SortingState, TableOptions } from '@tanstack/react-table'
+import type { Row, RowData, SortingState, TableOptions } from '@tanstack/react-table'
 import {
   flexRender,
   getCoreRowModel,
@@ -41,6 +41,75 @@ interface TableViewProps {
   headerAddon?: React.ReactNode
 }
 
+function isAlphabet(charCode: number) {
+  return (charCode >= 65 && charCode <= 90) || (charCode >= 97 && charCode <= 122)
+}
+
+function charCategory(charCode: number) {
+  // special character
+  if (
+    (charCode >= 32 && charCode <= 47) || // !"#$%&'()*+,-./ (include space)
+    (charCode >= 58 && charCode <= 64) || // :;<=>?@
+    (charCode >= 91 && charCode <= 96) || // [\]^_`
+    (charCode >= 123 && charCode <= 126) // {|}~
+  ) {
+    return 0
+  }
+
+  // numeric
+  if (charCode >= 48 && charCode <= 57) {
+    return 1
+  }
+
+  // alphabet
+  if (isAlphabet(charCode)) {
+    return 2
+  }
+
+  //other
+  return 3
+}
+
+function handleSort<TData extends RowData>(rowA: Row<TData>, rowB: Row<TData>, columnId: string) {
+  const textA = rowA.getValue<string>(columnId) ?? ''
+  const textB = rowB.getValue<string>(columnId) ?? ''
+  const minTextLength = Math.min(textA.length, textB.length)
+
+  for (let i = 0; i < minTextLength; i++) {
+    const codeA = textA.charCodeAt(i)
+    const codeB = textB.charCodeAt(i)
+
+    // both charcode are same
+    if (codeA === codeB) continue
+
+    const categoryA = charCategory(codeA)
+    const categoryB = charCategory(codeB)
+
+    // different category (special char = 0 | numeric = 1 | alphabet = 2 | other = 3)
+    if (categoryA !== categoryB) {
+      return categoryA - categoryB
+    }
+
+    // same category but not alphabet
+    if (categoryA !== 2) {
+      return codeA - codeB
+    }
+
+    // convert both to uppercase alphabet code
+    const upperA = codeA >= 97 && codeA <= 122 ? codeA - 32 : codeA
+    const upperB = codeB >= 97 && codeB <= 122 ? codeB - 32 : codeB
+
+    // different alphabet
+    if (upperA !== upperB) {
+      return upperA - upperB
+    }
+
+    return codeA - codeB
+  }
+
+  return textA.length - textB.length
+}
+
 function TableView<TData>({
   columns,
   data,
@@ -65,6 +134,9 @@ function TableView<TData>({
     onPaginationChange: setPagination,
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
+    defaultColumn: {
+      sortingFn: handleSort,
+    },
     ...rest,
     state: {
       sorting,
