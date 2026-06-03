@@ -1,6 +1,6 @@
+import { Icon } from '@/components/ui/icon'
 import { BackToTopButton } from '@/compounds/back-to-top-button'
 import { cn } from '@/lib/utils'
-import { Play, Video, Gift, Users, ShieldHalf } from 'lucide-react'
 
 interface VariantProps {
   icon: 'room' | 'groups' | 'users' | 'roles' | 'recording'
@@ -22,15 +22,15 @@ export default function PageContainer({
   const showedVariant = (type: string) => {
     switch (type) {
       case 'room':
-        return <Video className='size-5 text-red-800' />
+        return <Icon type='video' className='size-5 text-red-800' />
       case 'groups':
-        return <Gift className='size-5 text-red-800' />
+        return <Icon type='gift' className='size-5 text-red-800' />
       case 'users':
-        return <Users className='size-5 text-red-800' />
+        return <Icon type='users' className='size-5 text-red-800' />
       case 'roles':
-        return <ShieldHalf className='size-5 text-red-800' />
+        return <Icon type='shield-half' className='size-5 text-red-800' />
       case 'recording':
-        return <Play className='size-5 fill-white text-white' />
+        return <Icon type='play-circle' className='size-5 text-red-800' />
     }
   }
   return (
