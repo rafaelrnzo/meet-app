@@ -151,7 +151,7 @@ function TableViewHeader<TData>(props: TableViewHeaderProps<TData>) {
           <InputGroupAddon>Tampilkan:</InputGroupAddon>
           <SelectPageSize
             {...{ table, pageSizeOptions }}
-            className='max-md:w-full max-md:rounded-l-none max-md:border-l-0'
+            className='max-md:w-full max-md:rounded-l-none max-md:border-0 max-md:shadow-none'
           />
         </InputGroup>
       )}

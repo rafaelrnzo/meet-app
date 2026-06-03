@@ -126,7 +126,7 @@ function CalendarWithTime(props: CalendarWithTimeProps) {
           onChange={() => void 0}
           className={cn(
             'text-left',
-            !startTime && !endTime && 'text-neutral-400',
+            !startTime && !endTime && 'text-neutral-400 aria-invalid:text-neutral-400',
             'disabled:border-neutral-400 disabled:bg-slate-300 disabled:text-slate-400 disabled:opacity-100',
             rest.className
           )}
