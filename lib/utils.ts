@@ -5,6 +5,7 @@ import duration from 'dayjs/plugin/duration'
 import customParseFormat from 'dayjs/plugin/customParseFormat'
 import dayjs from 'dayjs'
 import 'dayjs/locale/id'
+import { toast } from '@/components/ui/sonner'
 
 dayjs.extend(customParseFormat)
 dayjs.extend(duration)
@@ -37,4 +38,14 @@ export function formatFileSize(bytes: number, decimals = 2) {
   const i = Math.floor(Math.log(bytes) / Math.log(k))
 
   return parseFloat((bytes / Math.pow(k, i)).toFixed(dm)) + ' ' + sizes[i]
+}
+
+export const displayedError = (error: unknown, titleError: string) => {
+  const message = error instanceof Error ? error.message : String(error)
+  const displayedMessage = message
+    ? message
+    : 'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman'
+  toast.error(titleError, {
+    description: displayedMessage,
+  })
 }

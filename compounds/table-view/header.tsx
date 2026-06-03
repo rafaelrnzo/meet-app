@@ -88,6 +88,8 @@ function TableViewHeader<TData>(props: TableViewHeaderProps<TData>) {
 
           {(!!filter || !!add || !!refresh || !!headerAddon) && (
             <div className='flex w-full grow justify-end gap-2 max-md:flex-col-reverse md:items-center'>
+              {headerAddon}
+
               {!!filter && (
                 <div className='max-md:hidden'>
                   <TableViewFilter {...filter} />
@@ -107,8 +109,6 @@ function TableViewHeader<TData>(props: TableViewHeaderProps<TData>) {
               )}
 
               {!!refresh && <ButtonRefresh className='max-md:hidden' refresh={refresh} />}
-
-              {headerAddon}
             </div>
           )}
         </div>
@@ -151,7 +151,7 @@ function TableViewHeader<TData>(props: TableViewHeaderProps<TData>) {
           <InputGroupAddon>Tampilkan:</InputGroupAddon>
           <SelectPageSize
             {...{ table, pageSizeOptions }}
-            className='max-md:w-full max-md:rounded-l-none max-md:border-l-0'
+            className='max-md:w-full max-md:rounded-l-none max-md:border-0 max-md:shadow-none'
           />
         </InputGroup>
       )}
