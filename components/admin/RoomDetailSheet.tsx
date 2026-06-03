@@ -4,7 +4,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Edit2, Copy, Trash2, LockKeyholeOpen } from 'lucide-react'
 import type { DbRoom, ActiveRoom, MemberRoom, RoomParams } from '@/lib/api/admin-api'
-import { fetchMemberRoom, unbanParticipant } from '@/lib/api/admin-api'
+import {
+  deleteRoomPresentation,
+  fetchMemberRoom,
+  unbanParticipant,
+  updateRoomPermissions,
+  uploadRoomPresentation,
+} from '@/lib/api/admin-api'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -15,9 +21,10 @@ import { toast } from '@/components/ui/sonner'
 import { Modal, ModalDelete } from '@/components/ui/modal'
 import { displayedError } from '@/lib/utils'
 import { copyToClipboardHandler } from '@/feat/rooms/helper'
+import RoomDetailModal from '@/components/features/rooms/RoomDetailModal'
+import type { FileResponse, StatusOption, TabsValue } from '@/feat/rooms/dto'
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
-
-export interface RoomDetailSheetProps {
+interface RoomDetailSheetProps {
   room: DbRoom | null
   activeRoom?: ActiveRoom
   isOpen: boolean
@@ -25,20 +32,20 @@ export interface RoomDetailSheetProps {
   canDelete: boolean
   onDelete: (id: number) => void
   onEditSuccess: () => void // Callback to refresh data
-  handleEdit: (room: DbRoom) => void
+  handleEdit: (room: DbRoom | null) => void
+  isModalDetail: boolean
+  setModalDetail: (val: boolean) => void
 }
-type TabsValue = 'overview' | 'participants' | 'settings'
-export type StatusOption = 'all' | 'waiting' | 'banned'
-
 export function RoomDetailSheet({
   room,
   activeRoom,
   isOpen,
   onClose,
-  canDelete,
   onDelete,
   onEditSuccess,
   handleEdit,
+  isModalDetail,
+  setModalDetail,
 }: RoomDetailSheetProps) {
   const [isShowTooltip, setShowTooltip] = useState(false)
   const [isOpenDelete, setIsOpenDelete] = useState(false)
@@ -50,29 +57,31 @@ export function RoomDetailSheet({
   const [status, setStatus] = useState<StatusOption>('all')
   const [searchMembers, setSearchMember] = useState('')
   const [userIdentity, setUserIdentity] = useState('')
+  const [files, setFiles] = useState<FileResponse[]>([])
 
   const { isAdmin } = useAuth()
   const ROLE_USER = 'user'
   const params = useRef<RoomParams>({})
+  const MAX_FILE = 5
 
   // Helper to construct full URL for presentations
-  const getPresentationUrl = (path: string | undefined): string => {
-    if (!path) return ''
+  // const getPresentationUrl = (path: string | undefined): string => {
+  //   if (!path) return ''
 
-    // If already a full URL (http/https), return as-is (backward compatibility)
-    if (path.startsWith('http://') || path.startsWith('https://')) {
-      return path
-    }
+  //   // If already a full URL (http/https), return as-is (backward compatibility)
+  //   if (path.startsWith('http://') || path.startsWith('https://')) {
+  //     return path
+  //   }
 
-    // If relative path, prepend backend URL
-    const API_BASE =
-      process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') ||
-      (typeof window !== 'undefined'
-        ? `${window.location.protocol}//${window.location.hostname}:8080`
-        : 'http://localhost:8080')
+  //   // If relative path, prepend backend URL
+  //   const API_BASE =
+  //     process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') ||
+  //     (typeof window !== 'undefined'
+  //       ? `${window.location.protocol}//${window.location.hostname}:8080`
+  //       : 'http://localhost:8080')
 
-    return `${API_BASE}${path.startsWith('/') ? path : '/' + path}`
-  }
+  //   return `${API_BASE}${path.startsWith('/') ? path : '/' + path}`
+  // }
 
   const handleCopyLink = async () => {
     await copyToClipboardHandler(room?.room_code ?? '')
@@ -124,6 +133,43 @@ export function RoomDetailSheet({
       })
     } catch (error) {
       displayedError(error, 'Gagal buka blokir peserta')
+    }
+  }
+
+  const handleUploadFile = async (files: File[]) => {
+    try {
+      toast.loading('Sedang mengunggah...')
+      const { path } = await uploadRoomPresentation(room?.id ?? 0, files[0])
+      // If room is active, update metadata to sync immediately
+      if (activeRoom) {
+        try {
+          const currentMeta = activeRoom.metadata ? JSON.parse(activeRoom.metadata) : {}
+          const newMeta = {
+            ...currentMeta,
+            presentation: {
+              isOpen: true,
+              url: path,
+            },
+          }
+          await updateRoomPermissions(room?.name ?? '', newMeta)
+          toast.success('Presentasi berhasil disinkronkan')
+        } catch (error) {
+          displayedError(error, 'Presentasi gagal disinkronkan')
+        }
+      }
+      toast.dismiss()
+      onEditSuccess()
+    } catch (error) {
+      toast.dismiss()
+      displayedError(error, 'Gagal menguopload file')
+    }
+  }
+
+  const handleRemoveFile = async () => {
+    try {
+      await deleteRoomPresentation(room?.id ?? 0)
+    } catch (error) {
+      displayedError(error, 'Gagal menghapus file')
     }
   }
 
@@ -239,42 +285,49 @@ export function RoomDetailSheet({
                 </TabsList>
                 <TabsContent value={activeTab}>
                   <RoomTabs
-                    setIsOpenDelete={setIsOpenDelete}
-                    allParticipants={{
-                      admin: adminParticipants || [],
-                      users: userParticipants || [],
-                    }}
-                    setUserIdentity={setUserIdentity}
-                    setIsOpenBlock={setIsOpenBlock}
-                    canDelete={canDelete}
-                    onDelete={onDelete}
-                    getPresentationUrl={getPresentationUrl}
-                    onEditSuccess={onEditSuccess}
-                    room={room}
-                    activeRoom={activeRoom}
-                    value={activeTab}
-                    onClose={onClose}
-                    searchParticipants={{
-                      value: searchMembers,
-                      onChange: (e) => setSearchMember(e.target.value),
-                      onKeyDown: (e) => {
-                        if (e.key === 'Enter') {
-                          loadUsers({ ...params.current, search: searchMembers })
-                        }
+                    {...{
+                      activeTab,
+                      overview: {
+                        room,
+                        activeRoom,
+                        setFiles,
+                        files,
+                        maxFile: MAX_FILE,
+                        handleUploadFile,
+                        handleRemoveFile,
                       },
-                    }}
-                    filterParticipants={{
-                      value: status,
-                      onValueChange: (val) => setStatus(val),
+                      participants: {
+                        allParticipants: {
+                          admin: adminParticipants || [],
+                          users: userParticipants || [],
+                        },
+                        searchParticipants: {
+                          value: searchMembers,
+                          onChange: (e) => setSearchMember(e.target.value),
+                          onKeyDown: (e) => {
+                            if (e.key === 'Enter') {
+                              loadUsers({ ...params.current, search: searchMembers })
+                            }
+                          },
+                        },
+                        filterParticipants: {
+                          value: status,
+                          onValueChange: (val) => setStatus(val),
+                        },
+                        onClose,
+                        setIsOpenBlock,
+                        setUserIdentity,
+                      },
+                      settings: {
+                        setIsOpenDelete,
+                        onClose,
+                      },
                     }}
                   />
                 </TabsContent>
               </Tabs>
               <div className='animate-in fade-in slide-in-from-bottom-4 mt-2 space-y-6 duration-300'>
-                <Button
-                  onClick={onClose}
-                  className='mt-0 w-full cursor-pointer rounded-md bg-red-800 py-2.5 text-sm font-semibold text-white'
-                >
+                <Button onClick={onClose} variant='primary' className='w-full'>
                   Tutup Detail
                 </Button>
               </div>
@@ -342,6 +395,94 @@ export function RoomDetailSheet({
         }}
       >
         Tindakan ini akan membuka blokir peserta. Apakah Anda ingin lanjut?
+      </Modal>
+      <Modal
+        key='modal-detail'
+        root={{ open: isModalDetail, onOpenChange: setModalDetail }}
+        header={{
+          children: (
+            <div className='relative w-full'>
+              <div className='h-[172px] rounded-md bg-red-100 p-3'>
+                <p className='mb-3 text-left text-base font-semibold text-red-800'>{room?.name}</p>
+                <div className='flex flex-col gap-3'>
+                  <Button
+                    variant='primary'
+                    className='w-full'
+                    onClick={() => {
+                      setModalDetail(false)
+                      handleEdit(room)
+                    }}
+                  >
+                    Perbarui Ruangan
+                  </Button>
+                  <Tooltip open={isShowTooltip}>
+                    <TooltipTrigger asChild>
+                      <Button variant='outline' className='w-full' onClick={handleCopyLink}>
+                        Salin Kode Ruangan
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>kode disalin</TooltipContent>
+                  </Tooltip>
+                </div>
+              </div>
+              <Button
+                className='absolute top-2 right-3 size-9 bg-red-200 p-1 hover:bg-red-300/70'
+                onClick={() => setModalDetail(false)}
+              >
+                <X size={12} className='text-red-500' />
+                <span className='sr-only'>Close</span>
+              </Button>
+            </div>
+          ),
+        }}
+        footer={{
+          hidden: true,
+        }}
+      >
+        <RoomDetailModal
+          {...{
+            overview: {
+              room,
+              activeRoom,
+              files,
+              maxFile: MAX_FILE,
+              handleUploadFile,
+              handleRemoveFile,
+            },
+            participants: {
+              allParticipants: {
+                admin: adminParticipants || [],
+                users: userParticipants || [],
+              },
+              searchParticipants: {
+                value: searchMembers,
+                onChange: (e) => setSearchMember(e.target.value),
+                onKeyDown: (e) => {
+                  if (e.key === 'Enter') {
+                    loadUsers({ ...params.current, search: searchMembers })
+                  }
+                },
+              },
+              filterParticipants: { value: status, onValueChange: (val) => setStatus(val) },
+              onClose: () => setModalDetail(false),
+              setIsOpenBlock,
+              setUserIdentity,
+            },
+            settings: {
+              setIsOpenDelete,
+              onClose: () => setModalDetail(false),
+            },
+          }}
+        />
+        <div className='mt-2 space-y-6'>
+          <Button
+            onClick={() => setModalDetail(false)}
+            variant='ghost'
+            className='w-full text-red-800'
+          >
+            Tutup Detail
+          </Button>
+        </div>
       </Modal>
     </AnimatePresence>
   )
