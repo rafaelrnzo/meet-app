@@ -45,28 +45,6 @@ const ActionColumn = (props: ActionButtonProps) => {
           disabled: !is_editable,
         },
       }}
-      // switchComp={{
-      //   checked,
-      //   setChecked,
-      //   modal: {
-      //     submit: {
-      //       children: 'Nonaktifkan Pengguna',
-      //       onClick: () => setChecked(false),
-      //     },
-      //     title: {
-      //       children: 'Non-aktifkan pengguna',
-      //     },
-      //     description: {
-      //       children:
-      //         'Tindakan ini akan menonaktifkan dan memaksa anggota agar keluar dari ruang rapat dan dashboard sementara waktu sampai Anda aktifkan kembali. Anda dapat kembali mengaktifkannya kembali dengan cara yang sama.',
-      //     },
-      //   },
-
-      //   text: {
-      //     active: 'Anggota aktif',
-      //     inactive: 'Anggota tidak aktif',
-      //   },
-      // }}
     />
   )
 }
@@ -81,11 +59,13 @@ export const groupsColumn = ({
     minSize: 250,
     maxSize: 250,
     cell: ({ row }) => {
+      const name = row.original.name
+      const truncateName = name.length > 25 ? name.slice(0, 25) + '...' : name
       return (
         <div className='flex flex-row items-center gap-2'>
           <Users className='size-5 fill-red-800' />
-          <p className='w-[250px] max-w-[250px] font-medium text-neutral-950'>
-            {row.original.name}
+          <p className='line-clamp-1 font-medium wrap-break-word text-neutral-950'>
+            {truncateName}
           </p>
         </div>
       )
@@ -96,7 +76,11 @@ export const groupsColumn = ({
     header: 'Deskripsi kelompok',
     minSize: 474,
     maxSize: 474,
-    accessorFn: ({ description }) => description,
+    cell: ({ row }) => {
+      return (
+        <div className='line-clamp-3 wrap-break-word text-ellipsis'>{row.original.description}</div>
+      )
+    },
   },
   {
     accessorKey: 'members',

@@ -148,7 +148,7 @@ export default function EditDialog({
     <Modal
       root={{ open, onOpenChange, modal: false }}
       title={{
-        children: `${selectedGroup?.name}`,
+        children: <p className='line-clamp-2 wrap-anywhere'>{selectedGroup?.name}</p>,
       }}
       description={{
         children: 'Tambah atau hapus peserta dari kelompok',
