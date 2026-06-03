@@ -168,12 +168,17 @@ function ParticipantsContent({
                 return (
                   <div
                     key={idx}
-                    className='my-1 flex h-14 items-center gap-2 rounded-md border border-red-800 px-5 py-3 transition-colors'
+                    className='my-1 flex h-14 items-center justify-between gap-2 rounded-md border border-red-800 px-5 py-3 transition-colors'
                   >
-                    <div className='flex size-8 items-center justify-center rounded-full border border-red-800 bg-rose-50 text-sm font-semibold text-red-800'>
-                      {user.username.charAt(0).toUpperCase()}
+                    <div className='flex items-center gap-2'>
+                      <div className='flex size-8 items-center justify-center rounded-full border border-red-800 bg-rose-50 text-sm font-semibold text-red-800'>
+                        {user.username.charAt(0).toUpperCase()}
+                      </div>
+                      <span className='text-sm font-medium text-red-800'>{user.username}</span>
                     </div>
-                    <span className='text-sm font-medium text-red-800'>{user.username}</span>
+                    <div className='rounded-md border border-red-800 bg-red-50 px-2 py-1 text-red-800'>
+                      {user.role.name.charAt(0).toUpperCase() + user.role.name.slice(1)}
+                    </div>
                   </div>
                 )
               })}
