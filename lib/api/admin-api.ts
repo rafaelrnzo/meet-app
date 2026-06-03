@@ -1,6 +1,7 @@
 import type { RoomPayload, SortRoomType } from '@/feat/rooms/dto'
 import Cookies from 'js-cookie'
 import type { StatusOption } from '@/components/admin/RoomDetailSheet'
+import type { UserParams } from '@/feat/users/dto'
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'
 
@@ -355,6 +356,7 @@ export type User = {
   role?: Role
   role_id: number
   status?: 'active' | 'inactive'
+  presence?: string[]
 }
 
 export type UserResponse = {
@@ -366,11 +368,16 @@ export type ParamsUserAssignment = {
   search?: string
 }
 
-export async function fetchUsers(): Promise<UserResponse> {
-  return apiRequest<UserResponse>('/admin/users', {
-    method: 'GET',
-    cache: 'no-store',
-  })
+export async function fetchUsers({ params }: { params?: UserParams }): Promise<UserResponse> {
+  const searchParams = params ?? {}
+  return apiRequest<UserResponse>(
+    '/admin/users',
+    {
+      method: 'GET',
+      cache: 'no-store',
+    },
+    { ...searchParams }
+  )
 }
 
 export async function fetchUsersAssignment(
