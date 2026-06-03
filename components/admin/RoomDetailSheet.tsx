@@ -273,12 +273,12 @@ export function RoomDetailSheet({
                       key={tabs}
                       value={tabs}
                       onClick={() => setActiveTab(tabs)}
-                      className='cursor-pointer text-sm font-medium text-neutral-400 hover:text-red-800 data-[state=active]:text-red-800'
+                      className='cursor-pointer rounded-none text-sm font-medium text-neutral-400 hover:text-red-800 data-[state=active]:border-b-2 data-[state=active]:border-b-red-800 data-[state=active]:text-red-800 data-[state=active]:after:opacity-0!'
                     >
                       {tabs === 'overview'
                         ? 'Ringkasan Ruangan'
                         : tabs === 'participants'
-                          ? 'Akses dan Anggota Ruangan'
+                          ? 'Akses dan Peserta Ruangan'
                           : 'Pengaturan Ruangan'}
                     </TabsTrigger>
                   ))}

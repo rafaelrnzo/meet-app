@@ -11,6 +11,7 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select'
+import StatePage from '@/components/ui/state-page'
 import type { FileResponse, StatusOption } from '@/feat/rooms/dto'
 import { useAuth } from '@/hooks/use-auth'
 import type { ActiveRoom, DbRoom, MemberRoom } from '@/lib/api/admin-api'
@@ -24,7 +25,6 @@ import {
   Hourglass,
   Ban,
   LockKeyholeOpen,
-  X,
   Trash2,
 } from 'lucide-react'
 
@@ -150,18 +150,10 @@ function ParticipantsContent({
         <p className='mb-2'>Peserta yang memiliki otoritas</p>
         <div className='mb-2'>
           {!allParticipants.admin || allParticipants.admin.length === 0 ? (
-            <div className='flex h-[159px] items-center justify-center rounded-md bg-red-200'>
-              <div className='text-center'>
-                <div className='flex justify-center'>
-                  <div className='border-error flex size-12 items-center justify-center rounded-md border'>
-                    <X className='text-error size-6' />
-                  </div>
-                </div>
-                <p className='text-error text-[18px] font-medium'>
-                  Tidak ada pengguna yang memiliki otoritas
-                </p>
-              </div>
-            </div>
+            <StatePage
+              title='Tidak ada pengguna yang memiliki otoritas'
+              className='min-h-[159px] rounded-md bg-red-200'
+            />
           ) : (
             <div>
               {allParticipants.admin.map((user, idx) => {
@@ -219,65 +211,61 @@ function ParticipantsContent({
           </div>
         </div>
         {allParticipants.users.length <= 0 ? (
-          <div className='text-center'>
-            <div className='flex justify-center'>
-              <div className='border-error flex size-12 items-center justify-center rounded-md border'>
-                <X className='size-6 text-red-800' />
-              </div>
-            </div>
-            <p className='text-error text-[18px] font-medium'>
-              Tidak Ada Peserta yang Menunggu <br /> Persetujuan maupun yang Diblokir
-            </p>
-          </div>
+          <StatePage
+            title='Tidak Ada Peserta yang Menunggu Persetujuan maupun yang Diblokir'
+            className='max-h-[calc(100vh-550px)] min-h-[calc(100vh-650px)]'
+          />
         ) : (
-          allParticipants.users.map((user, idx) => {
-            const isWaiting = user.room_presence === 'waiting'
-            return (
-              <div
-                key={idx}
-                className={cn(
-                  isWaiting ? 'border-neutral-950' : 'border-error',
-                  'my-1 flex h-14 items-center justify-between gap-2 rounded-md border px-5 py-3 transition-colors'
-                )}
-              >
-                <div className='flex items-center gap-2'>
-                  {isWaiting ? (
-                    <Hourglass className='size-[19.5px] text-neutral-950' />
-                  ) : (
-                    <Ban className='text-error size-[19.5px]' />
+          <div className='overflow-auto'>
+            {allParticipants.users.map((user, idx) => {
+              const isWaiting = user.room_presence === 'waiting'
+              return (
+                <div
+                  key={idx}
+                  className={cn(
+                    isWaiting ? 'border-neutral-950' : 'border-error',
+                    'my-1 flex h-14 items-center justify-between gap-2 rounded-md border px-5 py-3 transition-colors'
                   )}
-                  <span
-                    className={cn(
-                      isWaiting ? 'text-neutral-950' : 'text-error',
-                      'text-sm font-medium'
+                >
+                  <div className='flex items-center gap-2'>
+                    {isWaiting ? (
+                      <Hourglass className='size-[19.5px] text-neutral-950' />
+                    ) : (
+                      <Ban className='text-error size-[19.5px]' />
                     )}
-                  >
-                    {user.username}
-                  </span>
-                </div>
-                {isWaiting ? (
-                  <span className='font-semibold text-neutral-400 opacity-50'>
-                    Menunggu persetujuan
-                  </span>
-                ) : (
-                  isAdmin && (
-                    <Button
-                      variant='destructive'
-                      className='text-error flex items-center gap-2'
-                      onClick={() => {
-                        onClose()
-                        setIsOpenBlock(true)
-                        setUserIdentity(user.username)
-                      }}
+                    <span
+                      className={cn(
+                        isWaiting ? 'text-neutral-950' : 'text-error',
+                        'text-sm font-medium'
+                      )}
                     >
-                      <LockKeyholeOpen className='text-error size-4' />
-                      Buka Blokir
-                    </Button>
-                  )
-                )}
-              </div>
-            )
-          })
+                      {user.username}
+                    </span>
+                  </div>
+                  {isWaiting ? (
+                    <span className='font-semibold text-neutral-400 opacity-50'>
+                      Menunggu persetujuan
+                    </span>
+                  ) : (
+                    isAdmin && (
+                      <Button
+                        variant='destructive'
+                        className='text-error flex items-center gap-2'
+                        onClick={() => {
+                          onClose()
+                          setIsOpenBlock(true)
+                          setUserIdentity(user.username)
+                        }}
+                      >
+                        <LockKeyholeOpen className='text-error size-4' />
+                        Buka Blokir
+                      </Button>
+                    )
+                  )}
+                </div>
+              )
+            })}
+          </div>
         )}
       </div>
     </div>

@@ -66,7 +66,7 @@ export default function RoomDetailModal({ overview, participants, settings }: Ro
               className: '[&>svg]:hidden',
             })}
           >
-            Akses dan Anggota Ruangan
+            Akses dan Peserta Ruangan
           </AccordionTrigger>
           <AccordionContent>
             <ParticipantsContent
