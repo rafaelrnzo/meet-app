@@ -39,7 +39,7 @@ function TableViewFilter(props: TableViewFilterProps) {
         {...selectProps?.selectContent}
         align='end'
         position='popper'
-        className='wrap-anywhere max-md:w-[calc(100vw-48px)]'
+        className='wrap-anywhere max-md:w-[calc(100vw-64px)]'
       >
         <SelectGroup>
           {options.map((item, index) => (
