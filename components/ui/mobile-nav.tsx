@@ -14,6 +14,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { useAuth } from '@/hooks/use-auth'
+import { Icon } from '@/components/ui/icon'
 
 export function MobileNav() {
   const pathname = usePathname()
@@ -33,7 +34,6 @@ export function MobileNav() {
     <nav className='bg-background/80 border-border pb-safe fixed right-0 bottom-0 left-0 z-50 block h-16 border-t backdrop-blur-lg md:hidden'>
       <div className='flex h-full items-center justify-around px-2'>
         {mainItems.map((item) => {
-          const Icon = item.icon
           const isActive =
             pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
 
@@ -46,7 +46,7 @@ export function MobileNav() {
                 isActive ? 'text-primary' : 'text-muted-foreground hover:text-foreground'
               )}
             >
-              <Icon className='h-5 w-5' />
+              <Icon type={item.icon} className='h-5 w-5' />
               <span className='text-[10px] font-medium'>{item.label}</span>
             </Link>
           )
@@ -66,7 +66,6 @@ export function MobileNav() {
               </DialogHeader>
               <div className='grid grid-cols-3 gap-4 py-4'>
                 {moreItems.map((item) => {
-                  const Icon = item.icon
                   const isActive =
                     pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
                   return (
@@ -78,7 +77,7 @@ export function MobileNav() {
                         isActive && 'border-primary/50 bg-primary/5 text-primary'
                       )}
                     >
-                      <Icon className='mb-2 h-6 w-6' />
+                      <Icon type={item.icon} className='mb-2 h-6 w-6' />
                       <span className='text-center text-xs font-medium'>{item.label}</span>
                     </Link>
                   )

@@ -60,7 +60,7 @@ export function applyRoomEventToActiveRooms(
   const roomName = event.data?.room_id
   if (!roomName) return activeRooms
 
-  let participantCount = event.data?.participant_count ?? event.data?.participants
+  const participantCount = event.data?.participant_count ?? event.data?.participants ?? 0
   const isRoomStateEvent =
     event.type === 'participant_joined' ||
     event.type === 'participant_left' ||
@@ -68,11 +68,6 @@ export function applyRoomEventToActiveRooms(
 
   if (!isRoomStateEvent || typeof participantCount !== 'number') {
     return activeRooms
-  }
-
-  // Defensive fallback: if a user just joined, there should be at least 1 participant
-  if (event.type === 'participant_joined' && participantCount <= 0) {
-    participantCount = 1
   }
 
   const existingRoom = activeRooms.find((room) => room.name === roomName)

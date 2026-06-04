@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import { LogOut, X } from 'lucide-react'
 import {
   Sidebar,
   SidebarContent,
@@ -19,6 +18,7 @@ import { sidebarItems } from '@/lib/menu-items'
 import { useAuth } from '@/hooks/use-auth'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import { Icon } from '@/components/ui/icon'
 
 function SidebarList({
   user,
@@ -38,7 +38,7 @@ function SidebarList({
           {user?.username}
         </h1>
         <Button className='size-11 md:hidden' variant='destructive' onClick={() => toggleSidebar()}>
-          <X size={16} />
+          <Icon type='close' />
         </Button>
       </SidebarHeader>
       <SidebarContent className='mb-8 gap-4 px-8 group-data-[collapsible=icon]:overflow-y-auto md:mb-6 md:px-3'>
@@ -50,7 +50,6 @@ function SidebarList({
                   (item) => !item.permission || (item.permission && hasPermission(item.permission))
                 )
                 .map((item) => {
-                  const Icon = item.icon
                   const isActive =
                     pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
 
@@ -65,7 +64,7 @@ function SidebarList({
                         isActive={isActive}
                       >
                         <Link href={item.href} title={item.label}>
-                          <Icon className='size-4.5!' />
+                          <Icon type={item.icon} />
                           <span className='group-data-[collapsible=icon]:hidden'>{item.label}</span>
                         </Link>
                       </SidebarMenuButton>
@@ -79,7 +78,7 @@ function SidebarList({
         <SidebarMenu>
           <SidebarMenuItem>
             <SidebarMenuButton tooltip='Keluar' size='lg' variant='destructive' onClick={logout}>
-              <LogOut className='size-4.5!' />
+              <Icon type='logout' />
               <span className='group-data-[collapsible=icon]:hidden'>Keluar</span>
             </SidebarMenuButton>
           </SidebarMenuItem>

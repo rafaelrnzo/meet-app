@@ -1,9 +1,10 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Icon } from '@/components/ui/icon'
 import { Input } from '@/components/ui/input'
 import { cn, formatFileSize } from '@/lib/utils'
-import { ArrowUpToLine, FileText, X } from 'lucide-react'
+import { FileText, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 export type FileOption = {
@@ -86,7 +87,7 @@ export default function DropFile({
           'relative mb-1.5 rounded-md'
         )}
       >
-        <div className='p-6 text-center'>
+        <div className='p-4 text-center'>
           <div className='mb-4 flex justify-center text-center'>
             <div
               className={cn(
@@ -94,8 +95,9 @@ export default function DropFile({
                 'p- w-fit rounded-md border p-2'
               )}
             >
-              <ArrowUpToLine
-                className={cn(failedFile ? 'text-error' : 'text-slate-950', 'size-4')}
+              <Icon
+                type='upload'
+                className={cn(failedFile ? 'text-error' : 'text-slate-950', 'size-6')}
               />
             </div>
           </div>
