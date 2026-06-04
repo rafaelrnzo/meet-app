@@ -2,7 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import type { DbRoom } from '@/lib/api/admin-api'
-import { RefreshCcw } from 'lucide-react'
+import { Icon } from '@/components/ui/icon'
 import type { GenerateRoomCodeExp } from '@/feat/rooms/dto'
 import { useEffect, useMemo } from 'react'
 import { djs } from '@/lib/utils'
@@ -37,12 +37,13 @@ function GenerateRoomCode(props: GenerateRoomCodeProps) {
 
   return (
     <Button
-      variant='secondary-outline'
+      variant='primary-outline'
       onClick={async () => await handleGenerateRoomCode(room.id)}
       size='icon'
       disabled={isDisabled}
+      className='not-hover:border-neutral-400 not-hover:bg-neutral-50 not-hover:text-neutral-400 hover:bg-red-50 disabled:border-neutral-400 disabled:bg-neutral-400 disabled:text-neutral-50 disabled:opacity-100'
     >
-      <RefreshCcw size={16} />
+      <Icon type='arrow-clockwise' />
     </Button>
   )
 }
