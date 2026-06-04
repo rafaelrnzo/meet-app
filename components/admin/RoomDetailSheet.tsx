@@ -2,7 +2,6 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Edit2, Copy, Trash2, LockKeyholeOpen } from 'lucide-react'
 import type { DbRoom, ActiveRoom, MemberRoom, RoomParams } from '@/lib/api/admin-api'
 import {
   deleteRoomPresentation,
@@ -23,6 +22,7 @@ import { displayedError } from '@/lib/utils'
 import { copyToClipboardHandler } from '@/feat/rooms/helper'
 import RoomDetailModal from '@/components/features/rooms/RoomDetailModal'
 import type { FileResponse, StatusOption, TabsValue } from '@/feat/rooms/dto'
+import { Icon } from '@/components/ui/icon'
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
 interface RoomDetailSheetProps {
   room: DbRoom | null
@@ -230,7 +230,7 @@ export function RoomDetailSheet({
                       size='icon-lg'
                       className='rounded-md'
                     >
-                      <Edit2 className='size-4 fill-neutral-950' />
+                      <Icon type='pencil' />
                     </Button>
                   )}
                   <Button
@@ -239,7 +239,7 @@ export function RoomDetailSheet({
                     onClick={onClose}
                     className='rounded-md'
                   >
-                    <X className='size-4' />
+                    <Icon type='close' />
                   </Button>
                 </div>
               </div>
@@ -257,7 +257,7 @@ export function RoomDetailSheet({
                       size='icon'
                       className='peer'
                     >
-                      <Copy size={16} />
+                      <Icon type='copy' />
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>kode disalin</TooltipContent>
@@ -347,7 +347,7 @@ export function RoomDetailSheet({
         submit={{
           children: (
             <>
-              <Trash2 />
+              <Icon type='trash' />
               Hapus Ruangan
             </>
           ),
@@ -380,7 +380,7 @@ export function RoomDetailSheet({
           className: 'w-full!',
           children: (
             <>
-              <LockKeyholeOpen className='text-error size-4' />
+              <Icon type='lock-open' className='text-error size-4' />
               Buka blokir
             </>
           ),
@@ -429,7 +429,7 @@ export function RoomDetailSheet({
                 className='absolute top-2 right-3 size-9 bg-red-200 p-1 hover:bg-red-300/70'
                 onClick={() => setModalDetail(false)}
               >
-                <X size={12} className='text-red-500' />
+                <Icon type='close' className='text-red-500' />
                 <span className='sr-only'>Close</span>
               </Button>
             </div>
