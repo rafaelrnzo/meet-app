@@ -34,7 +34,7 @@ import { roomSchema } from '@/feat/rooms/schema'
 import type { AnyFormApi } from '@tanstack/react-form'
 import { useForm, useStore } from '@tanstack/react-form'
 import { Modal } from '@/components/ui/modal'
-import { Eye, EyeClosed, Plus } from 'lucide-react'
+import { Icon } from '@/components/ui/icon'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { toast } from '@/components/ui/sonner'
 import { defaultErrorMessage } from '@/config'
@@ -206,7 +206,7 @@ export function RoomForm({
           'Perbarui Ruangan'
         ) : (
           <>
-            <Plus />
+            <Icon type='plus' />
             Tambah Ruangan
           </>
         ),
@@ -326,7 +326,10 @@ export function RoomForm({
                       onClick={() => setShowPassword((prev) => !prev)}
                       className='cursor-pointer'
                     >
-                      {showPassword ? <EyeClosed /> : <Eye />}
+                      <Icon
+                        type={showPassword ? 'eye-off' : 'eye'}
+                        className='active:text-neutral-950'
+                      />
                     </InputGroupAddon>
                   </InputGroup>
                 </FormField>

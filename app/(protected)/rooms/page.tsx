@@ -13,9 +13,9 @@ import { RoomForm } from '@/components/admin/RoomForm'
 import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 import type { SortRoomType } from '@/feat/rooms/dto'
 import { SORT_ROOM } from '@/feat/rooms/dto'
-import { Plus } from 'lucide-react'
 import { handleSearchNotFound } from '@/feat/rooms/helper'
 import { toast } from '@/components/ui/sonner'
+import { Icon } from '@/components/ui/icon'
 import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function RoomsPage() {
@@ -149,7 +149,7 @@ export default function RoomsPage() {
               onClick: handleCreate,
               children: (
                 <>
-                  <Plus /> Tambah Ruangan
+                  <Icon type='plus' /> Tambah Ruangan
                 </>
               ),
             },

@@ -1,10 +1,10 @@
 'use client'
 import { cn } from '@/lib/utils'
-import { Search } from 'lucide-react'
 import { TableViewFilter } from './filter'
 import type { TableViewFilterProps } from './filter'
 import React, { useRef } from 'react'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import { Icon } from '@/components/ui/icon'
 
 interface TableViewSearchProps extends React.ComponentProps<'input'> {
   onSearch?: (value: string) => void
@@ -54,7 +54,7 @@ function TableViewSearch(props: TableViewSearchProps) {
         }}
       />
       <InputGroupAddon>
-        <Search />
+        <Icon type='search' />
       </InputGroupAddon>
       {!!filter && (
         <InputGroupAddon align='inline-end' className='mr-0! p-0 md:hidden'>
