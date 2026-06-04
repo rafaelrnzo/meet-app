@@ -1,11 +1,11 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
+import { Icon } from '@/components/ui/icon'
 import { cn } from '@/lib/utils'
-import { X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 
-interface StatePageProps {
+interface NoDataProps {
   title: string
   desc?: string
   reload?: boolean
@@ -18,7 +18,7 @@ interface StatePageProps {
   classNameIcon?: string
 }
 
-export default function StatePage({
+export default function NoData({
   title,
   desc,
   reload,
@@ -26,19 +26,14 @@ export default function StatePage({
   insertButton,
   className,
   classNameIcon,
-}: StatePageProps) {
+}: NoDataProps) {
   const router = useRouter()
   return (
     <div className={cn(className, 'flex items-center justify-center text-center')}>
       <div className='max-w-[384px] min-w-[384px]'>
         <div className='mb-2 flex justify-center'>
-          <div
-            className={cn(
-              classNameIcon,
-              'flex size-12 items-center justify-center rounded-md border border-neutral-400'
-            )}
-          >
-            <X className={cn(classNameIcon, 'size-12 text-red-800')} />
+          <div className='flex size-12 items-center justify-center rounded-md border border-neutral-400 p-3'>
+            <Icon type='close' className={cn(classNameIcon, 'size-6 text-red-800')} />
           </div>
         </div>
         <div className='mb-2'>
