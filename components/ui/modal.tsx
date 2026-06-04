@@ -97,7 +97,7 @@ function Modal({
           {...content}
           data-without-x
           className={cn(
-            'group peer max-h-[calc(100vh-32px)] gap-0 rounded-md border-0 p-0 max-sm:max-w-[calc(100vw-32px)]',
+            'group peer mt-5 max-h-[calc(100vh-75px)] gap-0 rounded-md border-0 p-0 max-sm:max-w-[calc(100vw-32px)]',
             content?.className
           )}
           onEscapeKeyDown={contentClosedInterceptor('onEscapeKeyDown')}
@@ -206,7 +206,7 @@ function Modal({
           </div>
         </DialogContent>
         {root?.modal === false && (
-          <div className='data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80' />
+          <div className='data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-5 bg-black/50' />
         )}
       </DialogPortal>
     </Dialog>
