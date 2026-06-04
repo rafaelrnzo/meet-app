@@ -38,7 +38,7 @@ import { Icon } from '@/components/ui/icon'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { toast } from '@/components/ui/sonner'
 import { defaultErrorMessage } from '@/config'
-import StatePage from '@/components/ui/state-page'
+import NoData from '@/components/ui/no-data'
 
 interface RoomFormProps {
   open: boolean
@@ -472,7 +472,7 @@ export function RoomForm({
                 <Card className='rounded-md border-neutral-400'>
                   <CardContent className='flex min-h-[113px] flex-col px-2 pt-1 pb-3.5'>
                     {!users.length ? (
-                      <StatePage title='Tidak Ada Anggota' className='mt-2.5' />
+                      <NoData title='Tidak Ada Anggota' className='mt-2.5' />
                     ) : (
                       <>
                         <Field orientation='horizontal'>

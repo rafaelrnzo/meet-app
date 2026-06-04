@@ -2,6 +2,7 @@
 
 import { Button } from '@/components/ui/button'
 import DropFile from '@/components/ui/dropfile'
+import { Icon } from '@/components/ui/icon'
 import type { Input } from '@/components/ui/input'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
@@ -11,22 +12,11 @@ import {
   SelectItem,
   SelectTrigger,
 } from '@/components/ui/select'
-import StatePage from '@/components/ui/state-page'
 import type { FileResponse, StatusOption } from '@/feat/rooms/dto'
 import { useAuth } from '@/hooks/use-auth'
 import type { ActiveRoom, DbRoom, MemberRoom } from '@/lib/api/admin-api'
 import { cn, djs } from '@/lib/utils'
-import {
-  DoorOpen,
-  Calendar1,
-  Users,
-  Search,
-  Filter,
-  Hourglass,
-  Ban,
-  LockKeyholeOpen,
-  Trash2,
-} from 'lucide-react'
+import NoData from '@/components/ui/no-data'
 
 export interface RoomContentsProps {
   overview: {
@@ -79,14 +69,14 @@ function OverviewContent({
         {activeRoom ? (
           <div className='flex items-center gap-2 font-medium'>
             <div className='rounded-md border border-red-800 bg-red-50 p-2.5'>
-              <DoorOpen className='fill-red-800' />
+              <Icon type='door' className='text-red-800' />
             </div>
             <span>Rapat sedang berlangsung</span>
           </div>
         ) : (
           <div className='flex items-center gap-2 font-medium'>
             <div className='border-error rounded-md border bg-red-200 p-2.5'>
-              <DoorOpen className='fill-error' />
+              <Icon type='slash-door' className='text-error' />
             </div>
             <span>Belum ada rapat</span>
           </div>
@@ -94,12 +84,12 @@ function OverviewContent({
       </div>
       <div className='my-2 grid grid-cols-1 gap-2 md:grid-cols-2'>
         <div className='rounded-md border border-red-800 px-5 py-3'>
-          <Calendar1 className='size-4 text-red-800' />
+          <Icon type='calendar' className='text-red-800' />
           <p className='font-medium text-red-800'>Dibuat pada</p>
           <p className='text-xs'>{djs(room?.createdAt).format('DD/MM/YYYY, HH:mm:ss')}</p>
         </div>
         <div className='block rounded-md border border-red-800 px-5 py-3'>
-          <Users className='size-4 text-red-800' />
+          <Icon type='users' className='text-red-800' />
           <p className='font-medium text-red-800'>Maksimal peserta</p>
           <p className='text-xs'>{room?.max_participants ?? 0} peserta</p>
         </div>
@@ -150,7 +140,7 @@ function ParticipantsContent({
         <p className='mb-2'>Peserta yang memiliki otoritas</p>
         <div className='mb-2'>
           {!allParticipants.admin || allParticipants.admin.length === 0 ? (
-            <StatePage
+            <NoData
               title='Tidak ada pengguna yang memiliki otoritas'
               className='min-h-[159px] rounded-md bg-red-200'
             />
@@ -190,7 +180,7 @@ function ParticipantsContent({
                 {...searchParticipants}
               />
               <InputGroupAddon>
-                <Search className='size-4 text-neutral-400' />
+                <Icon type='search' className='size-4 text-neutral-400' />
               </InputGroupAddon>
             </InputGroup>
             <Select
@@ -198,7 +188,7 @@ function ParticipantsContent({
               onValueChange={filterParticipants.onValueChange}
             >
               <SelectTrigger className='w-fit cursor-pointer border border-neutral-400 [&>svg]:last:hidden'>
-                <Filter className='size-3' />
+                <Icon type='filter' className='text-neutral-950!' />
               </SelectTrigger>
               <SelectContent position='popper' className='max-w-[187px] wrap-anywhere'>
                 <SelectGroup>
@@ -211,7 +201,7 @@ function ParticipantsContent({
           </div>
         </div>
         {allParticipants.users.length <= 0 ? (
-          <StatePage
+          <NoData
             title='Tidak Ada Peserta yang Menunggu Persetujuan maupun yang Diblokir'
             className='max-h-[calc(100vh-550px)] min-h-[calc(100vh-650px)]'
           />
@@ -229,9 +219,9 @@ function ParticipantsContent({
                 >
                   <div className='flex items-center gap-2'>
                     {isWaiting ? (
-                      <Hourglass className='size-[19.5px] text-neutral-950' />
+                      <Icon type='hourglass' className='size-[19.5px] text-neutral-950' />
                     ) : (
-                      <Ban className='text-error size-[19.5px]' />
+                      <Icon type='block' className='text-error size-[19.5px]' />
                     )}
                     <span
                       className={cn(
@@ -257,7 +247,7 @@ function ParticipantsContent({
                           setUserIdentity(user.username)
                         }}
                       >
-                        <LockKeyholeOpen className='text-error size-4' />
+                        <Icon type='lock-open' className='text-error size-4' />
                         Buka Blokir
                       </Button>
                     )
@@ -289,7 +279,7 @@ function SettingsContent({ onClose, setIsOpenDelete }: RoomContentsProps['settin
             setIsOpenDelete(true)
           }}
         >
-          <Trash2 />
+          <Icon type='trash' />
           Hapus Ruangan
         </Button>
       </div>
