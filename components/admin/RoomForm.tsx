@@ -279,12 +279,12 @@ export function RoomForm({
                     id={name}
                     {...{ name }}
                     selected={{
-                      startTime: value ?? undefined,
-                      endTime: field.form.state.values.endDate ?? undefined,
+                      startDate: value ?? undefined,
+                      endDate: field.form.state.values.endDate ?? undefined,
                     }}
-                    onSelect={({ startTime, endTime }) => {
-                      handleChange(startTime ? startTime : null)
-                      field.form.setFieldValue('endDate', endTime ?? null)
+                    onSelect={({ startDate, endDate }) => {
+                      handleChange(startDate ?? null)
+                      field.form.setFieldValue('endDate', endDate ?? null)
                     }}
                     aria-invalid={isInvalid}
                     calendar={{
