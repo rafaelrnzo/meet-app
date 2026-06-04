@@ -222,7 +222,7 @@ export function RoomDetailSheet({
                 <div className='flex items-center gap-2'>
                   {isAdmin && (
                     <Button
-                      variant='outline'
+                      variant='primary-outline'
                       onClick={() => {
                         onClose()
                         handleEdit(room)
