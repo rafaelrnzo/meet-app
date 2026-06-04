@@ -5,6 +5,16 @@ import { djs } from '@/lib/utils'
 
 type RoomSchemaValue = yup.InferType<ReturnType<typeof roomSchema>>
 
+type TabsValue = 'overview' | 'participants' | 'settings'
+
+type StatusOption = 'all' | 'waiting' | 'banned'
+
+type FileResponse = {
+  file_name: string
+  file_url: string
+  size: number
+}
+
 interface RoomPayload {
   name: string
   description: string
@@ -72,5 +82,8 @@ export type {
   RoomPayload,
   NewRoomCode,
   GenerateRoomCodeExp,
+  TabsValue,
+  StatusOption,
+  FileResponse,
 }
 export { getRoomDefaultValue, getRoomPayload, SORT_ROOM }

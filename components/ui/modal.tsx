@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import type { DialogCloseProps } from '@radix-ui/react-dialog'
 import { DialogPortal } from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/spinner'
 import {
@@ -17,7 +16,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Separator } from './separator'
+import { Separator } from '@/components/ui/separator'
+import { Icon } from '@/components/ui/icon'
 
 interface ModalDialogProps {
   root?: React.ComponentProps<typeof Dialog>
@@ -97,7 +97,7 @@ function Modal({
           {...content}
           data-without-x
           className={cn(
-            'group peer max-h-[calc(100vh-32px)] gap-0 rounded-md border-0 p-0 max-sm:max-w-[calc(100vw-32px)]',
+            'group peer mt-5 max-h-[calc(100vh-75px)] gap-0 rounded-md border-0 p-0 max-sm:max-w-[calc(100vw-32px)]',
             content?.className
           )}
           onEscapeKeyDown={contentClosedInterceptor('onEscapeKeyDown')}
@@ -111,32 +111,36 @@ function Modal({
               scroller?.className
             )}
           >
-            <DialogHeader {...header} className={cn('p-5 space-y-0', header?.className)}>
+            <DialogHeader {...header} className={cn('space-y-0 p-5', header?.className)}>
               <div className='flex justify-between'>
                 <DialogTitle
                   {...title}
                   className={cn(
+                    header?.children && 'sr-only',
                     'mb-0 flex items-center py-[5.5px] text-base leading-5.25 font-semibold text-red-800 capitalize',
                     title?.className
                   )}
                 />
-                <DialogClose
-                  {...close}
-                  className={cn(close?.hidden && 'hidden')}
-                  onClick={(event) => {
-                    close?.onClick?.(event)
+                {header?.children}
+                {!header?.children && (
+                  <DialogClose
+                    {...close}
+                    className={cn(close?.hidden && 'hidden')}
+                    onClick={(event) => {
+                      close?.onClick?.(event)
 
-                    if (!event.defaultPrevented && isPrevented()) {
-                      event.preventDefault()
-                    }
-                  }}
-                  asChild
-                >
-                  <Button className='bg-red-200 hover:bg-red-300/70'>
-                    <X size={16} className='text-red-500' />
-                    <span className='sr-only'>Close</span>
-                  </Button>
-                </DialogClose>
+                      if (!event.defaultPrevented && isPrevented()) {
+                        event.preventDefault()
+                      }
+                    }}
+                    asChild
+                  >
+                    <Button className='bg-red-200 hover:bg-red-300/70'>
+                      <Icon type='close' className='text-red-500' />
+                      <span className='sr-only'>Close</span>
+                    </Button>
+                  </DialogClose>
+                )}
               </div>
               <DialogDescription
                 {...description}
@@ -150,7 +154,10 @@ function Modal({
             <Separator className='bg-neutral-400' />
             <div className='my-2 p-5'>{children}</div>
             <Separator
-              className={cn('bg-neutral-400', submit?.hidden && cancel?.hidden && 'hidden')}
+              className={cn(
+                'bg-neutral-400',
+                ((submit?.hidden && cancel?.hidden) || footer?.hidden) && 'hidden'
+              )}
             />
             <DialogFooter
               {...footer}
@@ -199,7 +206,7 @@ function Modal({
           </div>
         </DialogContent>
         {root?.modal === false && (
-          <div className='data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80' />
+          <div className='data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-5 bg-black/50' />
         )}
       </DialogPortal>
     </Dialog>
