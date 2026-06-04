@@ -9,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { Input } from '@/components/ui/input'
 import { cn, djs } from '@/lib/utils'
 import { Icon } from '@/components/ui/icon'
-import { DEFAULT_EMPTY_TIME, TimeInput } from '@/components/ui/time'
+import { TimeInput } from '@/components/ui/time'
 import { useEffect, useRef, useState } from 'react'
 import type { TimeInputProps } from '@/components/ui/time'
 
@@ -28,14 +28,11 @@ type CalendarWithTimeProps = Omit<React.ComponentProps<typeof Input>, 'popover' 
   endTimeProps?: React.ComponentProps<typeof TimeInput>
 }
 
-const dateToTime = (date?: Date): TimeInputProps['value'] =>
-  date
-    ? {
-        hour: String(date.getHours()),
-        minute: String(date.getMinutes()),
-        second: String(date.getSeconds()),
-      }
-    : DEFAULT_EMPTY_TIME
+const dateToTime = (date?: Date): TimeInputProps['value'] => ({
+  hour: String(date ? date.getHours() : ''),
+  minute: String(date ? date.getMinutes() : ''),
+  second: String(date ? date.getSeconds() : ''),
+})
 
 const isValidTime = (time: TimeInputProps['value']) => Object.values(time).every(Boolean)
 

@@ -11,12 +11,6 @@ interface TimeInputProps extends React.ComponentProps<'div'> {
   setValue: React.Dispatch<Record<TimeField, string>>
 }
 
-const DEFAULT_EMPTY_TIME: Record<TimeField, string> = {
-  hour: '',
-  minute: '',
-  second: '',
-}
-
 const clamp = (val: number, min: number, max: number) => Math.min(max, Math.max(min, val))
 
 const normalize = (value: string, max: number) => {
@@ -31,7 +25,11 @@ function TimeInput({ value, setValue, className, ...rest }: TimeInputProps) {
     second: useRef<HTMLInputElement>(null),
   }
 
-  const [draft, setDraft] = useState(value ?? DEFAULT_EMPTY_TIME)
+  const [draft, setDraft] = useState({
+    hour: normalize(value.hour ?? 0, 23),
+    minute: normalize(value.minute ?? 0, 59),
+    second: normalize(value.second ?? 0, 59),
+  })
 
   const focusField = (field: TimeField) => {
     const element = refs[field].current
@@ -138,5 +136,5 @@ function TimeInput({ value, setValue, className, ...rest }: TimeInputProps) {
   )
 }
 
-export { TimeInput, DEFAULT_EMPTY_TIME }
+export { TimeInput }
 export type { TimeInputProps }
