@@ -21,12 +21,13 @@ import { Icon } from '@/components/ui/icon'
 import { toast } from '@/components/ui/sonner'
 
 export default function GroupsPage() {
-  const { isAdmin, loading } = useAuth()
+  const { isAdmin } = useAuth()
   const [groups, setGroups] = useState<Group[]>([])
   const [users, setUsers] = useState<UserResponse>({ data: [] })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [isManageOpen, setIsManageOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
 
   const displayedError = (error: unknown, titleError: string) => {
     const message = error instanceof Error ? error.message : String(error)
@@ -39,18 +40,25 @@ export default function GroupsPage() {
   }
 
   const loadData = async () => {
-    const [g, u] = await Promise.all([fetchGroups(), fetchUsers()])
-    setGroups(
-      g.map((items) => ({
-        id: items.id,
-        name: items.name || '-',
-        description: items.description || '-',
-        members: items.members,
-        created_at: items.created_at,
-        is_editable: items.is_editable,
-      })) || []
-    )
-    setUsers(u || [])
+    try {
+      setLoading(true)
+      const [g, u] = await Promise.all([fetchGroups(), fetchUsers()])
+      setGroups(
+        g.map((items) => ({
+          id: items.id,
+          name: items.name || '-',
+          description: items.description || '-',
+          members: items.members,
+          created_at: items.created_at,
+          is_editable: items.is_editable,
+        })) || []
+      )
+      setUsers(u || [])
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setTimeout(() => setLoading(false), 500)
+    }
   }
 
   useEffect(() => {
@@ -121,11 +129,9 @@ export default function GroupsPage() {
     (u) => !selectedGroup?.members?.some((m) => m.id === u.id)
   )
 
-  if (loading) return <div className='text-muted-foreground p-8 text-center'>Loading...</div>
-
   return (
     <div>
-      {groups.length === 0 ? (
+      {!loading && groups.length === 0 ? (
         <NoData
           title='Tidak Ada kelompok yang Tersedia'
           desc='Silakan buat kelompok baru'
@@ -146,6 +152,7 @@ export default function GroupsPage() {
           subTitle='Kelola anggota Anda dalam tiap kelompok'
         >
           <TableView
+            loading={loading}
             data={groups}
             columns={groupsColumn({ handleDelete, openManage })}
             add={{
