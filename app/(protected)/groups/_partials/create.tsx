@@ -7,8 +7,8 @@ import FormController from '@/app/(protected)/groups/_partials/form-controller'
 import { useForm } from '@tanstack/react-form'
 import { createGroupsSchema } from '@/schema/groups'
 import type { InferType } from 'yup'
-import { Plus } from 'lucide-react'
 import type { Group } from '@/lib/api/admin-api'
+import { Icon } from '@/components/ui/icon'
 
 interface CreateDialogProps {
   isCreateOpen: boolean
@@ -48,7 +48,7 @@ export function CreateDialog({
       submit={{
         children: (
           <>
-            <Plus /> Tambah Kelompok
+            <Icon type='plus' /> Tambah Kelompok
           </>
         ),
         onClick: () => form.handleSubmit(),

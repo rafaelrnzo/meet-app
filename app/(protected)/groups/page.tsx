@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { Plus } from 'lucide-react'
 import {
   fetchGroups,
   createGroup,
@@ -152,7 +151,7 @@ export default function GroupsPage() {
             add={{
               children: (
                 <>
-                  <Plus /> Tambah Kelompok
+                  <Icon type='plus' /> Tambah Kelompok
                 </>
               ),
               onClick: () => setIsCreateOpen(true),

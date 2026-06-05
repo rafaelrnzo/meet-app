@@ -1,10 +1,10 @@
 'use client'
 
+import { Icon } from '@/components/ui/icon'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import ActionButton from '@/compounds/action-button'
 import type { Group } from '@/lib/api/admin-api'
 import type { CellContext, ColumnDef } from '@tanstack/react-table'
-import { Info, Settings, Users } from 'lucide-react'
 
 interface GroupsColumnProps {
   handleDelete: ({ id, name }: { id: number; name: string }) => void
@@ -24,7 +24,7 @@ const ActionColumn = (props: ActionButtonProps) => {
         {
           text: 'Kelola Kelompok',
           variant: 'secondary-light',
-          icon: <Settings />,
+          icon: <Icon type='settings' />,
           onClick: () => openManage(row.original),
           disabled: !is_editable,
         },
@@ -63,7 +63,7 @@ export const groupsColumn = ({
       const truncateName = name.length > 25 ? name.slice(0, 25) + '...' : name
       return (
         <div className='flex flex-row items-center gap-2'>
-          <Users className='size-5 fill-red-800' />
+          <Icon type='users' className='text-red-800' size={20} />
           <p className='line-clamp-1 font-medium wrap-break-word text-neutral-950'>
             {truncateName}
           </p>
@@ -98,8 +98,8 @@ export const groupsColumn = ({
         <div className='flex items-center gap-2'>
           Kelola
           <Tooltip>
-            <TooltipTrigger asChild className='cursor-pointer'>
-              <Info className='size-3.5' />
+            <TooltipTrigger className='cursor-pointer'>
+              <Icon type='info' className='size-3.5' />
             </TooltipTrigger>
             <TooltipContent className='bg-red-800'>
               <ol type='1'>

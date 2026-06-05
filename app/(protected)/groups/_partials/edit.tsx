@@ -1,7 +1,6 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { Plus, X } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import type { SetStateAction } from 'react'
 import type { Group, User } from '@/lib/api/admin-api'
@@ -11,6 +10,7 @@ import FormController from '@/app/(protected)/groups/_partials/form-controller'
 import { useForm } from '@tanstack/react-form'
 import type { InferType } from 'yup'
 import { editGroupSchema } from '@/schema/groups'
+import { Icon } from '@/components/ui/icon'
 
 interface EditDialogProps {
   isManageOpen: boolean
@@ -191,7 +191,7 @@ export default function EditDialog({
               disabled: !isDisabledAdd.length,
               children: (
                 <>
-                  <Plus />
+                  <Icon type='plus' />
                   Tambah Peserta
                 </>
               ),
@@ -222,7 +222,7 @@ export default function EditDialog({
                   className='p-0! hover:bg-transparent'
                   onClick={() => handleUnstoreParticipants(member.id)}
                 >
-                  <X className='text-error h-4 w-4' />
+                  <Icon type='close' className='text-error' size={12} />
                 </Button>
               </div>
             ))}
