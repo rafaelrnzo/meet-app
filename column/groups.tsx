@@ -1,10 +1,10 @@
 'use client'
 
+import { Icon } from '@/components/ui/icon'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import ActionButton from '@/compounds/action-button'
 import type { Group } from '@/lib/api/admin-api'
 import type { CellContext, ColumnDef } from '@tanstack/react-table'
-import { Info, Settings, Users } from 'lucide-react'
 
 interface GroupsColumnProps {
   handleDelete: ({ id, name }: { id: number; name: string }) => void
@@ -24,7 +24,7 @@ const ActionColumn = (props: ActionButtonProps) => {
         {
           text: 'Kelola Kelompok',
           variant: 'secondary-light',
-          icon: <Settings />,
+          icon: <Icon type='settings' />,
           onClick: () => openManage(row.original),
           disabled: !is_editable,
         },
@@ -45,28 +45,6 @@ const ActionColumn = (props: ActionButtonProps) => {
           disabled: !is_editable,
         },
       }}
-      // switchComp={{
-      //   checked,
-      //   setChecked,
-      //   modal: {
-      //     submit: {
-      //       children: 'Nonaktifkan Pengguna',
-      //       onClick: () => setChecked(false),
-      //     },
-      //     title: {
-      //       children: 'Non-aktifkan pengguna',
-      //     },
-      //     description: {
-      //       children:
-      //         'Tindakan ini akan menonaktifkan dan memaksa anggota agar keluar dari ruang rapat dan dashboard sementara waktu sampai Anda aktifkan kembali. Anda dapat kembali mengaktifkannya kembali dengan cara yang sama.',
-      //     },
-      //   },
-
-      //   text: {
-      //     active: 'Anggota aktif',
-      //     inactive: 'Anggota tidak aktif',
-      //   },
-      // }}
     />
   )
 }
@@ -81,11 +59,13 @@ export const groupsColumn = ({
     minSize: 250,
     maxSize: 250,
     cell: ({ row }) => {
+      const name = row.original.name
+      const truncateName = name.length > 25 ? name.slice(0, 25) + '...' : name
       return (
         <div className='flex flex-row items-center gap-2'>
-          <Users className='size-5 fill-red-800' />
-          <p className='w-[250px] max-w-[250px] font-medium text-neutral-950'>
-            {row.original.name}
+          <Icon type='users' className='text-red-800' size={20} />
+          <p className='line-clamp-1 font-medium wrap-break-word text-neutral-950'>
+            {truncateName}
           </p>
         </div>
       )
@@ -96,7 +76,11 @@ export const groupsColumn = ({
     header: 'Deskripsi kelompok',
     minSize: 474,
     maxSize: 474,
-    accessorFn: ({ description }) => description,
+    cell: ({ row }) => {
+      return (
+        <div className='line-clamp-3 wrap-break-word text-ellipsis'>{row.original.description}</div>
+      )
+    },
   },
   {
     accessorKey: 'members',
@@ -114,8 +98,8 @@ export const groupsColumn = ({
         <div className='flex items-center gap-2'>
           Kelola
           <Tooltip>
-            <TooltipTrigger asChild className='cursor-pointer'>
-              <Info className='size-3.5' />
+            <TooltipTrigger className='cursor-pointer'>
+              <Icon type='info' className='size-3.5' />
             </TooltipTrigger>
             <TooltipContent className='bg-red-800'>
               <ol type='1'>
