@@ -26,9 +26,9 @@ function TimeInput({ value, setValue, className, ...rest }: TimeInputProps) {
   }
 
   const [draft, setDraft] = useState({
-    hour: normalize(value.hour ?? 0, 23),
-    minute: normalize(value.minute ?? 0, 59),
-    second: normalize(value.second ?? 0, 59),
+    hour: value.hour !== '' ? normalize(value.hour, 23) : '',
+    minute: value.minute !== '' ? normalize(value.minute, 59) : '',
+    second: value.second !== '' ? normalize(value.second, 59) : '',
   })
 
   const focusField = (field: TimeField) => {
