@@ -42,9 +42,10 @@ export interface RoomContentsProps {
     setIsOpenBlock: (val: boolean) => void
     setUserIdentity: (val: string) => void
   }
-  settings: Pick<RoomContentsProps['participants'], 'onClose'> & {
-    setIsOpenDelete: (val: boolean) => void
-  }
+  settings: Pick<RoomContentsProps['participants'], 'onClose'> &
+    Pick<RoomContentsProps['overview'], 'activeRoom'> & {
+      setIsOpenDelete: (val: boolean) => void
+    }
 }
 
 function OverviewContent({
@@ -262,7 +263,7 @@ function ParticipantsContent({
   )
 }
 
-function SettingsContent({ onClose, setIsOpenDelete }: RoomContentsProps['settings']) {
+function SettingsContent({ onClose, setIsOpenDelete, activeRoom }: RoomContentsProps['settings']) {
   return (
     <div className='animate-in fade-in slide-in-from-bottom-4 space-y-6 duration-300'>
       <div className='border-destructive/20 bg-destructive/5 space-y-4 rounded-xl border p-4'>
@@ -278,9 +279,10 @@ function SettingsContent({ onClose, setIsOpenDelete }: RoomContentsProps['settin
             onClose()
             setIsOpenDelete(true)
           }}
+          disabled={!!activeRoom}
         >
           <Icon type='trash' />
-          Hapus Ruangan
+          {activeRoom ? 'Rapat Sedang Berlangsung' : 'Hapus Ruangan'}
         </Button>
       </div>
     </div>
