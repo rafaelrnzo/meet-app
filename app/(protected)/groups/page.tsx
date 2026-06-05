@@ -17,9 +17,9 @@ import { TableView } from '@/compounds/table-view'
 import { groupsColumn } from '@/column/groups'
 import { CreateDialog } from '@/app/(protected)/groups/_partials/create'
 import EditDialog from '@/app/(protected)/groups/_partials/edit'
-import { toast } from 'sonner'
 import NoData from '@/components/ui/no-data'
 import { Icon } from '@/components/ui/icon'
+import { toast } from '@/components/ui/sonner'
 
 export default function GroupsPage() {
   const { isAdmin, loading } = useAuth()
