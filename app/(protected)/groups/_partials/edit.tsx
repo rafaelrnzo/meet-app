@@ -161,6 +161,10 @@ export default function EditDialog({
       cancel={{
         children: 'Batal',
       }}
+      content={{
+        onPointerDownOutside: (e) => e.preventDefault(),
+        onInteractOutside: (e) => e.preventDefault(),
+      }}
     >
       <form
         onSubmit={(e) => {

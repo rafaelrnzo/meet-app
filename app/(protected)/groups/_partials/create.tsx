@@ -41,7 +41,10 @@ export function CreateDialog({
 
   return (
     <Modal
-      root={{ open, onOpenChange }}
+      root={{
+        open,
+        onOpenChange,
+      }}
       submit={{
         children: (
           <>
@@ -58,6 +61,10 @@ export function CreateDialog({
       }}
       description={{
         children: 'Buat kelompok untuk mengatur anggota.',
+      }}
+      content={{
+        onPointerDownOutside: (e) => e.preventDefault(),
+        onInteractOutside: (e) => e.preventDefault(),
       }}
     >
       <FormController
