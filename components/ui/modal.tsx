@@ -240,6 +240,8 @@ function ModalDelete({ submit, title, children, cancel, footer, content, ...rest
       content={{
         ...content,
         className: cn('w-80', content?.className),
+        onPointerDownOutside: (e) => e.preventDefault(),
+        onInteractOutside: (e) => e.preventDefault(),
       }}
     />
   )
