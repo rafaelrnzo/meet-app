@@ -41,6 +41,10 @@ export default function DropFile({
   const displayedFiles = files.length > 0 ? files : exist
   const failedFile = isLimitExceed || isOnlyPdf
 
+  const isExistFileorFailed =
+    failedFile || !displayedFiles.length || (failedFile && displayedFiles.length > 0)
+  const isUpload = !failedFile && !displayedFiles.length
+
   const handleFiles = (selectedFiles: FileList | null) => {
     if (!selectedFiles?.length) return
 
@@ -66,24 +70,27 @@ export default function DropFile({
     setOnlyPdf(false)
   }
 
-  const handleRemoveFiles = (idx: number) => {
-    if (files.length > 0) {
-      setFiles((prev) => prev.filter((_, i) => i !== idx))
-      return
+  const handleRemoveFiles = () => {
+    if (onRemoveFile?.()) {
+      onRemoveFile?.()
+      setFiles([])
+      setExist([])
     }
-    setExist((prev) => prev.filter((_, i) => i !== idx))
-    onRemoveFile?.()
   }
 
   useEffect(() => {
-    setExist(existingFile)
+    if (existingFile) setExist(existingFile)
   }, [existingFile])
 
   return (
     <div>
       <div
         className={cn(
-          failedFile ? 'h-[182px] max-h-[182px] bg-red-200' : 'h-[238px] max-h-[238px] bg-red-50',
+          isUpload
+            ? 'h-[238px] max-h-[238px] bg-neutral-50'
+            : failedFile
+              ? 'h-[182px] max-h-[182px] bg-red-200'
+              : 'h-[238px] max-h-[238px] bg-red-50',
           'relative mb-1.5 rounded-md'
         )}
       >
@@ -125,9 +132,7 @@ export default function DropFile({
             )}
           </div>
           <Button variant='secondary-outline'>
-            {failedFile || !displayedFiles.length || (failedFile && displayedFiles.length > 0)
-              ? 'Unggah Berkas'
-              : 'Ganti Berkas'}
+            {isExistFileorFailed ? 'Unggah Berkas' : 'Ganti Berkas'}
           </Button>
         </div>
         <Input
@@ -141,43 +146,40 @@ export default function DropFile({
           onChange={(e) => handleFiles(e.target.files)}
         />
       </div>
-      {!failedFile &&
-        displayedFiles.length > 0 &&
-        displayedFiles.map(({ name, size, url }, idx) => {
-          return (
-            <a
-              key={idx}
-              href={url}
-              target='_blank'
-              rel='noopener noreferrer'
-              className='flex h-[88px] w-full cursor-pointer items-center justify-between rounded-md border border-dashed border-slate-400 bg-red-50 p-6'
+      {!failedFile && displayedFiles.length > 0 && (
+        <a
+          href={displayedFiles[0].url}
+          target='_blank'
+          rel='noopener noreferrer'
+          className='flex h-[88px] w-full cursor-pointer items-center justify-between rounded-md border border-dashed border-slate-400 bg-red-50 p-6'
+        >
+          <div className='flex items-center justify-between gap-3'>
+            <div className='w-fit rounded-md border border-slate-400 p-2 text-center'>
+              <FileText className='size-4' />
+            </div>
+            <div>
+              <p className='text-sm font-medium'>{displayedFiles[0].name}</p>
+              <p className='text-sm text-slate-500'>
+                {formatFileSize(displayedFiles[0].size || 0)}
+              </p>
+            </div>
+          </div>
+          <div
+            onClick={(e) => {
+              e.preventDefault()
+              e.stopPropagation()
+              handleRemoveFiles()
+            }}
+          >
+            <Button
+              variant='ghost'
+              className='text-error hover:text-error p-0 hover:bg-transparent'
             >
-              <div className='flex items-center justify-between gap-3'>
-                <div className='w-fit rounded-md border border-slate-400 p-2 text-center'>
-                  <FileText className='size-4' />
-                </div>
-                <div>
-                  <p className='text-sm font-medium'>{name}</p>
-                  <p className='text-sm text-slate-500'>{formatFileSize(size || 0)}</p>
-                </div>
-              </div>
-              <div
-                onClick={(e) => {
-                  e.preventDefault()
-                  e.stopPropagation()
-                  handleRemoveFiles(idx)
-                }}
-              >
-                <Button
-                  variant='ghost'
-                  className='text-error hover:text-error p-0 hover:bg-transparent'
-                >
-                  <X className='size-5' />
-                </Button>
-              </div>
-            </a>
-          )
-        })}
+              <X className='size-5' />
+            </Button>
+          </div>
+        </a>
+      )}
     </div>
   )
 }
