@@ -164,6 +164,7 @@ export default function EditDialog({
       content={{
         onPointerDownOutside: (e) => e.preventDefault(),
         onInteractOutside: (e) => e.preventDefault(),
+        onCloseAutoFocus: (e) => e.preventDefault(),
       }}
     >
       <form

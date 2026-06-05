@@ -65,6 +65,7 @@ export function CreateDialog({
       content={{
         onPointerDownOutside: (e) => e.preventDefault(),
         onInteractOutside: (e) => e.preventDefault(),
+        onCloseAutoFocus: (e) => e.preventDefault(),
       }}
     >
       <FormController
