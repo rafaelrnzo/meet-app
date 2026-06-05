@@ -11,7 +11,7 @@ interface NoDataProps {
   reload?: boolean
   goBack?: boolean
   insertButton?: {
-    text: string
+    children: React.ReactNode
     onClick: () => void
   }
   className?: string
@@ -66,7 +66,15 @@ export default function NoData({
             {reload ? 'Kembali ke Beranda' : 'Masuk ke Beranda'}
           </Button>
         )}
-        {insertButton && <Button onClick={insertButton.onClick}>{insertButton.text}</Button>}
+        {insertButton && (
+          <Button
+            variant='primary'
+            onClick={insertButton.onClick}
+            className='mb-3 h-8 w-full rounded-md px-3 py-[5.5px] font-semibold'
+          >
+            {insertButton.children ?? 'Buat'}
+          </Button>
+        )}
       </div>
     </div>
   )
