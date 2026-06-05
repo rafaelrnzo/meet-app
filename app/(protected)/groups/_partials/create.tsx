@@ -85,7 +85,8 @@ export function CreateDialog({
         listeners={{
           onChange: ({ value }) => setDesc(String(value)),
         }}
-        subLabel={`${desc.length} / 255 karakter.`}
+        maxLength={250}
+        subLabel={`${desc.length} / 250 karakter.`}
       />
     </Modal>
   )

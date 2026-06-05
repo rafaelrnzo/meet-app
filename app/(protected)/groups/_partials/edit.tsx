@@ -228,9 +228,7 @@ export default function EditDialog({
               </div>
             ))}
             {!displayedParticipants.length && (
-              <div className='text-muted-foreground p-8 text-center text-sm'>
-                No members in this group.
-              </div>
+              <div className='text-muted-foreground p-8 text-center text-sm'>Tidak ada peserta</div>
             )}
           </div>
         </div>
