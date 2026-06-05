@@ -177,7 +177,7 @@ function ParticipantsContent({
               <InputGroupInput
                 aria-invalid={!!searchParticipants.value && !allParticipants.users.length}
                 placeholder='Cari peserta ...'
-                className='border-none p-0 shadow-none focus-visible:ring-0'
+                className='h-auto'
                 {...searchParticipants}
               />
               <InputGroupAddon>
