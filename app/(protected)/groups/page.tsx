@@ -18,6 +18,8 @@ import { groupsColumn } from '@/column/groups'
 import { CreateDialog } from '@/app/(protected)/groups/_partials/create'
 import EditDialog from '@/app/(protected)/groups/_partials/edit'
 import { toast } from 'sonner'
+import NoData from '@/components/ui/no-data'
+import { Icon } from '@/components/ui/icon'
 
 export default function GroupsPage() {
   const { isAdmin, loading } = useAuth()
@@ -123,29 +125,41 @@ export default function GroupsPage() {
   if (loading) return <div className='text-muted-foreground p-8 text-center'>Loading...</div>
 
   return (
-    <PageContainer
-      icon='groups'
-      title='Daftar Kelompok'
-      subTitle='Kelola anggota Anda dalam tiap kelompok'
-    >
+    <div>
       {groups.length === 0 ? (
-        <div className='bg-card border-border text-muted-foreground overflow-hidden rounded-lg border p-8 text-center text-sm shadow-sm'>
-          Tidak ada kelompok
-        </div>
-      ) : (
-        <TableView
-          data={groups}
-          columns={groupsColumn({ handleDelete, openManage })}
-          add={{
+        <NoData
+          title='Tidak Ada kelompok yang Tersedia'
+          desc='Silakan buat kelompok baru'
+          insertButton={{
             children: (
               <>
-                <Plus /> Tambah Kelompok
+                <Icon type='plus' /> Buat Kelompok Baru
               </>
             ),
             onClick: () => setIsCreateOpen(true),
-            hidden: !isAdmin,
           }}
+          className='h-[calc(100vh-208px)]'
         />
+      ) : (
+        <PageContainer
+          icon='groups'
+          title='Daftar Kelompok'
+          subTitle='Kelola anggota Anda dalam tiap kelompok'
+        >
+          <TableView
+            data={groups}
+            columns={groupsColumn({ handleDelete, openManage })}
+            add={{
+              children: (
+                <>
+                  <Plus /> Tambah Kelompok
+                </>
+              ),
+              onClick: () => setIsCreateOpen(true),
+              hidden: !isAdmin,
+            }}
+          />
+        </PageContainer>
       )}
       <CreateDialog {...{ isCreateOpen, setIsCreateOpen, handleCreate }} />
       <EditDialog
@@ -158,6 +172,6 @@ export default function GroupsPage() {
           handleRemoveMember,
         }}
       />
-    </PageContainer>
+    </div>
   )
 }
