@@ -7,8 +7,8 @@ import FormController from '@/app/(protected)/groups/_partials/form-controller'
 import { useForm } from '@tanstack/react-form'
 import { createGroupsSchema } from '@/schema/groups'
 import type { InferType } from 'yup'
-import { Plus } from 'lucide-react'
 import type { Group } from '@/lib/api/admin-api'
+import { Icon } from '@/components/ui/icon'
 
 interface CreateDialogProps {
   isCreateOpen: boolean
@@ -41,11 +41,14 @@ export function CreateDialog({
 
   return (
     <Modal
-      root={{ open, onOpenChange }}
+      root={{
+        open,
+        onOpenChange,
+      }}
       submit={{
         children: (
           <>
-            <Plus /> Tambah Kelompok
+            <Icon type='plus' /> Tambah Kelompok
           </>
         ),
         onClick: () => form.handleSubmit(),
@@ -58,6 +61,11 @@ export function CreateDialog({
       }}
       description={{
         children: 'Buat kelompok untuk mengatur anggota.',
+      }}
+      content={{
+        onPointerDownOutside: (e) => e.preventDefault(),
+        onInteractOutside: (e) => e.preventDefault(),
+        onCloseAutoFocus: (e) => e.preventDefault(),
       }}
     >
       <FormController
@@ -77,7 +85,8 @@ export function CreateDialog({
         listeners={{
           onChange: ({ value }) => setDesc(String(value)),
         }}
-        subLabel={`${desc.length} / 255 karakter.`}
+        maxLength={250}
+        subLabel={`${desc.length} / 250 karakter.`}
       />
     </Modal>
   )
