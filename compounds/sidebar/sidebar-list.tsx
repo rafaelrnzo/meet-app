@@ -60,7 +60,7 @@ function SidebarList({
                         asChild
                         size='lg'
                         variant='primary'
-                        className='group'
+                        className='group pr-0.5'
                         isActive={isActive}
                       >
                         <Link href={item.href} title={item.label}>
