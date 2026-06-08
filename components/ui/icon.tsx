@@ -74,6 +74,7 @@ export const ICON_NAMES = [
   'emot-off',
   'file-pdf',
   'file-plus',
+  'check',
 ] as const
 
 interface IconProps {
