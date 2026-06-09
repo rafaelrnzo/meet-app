@@ -265,7 +265,7 @@ export function RoomForm({
           }}
         </form.Field>
 
-        <Field orientation='horizontal' className='items-start max-[519px]:flex-col'>
+        <Field orientation='horizontal' className='grid max-md:gap-4 md:grid-cols-2'>
           <form.Field name='startDate'>
             {(field) => {
               const { name, state, handleChange } = field
@@ -338,7 +338,7 @@ export function RoomForm({
           </form.Field>
         </Field>
 
-        <Field orientation='horizontal' className='items-start max-[519px]:flex-col'>
+        <Field orientation='horizontal' className='grid max-md:gap-4 md:grid-cols-2'>
           <form.Field
             name='groupId'
             listeners={{
@@ -464,6 +464,7 @@ export function RoomForm({
               <FormField
                 label='Pilih anggota untuk dimasukkan ke ruang rapat'
                 {...{ name, isInvalid, errors }}
+                className='gap-4'
               >
                 <TableViewSearch
                   placeholder='Cari anggota ...'
@@ -497,7 +498,7 @@ export function RoomForm({
                             }
                             checked={isCheckedAll}
                           />
-                          <Label htmlFor='all' className='w-full opacity-100!'>
+                          <Label htmlFor='all' className='w-full font-normal opacity-100!'>
                             All
                           </Label>
                         </Field>
@@ -524,7 +525,10 @@ export function RoomForm({
                                   !value.includes(`${user.id}`)
                                 }
                               />
-                              <Label htmlFor={`${user.id}`} className='w-full opacity-100!'>
+                              <Label
+                                htmlFor={`${user.id}`}
+                                className='w-full font-normal wrap-anywhere opacity-100!'
+                              >
                                 {user.username}
                               </Label>
                             </Field>
@@ -563,7 +567,9 @@ export function RoomForm({
                       }
                     />
                     <FieldContent>
-                      <FieldTitle>Bisukan mikrofon semua anggota</FieldTitle>
+                      <FieldTitle className='font-normal'>
+                        Bisukan mikrofon semua anggota
+                      </FieldTitle>
                     </FieldContent>
                   </Field>
                 </FieldLabel>

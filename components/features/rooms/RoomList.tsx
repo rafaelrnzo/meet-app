@@ -253,8 +253,8 @@ function RoomList(props: SummaryCardProps) {
                         >
                           <TooltipTrigger asChild>
                             <Button
-                              className='size-6.5 px-0 not-hover:border-neutral-400 not-hover:bg-neutral-50 not-hover:text-neutral-400 hover:bg-red-50'
-                              variant='primary-outline'
+                              className='size-6.5 px-0'
+                              variant='secondary'
                               onClick={(event) => {
                                 event.stopPropagation()
                                 handleShareLink({ roomId: room.id, roomCode: ownRoomCode })
@@ -305,12 +305,11 @@ function RoomList(props: SummaryCardProps) {
                       >
                         <TooltipTrigger asChild>
                           <Button
-                            variant='primary-outline'
+                            variant='secondary'
                             onClick={() =>
                               handleCopyLink({ roomId: room.id, roomCode: ownRoomCode })
                             }
                             size='icon'
-                            className='not-hover:border-neutral-400 not-hover:bg-neutral-50 not-hover:text-neutral-400 hover:bg-red-50'
                           >
                             <Icon type='copy' />
                           </Button>
