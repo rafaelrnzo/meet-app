@@ -25,7 +25,7 @@ function getAuthToken(): string {
     throw new Error('Token hanya bisa diambil di client')
   }
 
-  const token = localStorage.getItem('vc_token')
+  const token = localStorage.getItem('token') || localStorage.getItem('vc_token')
   if (!token) {
     throw new Error('Not authenticated: JWT token tidak ditemukan')
   }

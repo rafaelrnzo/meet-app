@@ -1,14 +1,12 @@
-import { buttonVariants } from '@/components/ui/button'
 import {
   Select,
   SelectTrigger,
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectValue,
 } from '@/components/ui/select'
 import { cn } from '@/lib/utils'
-import React, { useState } from 'react'
+import React from 'react'
 
 interface TableViewFilterProps {
   options: { value: string; label: string }[]
@@ -24,37 +22,26 @@ interface TableViewFilterProps {
 
 function TableViewFilter(props: TableViewFilterProps) {
   const { options = [], placeholder = 'Filter', selectProps } = props
-  const [filterValue, setFilterValue] = useState('')
 
   return (
-    <Select
-      {...selectProps?.select}
-      value={selectProps?.select?.value ?? filterValue}
-      onValueChange={(currentValue) =>
-        selectProps?.select?.onValueChange?.(currentValue) ??
-        setFilterValue(currentValue === 'all' ? '' : currentValue)
-      }
-    >
+    <Select {...selectProps?.select}>
       <SelectTrigger
         {...selectProps?.selectTrigger}
         className={cn(
-          buttonVariants({ variant: 'primary-outline' }),
-          'h-9 w-50 gap-2 px-4 py-[7.5px] font-semibold data-[state=open]:bg-red-800 data-[state=open]:text-white @max-[496px]/table-header:w-full [&>svg]:opacity-100',
+          'cursor-pointer gap-2 font-semibold md:border md:border-red-800 md:bg-red-50 md:text-red-800 md:hover:bg-red-200 [&>svg]:opacity-100',
+          'md:data-[state=open]:bg-red-800 md:data-[state=open]:text-white',
           selectProps?.selectTrigger?.className
         )}
       >
-        <SelectValue className='truncate whitespace-normal' placeholder={placeholder} />
+        {selectProps?.selectTrigger?.children ?? placeholder}
       </SelectTrigger>
       <SelectContent
         {...selectProps?.selectContent}
         align='end'
         position='popper'
-        className='w-(--radix-select-trigger-width) wrap-anywhere'
+        className='wrap-anywhere max-md:w-[calc(100vw-64px)]'
       >
         <SelectGroup>
-          <SelectItem value='all' key={`table-filter-all`}>
-            Semua
-          </SelectItem>
           {options.map((item, index) => (
             <SelectItem value={item.value} key={`table-filter-${index}`}>
               {item.label}
