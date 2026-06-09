@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import type { DialogCloseProps } from '@radix-ui/react-dialog'
 import { DialogPortal } from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/spinner'
 import {
@@ -17,7 +16,8 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Separator } from './separator'
+import { Separator } from '@/components/ui/separator'
+import { Icon } from '@/components/ui/icon'
 
 interface ModalDialogProps {
   root?: React.ComponentProps<typeof Dialog>
@@ -136,7 +136,7 @@ function Modal({
                     asChild
                   >
                     <Button className='bg-red-200 hover:bg-red-300/70'>
-                      <X size={16} className='text-red-500' />
+                      <Icon type='close' className='text-red-500' />
                       <span className='sr-only'>Close</span>
                     </Button>
                   </DialogClose>
@@ -206,7 +206,7 @@ function Modal({
           </div>
         </DialogContent>
         {root?.modal === false && (
-          <div className='data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80' />
+          <div className='data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50' />
         )}
       </DialogPortal>
     </Dialog>
@@ -240,6 +240,8 @@ function ModalDelete({ submit, title, children, cancel, footer, content, ...rest
       content={{
         ...content,
         className: cn('w-80', content?.className),
+        onPointerDownOutside: (e) => e.preventDefault(),
+        onInteractOutside: (e) => e.preventDefault(),
       }}
     />
   )

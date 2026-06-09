@@ -16,7 +16,7 @@ import {
   FieldTitle,
 } from '@/components/ui/field'
 import { Textarea } from '@/components/ui/textarea'
-import { cn, omit } from '@/lib/utils'
+import { cn, djs, omit } from '@/lib/utils'
 import { CalendarWithTime } from '@/components/ui/calendar-with-time'
 import {
   Combobox,
@@ -34,11 +34,11 @@ import { roomSchema } from '@/feat/rooms/schema'
 import type { AnyFormApi } from '@tanstack/react-form'
 import { useForm, useStore } from '@tanstack/react-form'
 import { Modal } from '@/components/ui/modal'
-import { Eye, EyeClosed, Plus, X } from 'lucide-react'
+import { Icon } from '@/components/ui/icon'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { toast } from '@/components/ui/sonner'
-import { buttonVariants } from '@/components/ui/button'
 import { defaultErrorMessage } from '@/config'
+import NoData from '@/components/ui/no-data'
 
 interface RoomFormProps {
   open: boolean
@@ -206,7 +206,7 @@ export function RoomForm({
           'Perbarui Ruangan'
         ) : (
           <>
-            <Plus />
+            <Icon type='plus' />
             Tambah Ruangan
           </>
         ),
@@ -279,18 +279,20 @@ export function RoomForm({
                     id={name}
                     {...{ name }}
                     selected={{
-                      startTime: value ?? undefined,
-                      endTime: field.form.state.values.endDate ?? undefined,
+                      startDate: value ?? undefined,
+                      endDate: field.form.state.values.endDate ?? undefined,
                     }}
-                    onSelect={({ startTime, endTime }) => {
-                      handleChange(startTime ? startTime : null)
-                      field.form.setFieldValue('endDate', endTime ?? null)
+                    onSelect={({ startDate, endDate }) => {
+                      handleChange(startDate ?? null)
+                      field.form.setFieldValue('endDate', endDate ?? null)
                     }}
                     aria-invalid={isInvalid}
                     calendar={{
                       disabled: {
                         before: new Date(),
                       },
+                      startMonth: new Date(),
+                      endMonth: djs().add(10, 'years').toDate(),
                     }}
                     disabled={!!activeParticipant}
                   />
@@ -324,7 +326,10 @@ export function RoomForm({
                       onClick={() => setShowPassword((prev) => !prev)}
                       className='cursor-pointer'
                     >
-                      {showPassword ? <EyeClosed /> : <Eye />}
+                      <Icon
+                        type={showPassword ? 'eye-off' : 'eye'}
+                        className='active:text-neutral-950'
+                      />
                     </InputGroupAddon>
                   </InputGroup>
                 </FormField>
@@ -466,21 +471,8 @@ export function RoomForm({
                 />
                 <Card className='rounded-md border-neutral-400'>
                   <CardContent className='flex min-h-[113px] flex-col px-2 pt-1 pb-3.5'>
-                    {/* TODO: buat reusable */}
                     {!users.length ? (
-                      <div className='flex flex-1 flex-col items-center justify-center gap-2 text-lg font-semibold text-red-800'>
-                        <div
-                          className={cn(
-                            buttonVariants({
-                              variant: 'secondary-outline',
-                            }),
-                            'size-12 cursor-default hover:bg-white'
-                          )}
-                        >
-                          <X className='size-6 text-red-800' />
-                        </div>
-                        Tidak Ada Anggota
-                      </div>
+                      <NoData title='Tidak Ada Anggota' className='mt-2.5' />
                     ) : (
                       <>
                         <Field orientation='horizontal'>

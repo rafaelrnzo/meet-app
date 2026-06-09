@@ -1,6 +1,5 @@
-import type { RoomPayload, SortRoomType } from '@/feat/rooms/dto'
+import type { RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
 import Cookies from 'js-cookie'
-import type { StatusOption } from '@/components/admin/RoomDetailSheet'
 import type { UserParams } from '@/feat/users/dto'
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'

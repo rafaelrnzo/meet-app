@@ -13,9 +13,10 @@ import { RoomForm } from '@/components/admin/RoomForm'
 import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 import type { SortRoomType } from '@/feat/rooms/dto'
 import { SORT_ROOM } from '@/feat/rooms/dto'
-import { Plus } from 'lucide-react'
 import { handleSearchNotFound } from '@/feat/rooms/helper'
 import { toast } from '@/components/ui/sonner'
+import { Icon } from '@/components/ui/icon'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 export default function RoomsPage() {
   const { hasPermission } = useAuth({ requirePermission: 'room:read' })
@@ -33,10 +34,12 @@ export default function RoomsPage() {
   // Detail Sheet State
   const [selectedRoom, setSelectedRoom] = useState<DbRoom | null>(null)
   const [isDetailOpen, setIsDetailOpen] = useState(false)
+  const [isModalDetail, setModalDetail] = useState(false)
 
   const canCreate = hasPermission('room:create')
   const canUpdate = hasPermission('room:update')
   const canDelete = hasPermission('room:delete')
+  const isMobile = useIsMobile()
 
   const loadData = useCallback(
     async (params?: RoomParams) => {
@@ -80,7 +83,7 @@ export default function RoomsPage() {
     setIsFormOpen(true)
   }
 
-  const handleEdit = (room: DbRoom) => {
+  const handleEdit = (room: DbRoom | null) => {
     setEditingRoom(room)
     setIsFormOpen(true)
   }
@@ -98,8 +101,14 @@ export default function RoomsPage() {
   }
 
   const handleViewDetails = (room: DbRoom) => {
-    setSelectedRoom(room)
-    setIsDetailOpen(true)
+    if (isMobile) {
+      setSelectedRoom(room)
+      setModalDetail(true)
+      setIsDetailOpen(false)
+    } else {
+      setSelectedRoom(room)
+      setIsDetailOpen(true)
+    }
   }
 
   const getActiveRoomData = (roomName: string) => {
@@ -140,7 +149,7 @@ export default function RoomsPage() {
               onClick: handleCreate,
               children: (
                 <>
-                  <Plus /> Tambah Ruangan
+                  <Icon type='plus' /> Tambah Ruangan
                 </>
               ),
             },
@@ -217,7 +226,9 @@ export default function RoomsPage() {
         canDelete={canDelete}
         onDelete={handleDelete}
         onEditSuccess={loadData}
-        handleEdit={(room: DbRoom) => handleEdit(room)}
+        handleEdit={(room: DbRoom | null) => handleEdit(room)}
+        isModalDetail={isModalDetail}
+        setModalDetail={setModalDetail}
       />
     </PageContainer>
   )

@@ -11,7 +11,7 @@ import { Input } from '@/components/ui/input'
 import { generateCode } from '@/lib/api/admin-api'
 import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
 import { cn, djs } from '@/lib/utils'
-import { Calendar, Copy, ExternalLink, Loader, Users } from 'lucide-react'
+import { Loader } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -23,6 +23,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { copyToClipboardHandler, joinRoomAction, shareLinkHandler } from '@/feat/rooms/helper'
 import { GenerateRoomCode } from './GenerateRoomCode'
 import type { GenerateRoomCodeExp, NewRoomCode } from '@/feat/rooms/dto'
+import { Icon } from '@/components/ui/icon'
 
 interface SummaryCardProps {
   loading?: boolean
@@ -249,15 +250,15 @@ function RoomList(props: SummaryCardProps) {
                         >
                           <TooltipTrigger asChild>
                             <Button
-                              className='size-6.5 px-0'
-                              variant='secondary-outline'
+                              className='size-6.5 px-0 not-hover:border-neutral-400 not-hover:bg-neutral-50 not-hover:text-neutral-400 hover:bg-red-50'
+                              variant='primary-outline'
                               onClick={(event) => {
                                 event.stopPropagation()
                                 handleShareLink({ roomId: room.id, roomCode: ownRoomCode })
                               }}
                               hidden={!isAdmin}
                             >
-                              <ExternalLink className='h-4 w-4' />
+                              <Icon type='share' />
                             </Button>
                           </TooltipTrigger>
                           <TooltipContent side={isMobile ? 'top' : 'right'}>
@@ -268,12 +269,12 @@ function RoomList(props: SummaryCardProps) {
                     </div>
 
                     <div className='flex items-center justify-between gap-2 text-sm'>
-                      <div className='flex items-center gap-1'>
-                        <Calendar className='h-3 w-3' />{' '}
+                      <div className='flex items-center gap-2'>
+                        <Icon type='calendar' className='text-neutral-400' />
                         {`${startDate.format('DD MMMM YYYY, HH.mm')} WIB`}
                       </div>
-                      <div className='flex items-center gap-1'>
-                        <Users className='h-3 w-3' />
+                      <div className='flex items-center gap-2'>
+                        <Icon type='users' className='text-neutral-400' />
                         <span>
                           {room.currentParticipants ?? 0}/{room.max_participants ?? 0}
                         </span>
@@ -301,14 +302,14 @@ function RoomList(props: SummaryCardProps) {
                       >
                         <TooltipTrigger asChild>
                           <Button
-                            variant='secondary-outline'
+                            variant='primary-outline'
                             onClick={() =>
                               handleCopyLink({ roomId: room.id, roomCode: ownRoomCode })
                             }
                             size='icon'
-                            className='peer'
+                            className='not-hover:border-neutral-400 not-hover:bg-neutral-50 not-hover:text-neutral-400 hover:bg-red-50'
                           >
-                            <Copy size={16} />
+                            <Icon type='copy' />
                           </Button>
                         </TooltipTrigger>
                         <TooltipContent>Kode disalin</TooltipContent>

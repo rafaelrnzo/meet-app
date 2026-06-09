@@ -1,6 +1,6 @@
 'use client'
 
-import StatePage from '@/components/ui/state-page'
+import NoData from '@/components/ui/no-data'
 
 const ERROR_CONFIG = {
   401: {
@@ -28,5 +28,5 @@ const ERROR_CONFIG = {
 
 export default function ErrorPage({ status }: { status: 401 | 404 | 500 | 502 }) {
   const error = ERROR_CONFIG[status] ?? ERROR_CONFIG[401]
-  return <StatePage className='h-[calc(100vh-124px)]' {...error} />
+  return <NoData className='h-[calc(100vh-124px)]' {...error} />
 }
