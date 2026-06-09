@@ -10,7 +10,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { generateCode } from '@/lib/api/admin-api'
 import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
-import { cn, djs } from '@/lib/utils'
+import { cn, djs, copyHandler } from '@/lib/utils'
 import { Loader } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -20,10 +20,11 @@ import Cookies from 'js-cookie'
 import { toast } from '@/components/ui/sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Skeleton } from '@/components/ui/skeleton'
-import { copyToClipboardHandler, joinRoomAction, shareLinkHandler } from '@/feat/rooms/helper'
+import { joinRoomAction, shareLinkHandler } from '@/feat/rooms/helper'
 import { GenerateRoomCode } from './GenerateRoomCode'
 import type { GenerateRoomCodeExp, NewRoomCode } from '@/feat/rooms/dto'
 import { Icon } from '@/components/ui/icon'
+import { defaultErrorMessage } from '@/config'
 
 interface SummaryCardProps {
   loading?: boolean
@@ -177,10 +178,11 @@ function RoomList(props: SummaryCardProps) {
   }
 
   const handleCopyLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
-    const response = await copyToClipboardHandler(roomCode)
-    if (!response?.error) {
-      handleShowTooltip({ action: 'copy', roomId })
+    const { success } = await copyHandler(roomCode)
+    if (!success) {
+      return toast.error('Gagal salin kode', { description: defaultErrorMessage })
     }
+    handleShowTooltip({ action: 'copy', roomId })
   }
 
   const handleShareLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
@@ -188,10 +190,11 @@ function RoomList(props: SummaryCardProps) {
       title: 'Join Meeting',
       url: new URL(`/meeting/${encodeURIComponent(roomCode)}`, window.location.origin).toString(),
     }
-    const response = await shareLinkHandler(data)
-    if (!response?.error) {
-      handleShowTooltip({ action: 'share', roomId })
+    const { success } = await shareLinkHandler(data)
+    if (!success) {
+      return toast.error('Gagal bagikan kode', { description: defaultErrorMessage })
     }
+    handleShowTooltip({ action: 'share', roomId })
   }
 
   return (
