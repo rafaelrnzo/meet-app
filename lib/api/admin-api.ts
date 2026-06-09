@@ -326,6 +326,7 @@ export async function deleteUser(id: number): Promise<void> {
 export type Recording = {
   id: number
   room_id: string
+  room_name: string
   name: string
   link: string
   egress_id: string

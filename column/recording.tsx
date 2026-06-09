@@ -33,20 +33,12 @@ interface RecordingColumnProps {
   handleRename: (id: number, oldName: string, newName: string) => Promise<void>
   handleDownload: (url: string, name: string) => Promise<void>
   handleDelete: (id: number, name: string) => Promise<void>
-  handleMailto: ({
-    url,
-    roomName,
-    recordName,
-  }: {
-    url: string
-    roomName: string
-    recordName: string
-  }) => Promise<void>
+  handleMailto: (data: RecordingDto) => Promise<void>
 }
 
 const ActionComp = (props: ActionCompProps) => {
   const { canDelete, recordingData, handleDownload, handleDelete, handleMailto } = props
-  const { id, name, link, room_id } = recordingData
+  const { id, name, link } = recordingData
   const [openDelete, setOpenDelete] = useState(false)
   const deleteComponent: ActionButtonProps['deleteComp'] = {
     root: {
@@ -95,12 +87,7 @@ const ActionComp = (props: ActionCompProps) => {
       text: 'Bagikan rekaman',
       variant: 'secondary-light',
       icon: <Icon type='email' />,
-      onClick: () =>
-        handleMailto({
-          url: link,
-          roomName: room_id, // TODO: change to room name,
-          recordName: name,
-        }),
+      onClick: () => handleMailto(recordingData),
     },
   ]
 
@@ -155,13 +142,13 @@ const RenameRecordComp = (props: RenameRecordCompProps) => {
   if (renamingId !== id) {
     return (
       <div className='flex items-center gap-2 font-medium'>
-        {name}
+        <span>{name.length > 25 ? `${name.slice(0, 25)}...` : name}</span>
         {canUpdate && (
           <Button
             onClick={() => setRenamingId(id)}
-            variant='secondary-light'
+            variant='secondary'
             size='icon-xs'
-            className='border-neutral-400 p-0 text-neutral-400 not-active:border'
+            className='p-0'
           >
             <Icon type='pencil' />
           </Button>
@@ -218,11 +205,14 @@ export const recordingColumn = ({
         recordingData={row.original}
       />
     ),
+    maxSize: 250,
+    minSize: 200,
   },
   {
-    accessorKey: 'room_id',
+    accessorKey: 'room_name',
     header: 'Nama ruangan',
-    // TODO: room name not exist in response api
+    maxSize: 200,
+    minSize: 200,
   },
   {
     accessorKey: 'created_at',
@@ -235,6 +225,7 @@ export const recordingColumn = ({
         </div>
       )
     },
+    minSize: 200,
   },
   {
     accessorKey: 'action',
@@ -243,7 +234,7 @@ export const recordingColumn = ({
     cell: ({ row }) => {
       const { status } = row.original
       if (status === 'PROCESSING') {
-        return <Badge variant='destructive'>Record not ready ...</Badge>
+        return <Badge variant='destructive'>Record in Progress</Badge>
       }
       return (
         <ActionComp

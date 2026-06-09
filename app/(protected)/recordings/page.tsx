@@ -12,6 +12,7 @@ import { recordingColumn } from '@/column/recording'
 import { toast } from '@/components/ui/sonner'
 import { useAuth } from '@/hooks/use-auth'
 import { useEffect, useState, useRef } from 'react'
+import { djs } from '@/lib/utils'
 
 export default function RecordingsPage() {
   const inputRenameRef = useRef<HTMLFormElement>(null)
@@ -104,18 +105,10 @@ export default function RecordingsPage() {
     }
   }
 
-  const handleMailto = async ({
-    url,
-    roomName,
-    recordName,
-  }: {
-    url: string
-    roomName: string
-    recordName: string
-  }) => {
+  const handleMailto = async ({ room_name, link, name, created_at }: RecordingDto) => {
     const { success } = await mailtoHandler({
-      subject: `Tautan Rekaman Rapat - ${roomName} - ${recordName}`,
-      body: url,
+      subject: `Meeting Recording_${room_name}_${djs(created_at).format('DD/MM/YYYY')}_${djs(created_at).format('HH:mm:ss')}`,
+      body: link,
     })
 
     if (!success) {
@@ -126,7 +119,7 @@ export default function RecordingsPage() {
     }
 
     toast.success('Berhasil bagikan tautan rekaman', {
-      description: `Rekaman '${recordName}' berhasil dibagikan dan tautannya telah disalin.`,
+      description: `Rekaman '${name}' berhasil dibagikan dan tautannya telah disalin.`,
     })
   }
 

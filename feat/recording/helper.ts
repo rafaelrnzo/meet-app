@@ -1,19 +1,9 @@
 import { copyHandler } from '@/lib/utils'
 
-async function mailtoHandler({
-  receiver = [],
-  subject = '',
-  body,
-}: {
-  receiver?: string[]
-  subject?: string
-  body: string
-}) {
-  const commaSeparatedReceiver = receiver?.join(',') ?? ''
+async function mailtoHandler({ subject = '', body }: { subject?: string; body: string }) {
   const encodedSubject = encodeURIComponent(subject)
   const encodedBody = encodeURIComponent(body)
-
-  const mailtoUrl = `mailto:${commaSeparatedReceiver}?subject=${encodedSubject}&body=${encodedBody}`
+  const mailtoUrl = `mailto:?subject=${encodedSubject}&body=${encodedBody}`
 
   try {
     const link = document.createElement('a')
