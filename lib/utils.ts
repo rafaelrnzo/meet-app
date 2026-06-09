@@ -166,3 +166,37 @@ export function qstring<T extends object = object>(
   // Join all pairs and prepend with '?'
   return url + (pairs.length > 0 ? `?${pairs.join('&')}` : '')
 }
+
+// eslint-disable-next-line @typescript-eslint/require-await
+export async function unsecuredCopyToClipboard(text: string): Promise<boolean> {
+  const textArea = document.createElement('textarea')
+  textArea.value = text
+  textArea.style.position = 'fixed'
+  textArea.style.left = '0'
+  textArea.style.top = '0'
+  textArea.style.opacity = '0'
+
+  document.body.appendChild(textArea)
+
+  textArea.focus()
+  textArea.select()
+
+  let success = false
+  try {
+    success = document.execCommand('copy')
+  } catch (err) {
+    console.error('Unable to copy to clipboard', err)
+  }
+  document.body.removeChild(textArea)
+  return success
+}
+
+export async function copyHandler(text = '') {
+  try {
+    await navigator.clipboard.writeText(text)
+    return { success: true }
+  } catch {
+    const success = await unsecuredCopyToClipboard(text)
+    return { success }
+  }
+}
