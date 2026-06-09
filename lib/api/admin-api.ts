@@ -1,4 +1,5 @@
 import Cookies from 'js-cookie'
+import { qstring } from '@/lib/utils'
 
 const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'
 
@@ -328,19 +329,27 @@ export type Recording = {
   name: string
   link: string
   egress_id: string
-  status: string
+  status: 'STARTED' | 'PROCESSING' | 'COMPLETED'
   created_at: string
 }
 
-export async function fetchRecordings(roomID?: string): Promise<Recording[]> {
-  const path = roomID
-    ? `/admin/recordings?room_id=${encodeURIComponent(roomID)}`
-    : '/admin/recordings'
+export type RecordingParams = {
+  room_id?: string
+  search?: string
+}
 
-  return apiRequest<Recording[]>(path, {
-    method: 'GET',
-    cache: 'no-store',
-  })
+export async function fetchRecordings(
+  params?: RecordingParams,
+  signal?: AbortSignal
+): Promise<Recording[]> {
+  return apiRequest<Recording[]>(
+    qstring('/admin/recordings', { ...params }, { skipEmpty: true, skipNulls: true }),
+    {
+      signal,
+      method: 'GET',
+      cache: 'no-store',
+    }
+  )
 }
 
 export async function syncRecordings(): Promise<void> {
