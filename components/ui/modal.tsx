@@ -117,7 +117,7 @@ function Modal({
                   {...title}
                   className={cn(
                     header?.children && 'sr-only',
-                    'mb-0 flex items-center py-[5.5px] text-base leading-5.25 font-semibold text-red-800 capitalize',
+                    'mb-0 flex items-center py-[5.5px] text-base leading-5.25 font-semibold text-red-800',
                     title?.className
                   )}
                 />
@@ -240,6 +240,8 @@ function ModalDelete({ submit, title, children, cancel, footer, content, ...rest
       content={{
         ...content,
         className: cn('w-80', content?.className),
+        onPointerDownOutside: (e) => e.preventDefault(),
+        onInteractOutside: (e) => e.preventDefault(),
       }}
     />
   )
