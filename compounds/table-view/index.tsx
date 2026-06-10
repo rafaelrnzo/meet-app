@@ -41,6 +41,8 @@ interface TableViewProps {
   filter?: TableViewFilterProps
   headerAddon?: React.ReactNode
   loading?: boolean
+  pageCount?: number
+  onPaginationParamsChange?: (page: number, limit: number) => void
 }
 
 function isAlphabet(charCode: number) {
@@ -123,6 +125,8 @@ function TableView<TData>({
   filter,
   headerAddon,
   loading = false,
+  pageCount,
+  onPaginationParamsChange,
   ...rest
 }: Omit<TableOptions<TData>, 'getCoreRowModel'> & TableViewProps) {
   const [sorting, setSorting] = useState<SortingState>([])
@@ -138,29 +142,40 @@ function TableView<TData>({
     () =>
       loading
         ? defaultColumns.map((column) => ({
-            ...column,
-            cell: () => <Skeleton className='h-6.5 w-full' />,
-          }))
+          ...column,
+          cell: () => <Skeleton className='h-6.5 w-full' />,
+        }))
         : defaultColumns,
     [defaultColumns, loading]
   )
+
   const table = useReactTable({
     data,
     columns,
-    getPaginationRowModel: getPaginationRowModel(),
-    onPaginationChange: setPagination,
-    getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
-    defaultColumn: {
-      sortingFn: handleSort,
-    },
+    pageCount: pageCount,
+    manualPagination: pageCount !== undefined,
     ...rest,
     state: {
       sorting,
       pagination,
       ...rest.state,
     },
+
+    defaultColumn: {
+      sortingFn: handleSort,
+    },
+    getPaginationRowModel: getPaginationRowModel(),
+    onPaginationChange: (updater) => {
+      const nextPagination = typeof updater === 'function' ? updater(pagination) : updater
+      setPagination(nextPagination)
+      if (onPaginationParamsChange && pageCount !== undefined) {
+        onPaginationParamsChange(nextPagination.pageIndex + 1, nextPagination.pageSize)
+      }
+    },
+    getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
+
   })
 
   return (
