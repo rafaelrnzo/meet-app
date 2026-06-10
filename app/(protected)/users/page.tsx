@@ -1,25 +1,24 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import PageContainer from '@/compounds/page-container'
 import { TableView } from '@/compounds/table-view'
 import { usersColumn } from '@/column/users'
 import { TableViewHeader } from '@/compounds/table-view/header'
-import type { SelectOption } from '@/components/features/users/UserSelect';
-import { useUserManagement } from '@/feat/users/useUserManagement'
-import type { RoomStatus } from '@/feat/users/dto'
-import { Modal } from '@/components/ui/modal'
-import { updateUserRole } from '@/lib/api/admin-api'
-import { toast } from '@/components/ui/sonner'
+import { useParticipants } from '@/feat/users/useParticipants'
+import type { UserParams, UserPrensence } from '@/feat/users/dto'
 
 export default function UsersPage() {
   // State
-  const [searchQuery, setSearchQuery] = useState('')
+  const [queryParams, setQueryParams] = useState({
+    page: 1,
+    limit: 10,
+    search: '',
+    presence: 'all' as UserParams['presence'],
+  })
 
   // Hooks
-  const { roles, users, setUsers, setRoles, refetchUsers, refetchRoles } = useUserManagement()
-  const [queryParams, setQueryParams] = useState<{ status: RoomStatus }>({ status: 'all' })
-  const [openModal, setOpenModal] = useState<{ userId: number | null, isOpen: boolean }>({ userId: null, isOpen: false })
+  const { users, isLoading, refetchUsers, refetchRoles } = useParticipants()
 
   // Permissions
   // TODO: Implement permissions for create, update, delete actions
@@ -30,53 +29,25 @@ export default function UsersPage() {
 
   // Handler & Computed
   const filteredUsers = useMemo(() => {
-    if (!searchQuery.trim()) return users;
+    if (!queryParams.search.trim()) return users.data
 
-    const lower = searchQuery.toLowerCase();
-    return users.filter((user) =>
+    const lower = queryParams.search.toLowerCase()
+
+    return users.data.filter((user) =>
       user.username.toLowerCase().includes(lower)
-    );
-  }, [users, searchQuery]);
+    )
+  }, [users.data, queryParams.search])
 
   useEffect(() => {
-    refetchUsers()
+    refetchUsers(queryParams)
+  }, [queryParams, refetchUsers])
+
+  useEffect(() => {
     refetchRoles()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
-
-  const handleRole = useCallback(async (userId: number, selectedRole: SelectOption | null) => {
-    const roleId = selectedRole ? selectedRole.value : 0
-    try {
-      const response = await updateUserRole(userId, roleId) // NOTE: Pastikan endpoint API untuk update role 
-      console.log(response)
-      toast.success('Peran pengguna berhasil diperbarui')
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message ?? 'Gagal memperbarui peran pengguna')
-        setRoles((prev) => prev.map((role) => role))
-      }
-    }
-  }, [setRoles])
-
-  const handleManage = async () => {
-    await new Promise((resolve) => setTimeout(resolve, 100))
-    setUsers((prevUsers) => {
-      return prevUsers.map((user) => {
-        if (user.id === openModal.userId) {
-          return {
-            ...user,
-            status: user.status === 'active' ? 'inactive' : 'active',
-          }
-        }
-        return user
-      })
-    }
-    )
-    setOpenModal(({ userId: null, isOpen: false }))
-  }
+  }, [refetchRoles])
 
   // Column
-  const columns = useMemo(() => usersColumn({ roles, handleRole, setOpenModal }), [roles, handleRole]);
+  const columns = useMemo(() => usersColumn(), []);
 
   return (
     <PageContainer
@@ -86,9 +57,12 @@ export default function UsersPage() {
       backToTopButton
     >
       <TableViewHeader
+        headerAddon={
+          <p className='text-red-800 font-semibold'> {users.total} Daftar Peserta</p>
+        }
         search={{
           placeholder: 'Cari peserta ...',
-          onSearch: (search) => setSearchQuery(search),
+          onSearch: (search) => setQueryParams((prev) => ({ ...prev, page: 1, search })),
           'aria-invalid': false,
         }}
         filter={{
@@ -109,12 +83,14 @@ export default function UsersPage() {
           ],
           selectProps: {
             select: {
-              value: queryParams.status,
-              onValueChange: (status: RoomStatus) => {
-                const updatedParams = { ...queryParams, status: status }
-                setQueryParams(updatedParams)
-                refetchUsers(updatedParams)
-              },
+              value: queryParams.presence,
+              onValueChange: (presence: UserPrensence) => {
+                setQueryParams((prev) => ({
+                  ...prev,
+                  page: 1,
+                  presence,
+                }))
+              }
             },
           },
         }}
@@ -122,27 +98,12 @@ export default function UsersPage() {
       <TableView
         data={filteredUsers}
         columns={columns}
+        loading={isLoading}
+        pageCount={users.totalPages}
+        onPaginationParamsChange={(page, limit) => {
+          setQueryParams((prev) => ({ ...prev, page, limit }))
+        }}
       />
-
-      <Modal
-        root={{ open: openModal.isOpen, onOpenChange: (open) => setOpenModal((prev) => ({ ...prev, isOpen: open })), modal: false }}
-        title={{
-          children: 'Non-aktifkan pengguna',
-        }}
-        description={{
-          children: '',
-        }}
-        submit={{
-          children: 'Nonaktifkan Pengguna',
-          onClick: handleManage,
-          disabled: false,
-        }}
-        cancel={{
-          children: 'Batal',
-        }}
-      >
-        Tindakan ini akan menonaktifkan dan memaksa peserta agar keluar dari ruang rapat dan dashboard sementara waktu sampai Anda aktifkan kembali. Anda dapat kembali mengaktifkannya kembali dengan cara yang sama.
-      </Modal>
     </PageContainer>
   )
 }

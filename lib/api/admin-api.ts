@@ -352,6 +352,7 @@ export async function removeRolePermission(roleId: number, permId: number): Prom
 export type User = {
   id: number
   username: string
+  email?: string
   role?: Role
   role_id: number
   status?: 'active' | 'inactive'
@@ -360,6 +361,10 @@ export type User = {
 
 export type UserResponse = {
   data: User[]
+  page: number
+  limit: number
+  total: number
+  total_pages: number
 }
 
 export type ParamsUserAssignment = {

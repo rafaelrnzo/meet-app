@@ -3,16 +3,32 @@ import type { UserParams, Users } from './dto'
 import { fetchRoles, fetchUsers } from '@/lib/api/admin-api'
 import type { Role } from '@/lib/api/admin-api'
 
-export const useUserManagement = () => {
-  const [users, setUsers] = useState<Users[]>([])
+export const useParticipants = () => {
+  const [users, setUsers] = useState({
+    data: [] as Users[],
+    page: 1,
+    limit: 10,
+    total: 0,
+    totalPages: 0,
+  })
   const [roles, setRoles] = useState<Role[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
   const getUsers = useCallback(async (searchParams?: UserParams) => {
     try {
       setIsLoading(true)
-      const { data } = await fetchUsers({ params: searchParams })
-      setUsers(data)
+
+      const response = await fetchUsers({
+        params: searchParams,
+      })
+
+      setUsers({
+        data: response.data,
+        page: response.page,
+        limit: response.limit,
+        total: response.total,
+        totalPages: response.total_pages,
+      })
     } catch (error) {
       console.error('Error fetching users:', error)
     } finally {
