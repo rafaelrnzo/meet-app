@@ -12,7 +12,7 @@ import { recordingColumn } from '@/column/recording'
 import { toast } from '@/components/ui/sonner'
 import { useAuth } from '@/hooks/use-auth'
 import { useEffect, useState, useRef } from 'react'
-import { djs } from '@/lib/utils'
+import { cn, djs } from '@/lib/utils'
 
 export default function RecordingsPage() {
   const inputRenameRef = useRef<HTMLFormElement>(null)
@@ -20,11 +20,9 @@ export default function RecordingsPage() {
   const [renamingId, setRenamingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [queryParams, setQueryParams] = useState<RecordingParams>({ search: '' })
-  const { hasPermission } = useAuth({ requirePermission: 'recording:read' })
+  const { isAdmin, hasPermission } = useAuth({ requirePermission: 'recording:read' })
   const isSearchNotFound = !!queryParams.search && !recordings.length
-
-  const canUpdate = hasPermission('recording:update')
-  const canDelete = hasPermission('recording:delete')
+  const canManage = hasPermission('recording:manage')
 
   const getRecordings = async (queryParams?: RecordingParams, signal?: AbortSignal) => {
     setLoading(true)
@@ -146,8 +144,8 @@ export default function RecordingsPage() {
     renamingId,
     setRenamingId,
     inputRenameRef,
-    canUpdate,
-    canDelete,
+    isAdmin,
+    canManage,
     handleRename,
     handleDownload,
     handleDelete,
@@ -172,6 +170,18 @@ export default function RecordingsPage() {
           'aria-invalid': isSearchNotFound,
         }}
         loading={loading}
+        state={{
+          columnVisibility: {
+            action: isAdmin || canManage,
+          },
+        }}
+        headerAddon={
+          <span
+            className={cn('text-base font-semibold text-red-800', !isSearchNotFound && 'hidden')}
+          >
+            0 Daftar Rekaman
+          </span>
+        }
       />
     </PageContainer>
   )

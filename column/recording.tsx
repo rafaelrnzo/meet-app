@@ -14,12 +14,12 @@ import { useIsMobile } from '@/hooks/use-mobile'
 
 type ActionCompProps = Pick<
   RecordingColumnProps,
-  'handleDownload' | 'canDelete' | 'handleDelete' | 'handleMailto'
+  'isAdmin' | 'canManage' | 'handleDownload' | 'handleDelete' | 'handleMailto'
 > & { recordingData: RecordingDto }
 
 type RenameRecordCompProps = Pick<
   RecordingColumnProps,
-  'renamingId' | 'canUpdate' | 'setRenamingId' | 'inputRenameRef' | 'handleRename'
+  'renamingId' | 'isAdmin' | 'setRenamingId' | 'inputRenameRef' | 'handleRename'
 > & {
   recordingData: RecordingDto
 }
@@ -28,8 +28,8 @@ interface RecordingColumnProps {
   renamingId: number | null
   setRenamingId: React.Dispatch<number | null>
   inputRenameRef: React.RefObject<HTMLFormElement | null>
-  canUpdate: boolean
-  canDelete: boolean
+  isAdmin: boolean
+  canManage: boolean
   handleRename: (id: number, oldName: string, newName: string) => Promise<void>
   handleDownload: (url: string, name: string) => Promise<void>
   handleDelete: (id: number, name: string) => Promise<void>
@@ -37,10 +37,10 @@ interface RecordingColumnProps {
 }
 
 const ActionComp = (props: ActionCompProps) => {
-  const { canDelete, recordingData, handleDownload, handleDelete, handleMailto } = props
+  const { isAdmin, canManage, recordingData, handleDownload, handleDelete, handleMailto } = props
   const { id, name, link } = recordingData
   const [openDelete, setOpenDelete] = useState(false)
-  const deleteComponent: ActionButtonProps['deleteComp'] = {
+  const deleteComp: ActionButtonProps['deleteComp'] = {
     root: {
       open: openDelete,
       onOpenChange: setOpenDelete,
@@ -92,11 +92,11 @@ const ActionComp = (props: ActionCompProps) => {
   ]
 
   return (
-    <ActionButton buttonComp={buttonComp} {...(canDelete ? { deleteComp: deleteComponent } : {})} />
+    <ActionButton {...(canManage ? { buttonComp } : {})} {...(isAdmin ? { deleteComp } : {})} />
   )
 }
 
-const ActionHeader = () => {
+const ActionHeader = ({ isAdmin, canManage }: Record<'isAdmin' | 'canManage', boolean>) => {
   const isMobile = useIsMobile()
   const [open, onOpenChange] = useState(false)
   const toggleOpen = () => {
@@ -119,13 +119,17 @@ const ActionHeader = () => {
           align='center'
         >
           <ol className='list-inside list-decimal'>
-            <li>Ikon Panah berfungsi untuk mengunduh rekaman dalam format mp4</li>
-            <li>Ikon mata berfungsi untuk melihat hasil rekaman</li>
-            <li>
-              Ikon surat berfungsi untuk mengirim tautan unduh rekaman melalui email masing-masing
-              pengguna dan menyalin ke papan klip
-            </li>
-            <li>Ikon tempat sampah untuk menghapus rekaman (hanya untuk admin)</li>
+            {canManage && (
+              <>
+                <li>Ikon Panah berfungsi untuk mengunduh rekaman dalam format mp4</li>
+                <li>Ikon mata berfungsi untuk melihat hasil rekaman</li>
+                <li>
+                  Ikon surat berfungsi untuk mengirim tautan unduh rekaman melalui email
+                  masing-masing pengguna dan menyalin ke papan klip
+                </li>
+              </>
+            )}
+            {isAdmin && <li>Ikon tempat sampah untuk menghapus rekaman (hanya untuk admin)</li>}
           </ol>
           <PopoverArrow />
         </PopoverContent>
@@ -135,15 +139,14 @@ const ActionHeader = () => {
 }
 
 const RenameRecordComp = (props: RenameRecordCompProps) => {
-  const { recordingData, renamingId, canUpdate, setRenamingId, inputRenameRef, handleRename } =
-    props
+  const { recordingData, renamingId, isAdmin, setRenamingId, inputRenameRef, handleRename } = props
   const { id, name } = recordingData
 
   if (renamingId !== id) {
     return (
       <div className='flex items-center gap-2 font-medium'>
         <span>{name.length > 25 ? `${name.slice(0, 25)}...` : name}</span>
-        {canUpdate && (
+        {isAdmin && (
           <Button
             onClick={() => setRenamingId(id)}
             variant='secondary'
@@ -189,8 +192,8 @@ export const recordingColumn = ({
   renamingId,
   setRenamingId,
   inputRenameRef,
-  canUpdate,
-  canDelete,
+  isAdmin,
+  canManage,
   handleRename,
   handleDownload,
   handleDelete,
@@ -201,7 +204,7 @@ export const recordingColumn = ({
     header: 'Nama rekaman',
     cell: ({ row }) => (
       <RenameRecordComp
-        {...{ canUpdate, handleRename, inputRenameRef, renamingId, setRenamingId }}
+        {...{ isAdmin, handleRename, inputRenameRef, renamingId, setRenamingId }}
         recordingData={row.original}
       />
     ),
@@ -229,7 +232,7 @@ export const recordingColumn = ({
   },
   {
     accessorKey: 'action',
-    header: () => <ActionHeader />,
+    header: () => <ActionHeader {...{ isAdmin, canManage }} />,
     enableSorting: false,
     cell: ({ row }) => {
       const { status } = row.original
@@ -238,7 +241,7 @@ export const recordingColumn = ({
       }
       return (
         <ActionComp
-          {...{ canDelete, canUpdate, handleDelete, handleDownload, handleMailto }}
+          {...{ isAdmin, canManage, handleDelete, handleDownload, handleMailto }}
           recordingData={row.original}
         />
       )
