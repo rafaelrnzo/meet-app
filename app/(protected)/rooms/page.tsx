@@ -20,7 +20,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import NoData from '@/components/ui/no-data'
 
 export default function RoomsPage() {
-  const { hasPermission } = useAuth({ requirePermission: 'room:read' })
+  const { hasPermission } = useAuth({ requirePermission: 'module:rooms:access' })
   const [rooms, setRooms] = useState<DbRoom[]>([])
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
   const [groups, setGroups] = useState<GroupDto[]>([])
@@ -37,9 +37,9 @@ export default function RoomsPage() {
   const [isDetailOpen, setIsDetailOpen] = useState(false)
   const [isModalDetail, setModalDetail] = useState(false)
 
-  const canCreate = hasPermission('room:create')
-  const canUpdate = hasPermission('room:update')
-  const canDelete = hasPermission('room:delete')
+  const canCreate = hasPermission('room:manage')
+  const canUpdate = hasPermission('room:manage')
+  const canDelete = isAdmin
   const isMobile = useIsMobile()
 
   const loadData = useCallback(
