@@ -18,12 +18,11 @@ import { Icon } from '@/components/ui/icon'
 
 export function MobileNav() {
   const pathname = usePathname()
-  const { hasPermission } = useAuth()
+  const { isAdmin, hasPermission } = useAuth()
+  const menuItems = sidebarItems({ isAdmin, hasPermission })
 
   // Filter items based on permission
-  const visibleItems = sidebarItems.filter(
-    (item) => !item.permission || hasPermission(item.permission)
-  )
+  const visibleItems = menuItems.filter((item) => item.hasPermission)
 
   if (visibleItems.length === 0) return null
 
