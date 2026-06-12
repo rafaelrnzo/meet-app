@@ -41,6 +41,8 @@ interface TableViewProps {
   filter?: TableViewFilterProps
   headerAddon?: React.ReactNode
   loading?: boolean
+  pageCount?: number
+  onPaginationParamsChange?: (page: number, limit: number) => void
 }
 
 function isAlphabet(charCode: number) {
@@ -73,8 +75,8 @@ function charCategory(charCode: number) {
 }
 
 function handleSort<TData extends RowData>(rowA: Row<TData>, rowB: Row<TData>, columnId: string) {
-  const textA = rowA.getValue<string>(columnId) ?? ''
-  const textB = rowB.getValue<string>(columnId) ?? ''
+  const textA = String(rowA.getValue(columnId) ?? '')
+  const textB = String(rowB.getValue(columnId) ?? '')
   const minTextLength = Math.min(textA.length, textB.length)
 
   for (let i = 0; i < minTextLength; i++) {
@@ -123,6 +125,8 @@ function TableView<TData>({
   filter,
   headerAddon,
   loading = false,
+  pageCount,
+  onPaginationParamsChange,
   ...rest
 }: Omit<TableOptions<TData>, 'getCoreRowModel'> & TableViewProps) {
   const [sorting, setSorting] = useState<SortingState>([])
@@ -144,85 +148,98 @@ function TableView<TData>({
         : defaultColumns,
     [defaultColumns, loading]
   )
+
   const table = useReactTable({
     data,
     columns,
-    getPaginationRowModel: getPaginationRowModel(),
-    onPaginationChange: setPagination,
-    getSortedRowModel: getSortedRowModel(),
-    onSortingChange: setSorting,
-    defaultColumn: {
-      sortingFn: handleSort,
-    },
+    pageCount: pageCount,
+    manualPagination: pageCount !== undefined,
+    sortDescFirst: false,
     ...rest,
     state: {
       sorting,
       pagination,
       ...rest.state,
     },
+    defaultColumn: {
+      sortingFn: handleSort,
+    },
+    getPaginationRowModel: getPaginationRowModel(),
+    onPaginationChange: (updater) => {
+      const nextPagination = typeof updater === 'function' ? updater(pagination) : updater
+      setPagination(nextPagination)
+      if (onPaginationParamsChange && pageCount !== undefined) {
+        onPaginationParamsChange(nextPagination.pageIndex + 1, nextPagination.pageSize)
+      }
+    },
+    getSortedRowModel: getSortedRowModel(),
+    onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
   })
+  const tableRowsData = table.getRowModel().rows
 
   return (
     <div className='@container/table-container flex flex-col gap-4 md:gap-8'>
       <TableViewHeader {...{ search, add, filter, refresh, table, pageSizeOptions, headerAddon }} />
-      <div
-        {...wrapper}
-        className={cn('overflow-hidden rounded-md border border-neutral-200', wrapper?.className)}
-      >
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className='border-neutral-200'>
-                {headerGroup.headers.map((header) => {
-                  return (
-                    <TableHead
-                      key={header.id}
-                      className='h-fit min-h-10 bg-neutral-100 px-2 py-[9.5px]'
-                      style={{
-                        width: header.getSize(),
-                        minWidth: header.column.columnDef.minSize,
-                        maxWidth: header.column.columnDef.maxSize,
-                      }}
-                    >
-                      <TableViewColumnHeader column={header.column} className='text-sm font-medium'>
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(header.column.columnDef.header, header.getContext())}
-                      </TableViewColumnHeader>
-                    </TableHead>
-                  )
-                })}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() && 'selected'}
-                  className='border-neutral-200'
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id} className='px-2 py-[12.5px]'>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
-                </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className='h-24 text-center'>
-                  Tidak ada data.
-                </TableCell>
-              </TableRow>
+      {!!tableRowsData.length && (
+        <>
+          <div
+            {...wrapper}
+            className={cn(
+              'overflow-hidden rounded-md border border-neutral-200',
+              wrapper?.className
             )}
-          </TableBody>
-        </Table>
-      </div>
+          >
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id} className='border-neutral-200'>
+                    {headerGroup.headers.map((header) => {
+                      return (
+                        <TableHead
+                          key={header.id}
+                          className='h-fit min-h-10 bg-neutral-100 px-2 py-[9.5px]'
+                          style={{
+                            width: header.getSize(),
+                            minWidth: header.column.columnDef.minSize,
+                            maxWidth: header.column.columnDef.maxSize,
+                          }}
+                        >
+                          <TableViewColumnHeader
+                            column={header.column}
+                            className='text-sm font-medium'
+                          >
+                            {header.isPlaceholder
+                              ? null
+                              : flexRender(header.column.columnDef.header, header.getContext())}
+                          </TableViewColumnHeader>
+                        </TableHead>
+                      )
+                    })}
+                  </TableRow>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {tableRowsData.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                    className='border-neutral-200'
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id} className='px-2 py-[12.5px]'>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
-      <TableViewPagination table={table} pageSizeOptions={pageSizeOptions} />
+          <TableViewPagination table={table} pageSizeOptions={pageSizeOptions} />
+        </>
+      )}
     </div>
   )
 }

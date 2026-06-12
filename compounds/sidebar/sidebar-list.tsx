@@ -25,8 +25,9 @@ function SidebarList({
   ...props
 }: React.ComponentProps<typeof Sidebar> & { user: StoredUser | null }) {
   const { toggleSidebar } = useSidebar()
-  const { hasPermission, logout } = useAuth()
+  const { isAdmin, hasPermission, logout } = useAuth()
   const pathname = usePathname()
+  const menuItems = sidebarItems({ isAdmin, hasPermission }).filter((item) => item.hasPermission)
 
   return (
     <Sidebar collapsible='icon' className='bg-white' {...props}>
@@ -45,32 +46,28 @@ function SidebarList({
         <SidebarGroup className='flex-1 p-0'>
           <SidebarGroupContent>
             <SidebarMenu className='gap-4'>
-              {sidebarItems
-                .filter(
-                  (item) => !item.permission || (item.permission && hasPermission(item.permission))
-                )
-                .map((item) => {
-                  const isActive =
-                    pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
+              {menuItems.map((item) => {
+                const isActive =
+                  pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))
 
-                  return (
-                    <SidebarMenuItem key={item.id}>
-                      <SidebarMenuButton
-                        tooltip={item.label}
-                        asChild
-                        size='lg'
-                        variant='primary'
-                        className='group'
-                        isActive={isActive}
-                      >
-                        <Link href={item.href} title={item.label}>
-                          <Icon type={item.icon} />
-                          <span className='group-data-[collapsible=icon]:hidden'>{item.label}</span>
-                        </Link>
-                      </SidebarMenuButton>
-                    </SidebarMenuItem>
-                  )
-                })}
+                return (
+                  <SidebarMenuItem key={item.id}>
+                    <SidebarMenuButton
+                      tooltip={item.label}
+                      asChild
+                      size='lg'
+                      variant='primary'
+                      className='group pr-0.5'
+                      isActive={isActive}
+                    >
+                      <Link href={item.href} title={item.label}>
+                        <Icon type={item.icon} />
+                        <span className='group-data-[collapsible=icon]:hidden'>{item.label}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                )
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

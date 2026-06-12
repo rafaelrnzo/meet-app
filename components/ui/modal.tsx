@@ -117,7 +117,7 @@ function Modal({
                   {...title}
                   className={cn(
                     header?.children && 'sr-only',
-                    'mb-0 flex items-center py-[5.5px] text-base leading-5.25 font-semibold text-red-800 capitalize',
+                    'mb-0 flex items-center py-[5.5px] text-base leading-5.25 font-semibold text-red-800',
                     title?.className
                   )}
                 />
