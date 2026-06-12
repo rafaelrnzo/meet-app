@@ -20,7 +20,7 @@ export default function RecordingsPage() {
   const [renamingId, setRenamingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(false)
   const [queryParams, setQueryParams] = useState<RecordingParams>({ search: '' })
-  const { isAdmin, hasPermission } = useAuth({ requirePermission: 'recording:read' })
+  const { isAdmin, hasPermission } = useAuth({ requirePermission: 'module:recordings:access' })
   const isSearchNotFound = !!queryParams.search && !recordings.length
   const canManage = hasPermission('recording:manage')
 
