@@ -361,10 +361,10 @@ export type User = {
 
 export type UserResponse = {
   data: User[]
-  page: number
-  limit: number
-  total: number
-  total_pages: number
+  page?: number
+  limit?: number
+  total?: number
+  total_pages?: number
 }
 
 export type ParamsUserAssignment = {
@@ -372,8 +372,8 @@ export type ParamsUserAssignment = {
   search?: string
 }
 
-export async function fetchUsers({ params }: { params?: UserParams }): Promise<UserResponse> {
-  const searchParams = params ?? {}
+export async function fetchUsers(props?: { params?: UserParams }): Promise<UserResponse> {
+  const searchParams = props?.params ?? {}
   return apiRequest<UserResponse>(
     '/admin/users',
     {

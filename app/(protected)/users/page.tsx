@@ -7,6 +7,7 @@ import { usersColumn } from '@/column/users'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { useParticipants } from '@/feat/users/useParticipants'
 import type { UserParams, UserPrensence } from '@/feat/users/dto'
+import { useAuth } from '@/hooks/use-auth'
 
 export default function UsersPage() {
   // State
@@ -18,6 +19,7 @@ export default function UsersPage() {
   })
 
   // Hooks
+  const { loading: authLoading } = useAuth({ requirePermission: 'user:read' })
   const { users, isLoading, refetchUsers, refetchRoles } = useParticipants()
 
   // Permissions
@@ -98,7 +100,7 @@ export default function UsersPage() {
       <TableView
         data={filteredUsers}
         columns={columns}
-        loading={isLoading}
+        loading={isLoading || authLoading}
         pageCount={users.totalPages}
         onPaginationParamsChange={(page, limit) => {
           setQueryParams((prev) => ({ ...prev, page, limit }))

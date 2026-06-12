@@ -24,10 +24,10 @@ export const useParticipants = () => {
 
       setUsers({
         data: response.data,
-        page: response.page,
-        limit: response.limit,
-        total: response.total,
-        totalPages: response.total_pages,
+        page: response.page ?? 1,
+        limit: response.limit ?? 10,
+        total: response.total ?? 0,
+        totalPages: response.total_pages ?? 0,
       })
     } catch (error) {
       console.error('Error fetching users:', error)
