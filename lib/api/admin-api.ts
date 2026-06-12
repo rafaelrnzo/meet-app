@@ -286,9 +286,10 @@ export async function closeActiveRoom(name: string): Promise<void> {
 }
 
 export type Permission = {
-  id: number
+  ID: number
   key: string
   description: string
+  label?: string
 }
 
 export type Role = {
@@ -335,16 +336,10 @@ export async function fetchPermissions(): Promise<Permission[]> {
   })
 }
 
-export async function addRolePermission(roleId: number, permId: number): Promise<void> {
+export async function addRolePermission(roleId: number, permId: number[]): Promise<void> {
   await apiRequest(`/admin/roles/${roleId}/permissions`, {
     method: 'POST',
     body: JSON.stringify({ permission_id: permId }),
-  })
-}
-
-export async function removeRolePermission(roleId: number, permId: number): Promise<void> {
-  await apiRequest(`/admin/roles/${roleId}/permissions/${permId}`, {
-    method: 'DELETE',
   })
 }
 
