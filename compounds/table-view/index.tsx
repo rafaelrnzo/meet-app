@@ -142,9 +142,9 @@ function TableView<TData>({
     () =>
       loading
         ? defaultColumns.map((column) => ({
-            ...column,
-            cell: () => <Skeleton className='h-6.5 w-full' />,
-          }))
+          ...column,
+          cell: () => <Skeleton className='h-6.5 w-full' />,
+        }))
         : defaultColumns,
     [defaultColumns, loading]
   )
@@ -175,6 +175,7 @@ function TableView<TData>({
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
+
   })
   const tableRowsData = table.getRowModel().rows
 
