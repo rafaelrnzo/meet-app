@@ -37,11 +37,10 @@ function GenerateRoomCode(props: GenerateRoomCodeProps) {
 
   return (
     <Button
-      variant='primary-outline'
+      variant='secondary'
       onClick={async () => await handleGenerateRoomCode(room.id)}
       size='icon'
       disabled={isDisabled}
-      className='not-hover:border-neutral-400 not-hover:bg-neutral-50 not-hover:text-neutral-400 hover:bg-red-50 disabled:border-neutral-400 disabled:bg-neutral-400 disabled:text-neutral-50 disabled:opacity-100'
     >
       <Icon type='arrow-clockwise' />
     </Button>

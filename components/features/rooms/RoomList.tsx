@@ -10,7 +10,7 @@ import {
 import { Input } from '@/components/ui/input'
 import { generateCode } from '@/lib/api/admin-api'
 import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
-import { cn, djs } from '@/lib/utils'
+import { cn, djs, copyHandler } from '@/lib/utils'
 import { Loader } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
 import { Badge } from '@/components/ui/badge'
@@ -20,10 +20,11 @@ import Cookies from 'js-cookie'
 import { toast } from '@/components/ui/sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Skeleton } from '@/components/ui/skeleton'
-import { copyToClipboardHandler, joinRoomAction, shareLinkHandler } from '@/feat/rooms/helper'
+import { joinRoomAction, shareLinkHandler } from '@/feat/rooms/helper'
 import { GenerateRoomCode } from './GenerateRoomCode'
 import type { GenerateRoomCodeExp, NewRoomCode } from '@/feat/rooms/dto'
 import { Icon } from '@/components/ui/icon'
+import { defaultErrorMessage } from '@/config'
 
 interface SummaryCardProps {
   loading?: boolean
@@ -32,6 +33,7 @@ interface SummaryCardProps {
   isAdmin: boolean
   handleDetail?: (room: DbRoom) => void
   handleCloseModal?: () => void
+  canShareLink: boolean
 }
 
 const CARD_PERPAGE = 6
@@ -104,6 +106,7 @@ function RoomList(props: SummaryCardProps) {
     isAdmin,
     handleDetail,
     handleCloseModal,
+    canShareLink,
   } = props
   const displayedRooms = staticRooms.map((room) => ({
     ...room,
@@ -177,10 +180,11 @@ function RoomList(props: SummaryCardProps) {
   }
 
   const handleCopyLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
-    const response = await copyToClipboardHandler(roomCode)
-    if (!response?.error) {
-      handleShowTooltip({ action: 'copy', roomId })
+    const { success } = await copyHandler(roomCode)
+    if (!success) {
+      return toast.error('Gagal salin kode', { description: defaultErrorMessage })
     }
+    handleShowTooltip({ action: 'copy', roomId })
   }
 
   const handleShareLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
@@ -188,10 +192,11 @@ function RoomList(props: SummaryCardProps) {
       title: 'Join Meeting',
       url: new URL(`/meeting/${encodeURIComponent(roomCode)}`, window.location.origin).toString(),
     }
-    const response = await shareLinkHandler(data)
-    if (!response?.error) {
-      handleShowTooltip({ action: 'share', roomId })
+    const { success } = await shareLinkHandler(data)
+    if (!success) {
+      return toast.error('Gagal bagikan kode', { description: defaultErrorMessage })
     }
+    handleShowTooltip({ action: 'share', roomId })
   }
 
   return (
@@ -242,29 +247,31 @@ function RoomList(props: SummaryCardProps) {
                           </Badge>
                         )}
 
-                        <Tooltip
-                          open={
-                            isTooltipVisible?.action === 'share' &&
-                            isTooltipVisible.roomId === room.id
-                          }
-                        >
-                          <TooltipTrigger asChild>
-                            <Button
-                              className='size-6.5 px-0 not-hover:border-neutral-400 not-hover:bg-neutral-50 not-hover:text-neutral-400 hover:bg-red-50'
-                              variant='primary-outline'
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                handleShareLink({ roomId: room.id, roomCode: ownRoomCode })
-                              }}
-                              hidden={!isAdmin}
-                            >
-                              <Icon type='share' />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side={isMobile ? 'top' : 'right'}>
-                            Tautan disalin
-                          </TooltipContent>
-                        </Tooltip>
+                        {canShareLink && (
+                          <Tooltip
+                            open={
+                              isTooltipVisible?.action === 'share' &&
+                              isTooltipVisible.roomId === room.id
+                            }
+                          >
+                            <TooltipTrigger asChild>
+                              <Button
+                                className='size-6.5 px-0'
+                                variant='secondary'
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  handleShareLink({ roomId: room.id, roomCode: ownRoomCode })
+                                }}
+                                hidden={!isAdmin}
+                              >
+                                <Icon type='share' />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side={isMobile ? 'top' : 'right'}>
+                              Tautan disalin
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </div>
 
@@ -302,12 +309,11 @@ function RoomList(props: SummaryCardProps) {
                       >
                         <TooltipTrigger asChild>
                           <Button
-                            variant='primary-outline'
+                            variant='secondary'
                             onClick={() =>
                               handleCopyLink({ roomId: room.id, roomCode: ownRoomCode })
                             }
                             size='icon'
-                            className='not-hover:border-neutral-400 not-hover:bg-neutral-50 not-hover:text-neutral-400 hover:bg-red-50'
                           >
                             <Icon type='copy' />
                           </Button>
