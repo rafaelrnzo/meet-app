@@ -40,6 +40,7 @@ export default function RoomsPage() {
   const canCreate = hasPermission('room:manage')
   const canUpdate = hasPermission('room:manage')
   const canDelete = isAdmin
+  const canShareLink = hasPermission('room:share')
   const isMobile = useIsMobile()
 
   const loadData = useCallback(
@@ -228,6 +229,7 @@ export default function RoomsPage() {
                 setIsDetailOpen(false)
                 if (isFormOpen && editingRoom) setIsFormOpen(false)
               }}
+              canShareLink={canShareLink}
             />
           </div>
 

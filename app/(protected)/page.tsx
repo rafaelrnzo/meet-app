@@ -18,7 +18,7 @@ import { handleSearchNotFound, joinRoomAction } from '@/feat/rooms/helper'
 
 export default function HomePage() {
   const router = useRouter()
-  const { isAdmin, loading: authLoading } = useAuth()
+  const { isAdmin, loading: authLoading, hasPermission } = useAuth()
   const [roomCodeInput, setRoomCodeInput] = useState('')
   const [dbRooms, setDbRooms] = useState<DbRoom[]>([])
   const [dbUserRooms, setUserDbRooms] = useState<DbRoom[]>([])
@@ -28,6 +28,7 @@ export default function HomePage() {
   const isMobile = useIsMobile()
   const [queryParams, setQueryParams] = useState<RoomParams>({})
   const [isEmptyRoomCode, setIsEmptyRoomCode] = useState(false)
+  const canShareLink = hasPermission('room:share')
 
   const loadData = useCallback(
     async (params?: RoomParams) => {
@@ -143,6 +144,7 @@ export default function HomePage() {
           staticRooms={displayedRooms}
           activeRooms={activeRooms}
           isAdmin={isAdmin}
+          canShareLink={canShareLink}
         />
       </div>
     </PageContainer>

@@ -33,6 +33,7 @@ interface SummaryCardProps {
   isAdmin: boolean
   handleDetail?: (room: DbRoom) => void
   handleCloseModal?: () => void
+  canShareLink: boolean
 }
 
 const CARD_PERPAGE = 6
@@ -105,6 +106,7 @@ function RoomList(props: SummaryCardProps) {
     isAdmin,
     handleDetail,
     handleCloseModal,
+    canShareLink,
   } = props
   const displayedRooms = staticRooms.map((room) => ({
     ...room,
@@ -245,29 +247,31 @@ function RoomList(props: SummaryCardProps) {
                           </Badge>
                         )}
 
-                        <Tooltip
-                          open={
-                            isTooltipVisible?.action === 'share' &&
-                            isTooltipVisible.roomId === room.id
-                          }
-                        >
-                          <TooltipTrigger asChild>
-                            <Button
-                              className='size-6.5 px-0'
-                              variant='secondary'
-                              onClick={(event) => {
-                                event.stopPropagation()
-                                handleShareLink({ roomId: room.id, roomCode: ownRoomCode })
-                              }}
-                              hidden={!isAdmin}
-                            >
-                              <Icon type='share' />
-                            </Button>
-                          </TooltipTrigger>
-                          <TooltipContent side={isMobile ? 'top' : 'right'}>
-                            Tautan disalin
-                          </TooltipContent>
-                        </Tooltip>
+                        {canShareLink && (
+                          <Tooltip
+                            open={
+                              isTooltipVisible?.action === 'share' &&
+                              isTooltipVisible.roomId === room.id
+                            }
+                          >
+                            <TooltipTrigger asChild>
+                              <Button
+                                className='size-6.5 px-0'
+                                variant='secondary'
+                                onClick={(event) => {
+                                  event.stopPropagation()
+                                  handleShareLink({ roomId: room.id, roomCode: ownRoomCode })
+                                }}
+                                hidden={!isAdmin}
+                              >
+                                <Icon type='share' />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent side={isMobile ? 'top' : 'right'}>
+                              Tautan disalin
+                            </TooltipContent>
+                          </Tooltip>
+                        )}
                       </div>
                     </div>
 
