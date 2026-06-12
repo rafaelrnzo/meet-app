@@ -18,7 +18,7 @@ import { handleSearchNotFound, joinRoomAction } from '@/feat/rooms/helper'
 
 export default function HomePage() {
   const router = useRouter()
-  const { isAdmin, loading: authLoading } = useAuth()
+  const { isAdmin, loading: authLoading, hasPermission } = useAuth()
   const [roomCodeInput, setRoomCodeInput] = useState('')
   const [dbRooms, setDbRooms] = useState<DbRoom[]>([])
   const [dbUserRooms, setUserDbRooms] = useState<DbRoom[]>([])
@@ -28,6 +28,7 @@ export default function HomePage() {
   const isMobile = useIsMobile()
   const [queryParams, setQueryParams] = useState<RoomParams>({})
   const [isEmptyRoomCode, setIsEmptyRoomCode] = useState(false)
+  const canShareLink = hasPermission('room:share')
 
   const loadData = useCallback(
     async (params?: RoomParams) => {
@@ -85,15 +86,16 @@ export default function HomePage() {
       subTitle='Bergabung dalam ruangan secara instan'
       backToTopButton
       insertAfterTitle={
-        <div className='flex gap-2 max-md:w-full max-md:flex-col md:items-center'>
+        <div className='flex items-center gap-2 max-lg:w-full max-md:flex-col'>
           <Input
-            className='aria-invalid:text-error w-full bg-white aria-invalid:border-red-200 aria-invalid:bg-red-200 md:w-87.5'
+            className='aria-invalid:text-error w-full bg-white aria-invalid:border-red-200 aria-invalid:bg-red-200 lg:w-64 xl:w-87.5'
             placeholder='Masukkan kode ruangan di sini ...'
             value={roomCodeInput}
             onChange={(e) => setRoomCodeInput(e.target.value)}
             aria-invalid={isEmptyRoomCode && !roomCodeInput.trim().length}
           />
           <Button
+            className='max-md:w-full'
             onClick={() =>
               startTransitionJoin(async () => {
                 await joinRoomAction({
@@ -142,6 +144,7 @@ export default function HomePage() {
           staticRooms={displayedRooms}
           activeRooms={activeRooms}
           isAdmin={isAdmin}
+          canShareLink={canShareLink}
         />
       </div>
     </PageContainer>

@@ -18,11 +18,12 @@ import RoomTabs from '@/components/features/rooms/RoomTabs'
 import { useAuth } from '@/hooks/use-auth'
 import { toast } from '@/components/ui/sonner'
 import { Modal, ModalDelete } from '@/components/ui/modal'
-import { displayedError } from '@/lib/utils'
-import { copyToClipboardHandler } from '@/feat/rooms/helper'
+import { displayedError, copyHandler } from '@/lib/utils'
 import RoomDetailModal from '@/components/features/rooms/RoomDetailModal'
 import type { FileResponse, StatusOption, TabsValue } from '@/feat/rooms/dto'
 import { Icon } from '@/components/ui/icon'
+import { defaultErrorMessage } from '@/config'
+
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
 interface RoomDetailSheetProps {
   room: DbRoom | null
@@ -84,7 +85,10 @@ export function RoomDetailSheet({
   // }
 
   const handleCopyLink = async () => {
-    await copyToClipboardHandler(room?.room_code ?? '')
+    const { success } = await copyHandler(room?.room_code ?? '')
+    if (!success) {
+      return toast.error('Gagal salin kode', { description: defaultErrorMessage })
+    }
     setShowTooltip(true)
     setTimeout(() => {
       setShowTooltip(false)

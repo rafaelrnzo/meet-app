@@ -22,7 +22,7 @@ export default function ProtectedLayout({ children }: { children: React.ReactNod
 function ProtectedContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
-  const { loading, isAuthenticated, isAdmin } = useAuth()
+  const { loading, isAuthenticated, isAdmin, hasPermission } = useAuth()
   const [user, setUser] = useState<StoredUser | null>(null)
   const { openMobile } = useSidebar()
 
@@ -45,6 +45,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
   const username = user?.username || 'Unknown'
   const role = user?.role || (isAdmin ? 'admin' : 'user')
   const roleName = typeof role === 'object' ? role.name : role
+  const menuItems = sidebarItems({ isAdmin, hasPermission })
 
   return (
     <>
@@ -62,7 +63,7 @@ function ProtectedContent({ children }: { children: React.ReactNode }) {
             <div className='flex items-center gap-2'>
               {!isMobile && <SidebarTrigger />}
               <h1 className='text-sm text-red-800 capitalize'>
-                {sidebarItems.find((i) => i.href === pathname)?.label || 'Dashboard'}
+                {menuItems.find((i) => i.href === pathname)?.label || 'Dashboard'}
               </h1>
             </div>
 
