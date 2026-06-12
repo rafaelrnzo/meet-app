@@ -21,7 +21,7 @@ const buttonVariants = cva(
         'destructive-light':
           'bg-red-50 text-error hover:bg-red-200 active:bg-error active:text-neutral-50',
         secondary:
-          'bg-neutral-50 border border-neutral-400 text-neutral-400 hover:border-red-800 hover:text-red-800 active:bg-red-800 active:text-neutral-50',
+          'bg-neutral-50 border border-neutral-400 text-neutral-400 hover:border-red-800 hover:text-red-800 active:bg-red-800 active:text-neutral-50 disabled:border-neutral-400 disabled:bg-neutral-400 disabled:text-neutral-50 disabled:opacity-100',
         'secondary-ghost':
           'text-neutral-400 hover:bg-red-50 hover:text-red-800 active:bg-red-800 active:text-neutral-50',
         'secondary-light':
