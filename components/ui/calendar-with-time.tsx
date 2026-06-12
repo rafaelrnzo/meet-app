@@ -129,7 +129,7 @@ function CalendarWithTime({
           value={placeholder}
           onChange={() => void 0}
           className={cn(
-            'text-left',
+            'text-left whitespace-normal',
             !date &&
               !isValidTime(startTime) &&
               !isValidTime(endTime) &&

@@ -30,7 +30,7 @@ export default function NoData({
   const router = useRouter()
   return (
     <div className={cn(className, 'flex items-center justify-center text-center')}>
-      <div className='max-w-[384px] min-w-[384px]'>
+      <div className='max-w-[384px] md:min-w-[384px]'>
         <div className='mb-2 flex justify-center'>
           <div className='flex size-12 items-center justify-center rounded-md border border-neutral-400 p-3'>
             <Icon type='close' className={cn(classNameIcon, 'size-6 text-red-800')} />
@@ -47,7 +47,7 @@ export default function NoData({
         {reload && (
           <Button
             variant='primary'
-            className='mb-3 h-8 w-full border-none px-3 py-[5.5px] font-semibold'
+            className='mb-3 w-full'
             onClick={() => window.location.reload()}
           >
             Muat ulang laman
@@ -55,23 +55,15 @@ export default function NoData({
         )}
         {goBack && (
           <Button
-            className={cn(
-              reload
-                ? 'border border-neutral-400 bg-transparent text-slate-950'
-                : 'bg-red-800 text-white',
-              'mb-3 h-8 w-full rounded-md px-3 py-[5.5px] font-semibold'
-            )}
+            variant={reload ? 'secondary-outline' : 'primary'}
+            className='mb-3 w-full'
             onClick={() => router.push('/')}
           >
             {reload ? 'Kembali ke Beranda' : 'Masuk ke Beranda'}
           </Button>
         )}
         {insertButton && (
-          <Button
-            variant='primary'
-            onClick={insertButton.onClick}
-            className='mb-3 h-8 w-full rounded-md px-3 py-[5.5px] font-semibold'
-          >
+          <Button variant='primary' onClick={insertButton.onClick} className='mb-3 w-full'>
             {insertButton.children ?? 'Buat'}
           </Button>
         )}
