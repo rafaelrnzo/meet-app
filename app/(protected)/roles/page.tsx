@@ -98,24 +98,28 @@ export default function RolesPage() {
         title='Roles & Permissions'
         subTitle='Kelola peran & izin dari setiap peserta badiklat'
       >
-        <TableView loading={loading} data={roles} columns={rolesColumn({ openManage })} />
-        <EditRoles
-          {...{
-            handleAddPermissions,
-            selectedRole,
-            isManageOpen,
-            setIsManageOpen,
-            groupedPermissions: {
-              room: groupedPermissions['Room Management'],
-              groups: groupedPermissions['Group Management'],
-              users: groupedPermissions['User Management'],
-              roles: groupedPermissions['Role Management'],
-              recordings: groupedPermissions['Recording Management'],
-              meet_screen: groupedPermissions['Meet Screen Management'],
-              other: groupedPermissions.Other,
-            },
-          }}
-        />
+        {roles.length && (
+          <>
+            <TableView loading={loading} data={roles} columns={rolesColumn({ openManage })} />
+            <EditRoles
+              {...{
+                handleAddPermissions,
+                selectedRole,
+                isManageOpen,
+                setIsManageOpen,
+                groupedPermissions: {
+                  room: groupedPermissions['Room Management'],
+                  groups: groupedPermissions['Group Management'],
+                  users: groupedPermissions['User Management'],
+                  roles: groupedPermissions['Role Management'],
+                  recordings: groupedPermissions['Recording Management'],
+                  meet_screen: groupedPermissions['Meet Screen Management'],
+                  other: groupedPermissions.Other,
+                },
+              }}
+            />
+          </>
+        )}
       </PageContainer>
     </>
   )

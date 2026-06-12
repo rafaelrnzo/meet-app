@@ -6,7 +6,6 @@ import { Label } from '@/components/ui/label'
 import type { Permission } from '@/lib/api/admin-api'
 import { cn } from '@/lib/utils'
 import type { AnyFieldApi } from '@tanstack/react-form'
-import { useState } from 'react'
 
 interface RoleCheckboxProps {
   data: {
