@@ -1,6 +1,6 @@
 {
   "name": "meet-fe-custom",
-  "version": "0.1.9",
+  "version": "0.1.10",
   "private": true,
   "scripts": {
     "dev": "cross-env HOST=0.0.0.0 next dev --webpack",
