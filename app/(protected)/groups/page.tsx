@@ -19,6 +19,7 @@ import EditDialog from '@/app/(protected)/groups/_partials/edit'
 import NoData from '@/components/ui/no-data'
 import { Icon } from '@/components/ui/icon'
 import { toast } from '@/components/ui/sonner'
+import { displayedError } from '@/lib/utils'
 
 export default function GroupsPage() {
   const { isAdmin } = useAuth()
@@ -28,16 +29,6 @@ export default function GroupsPage() {
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [isManageOpen, setIsManageOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-
-  const displayedError = (error: unknown, titleError: string) => {
-    const message = error instanceof Error ? error.message : String(error)
-    const displayedMessage = message
-      ? message
-      : 'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman'
-    toast.error(titleError, {
-      description: displayedMessage,
-    })
-  }
 
   const loadData = async () => {
     try {
@@ -93,7 +84,6 @@ export default function GroupsPage() {
   const openManage = (g: Group) => {
     setSelectedGroup(g)
     setIsManageOpen(true)
-    // setSelectedUserId('')
   }
 
   const handleAddMember = async (userId: number[]) => {
