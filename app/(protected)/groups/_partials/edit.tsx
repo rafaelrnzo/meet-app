@@ -17,8 +17,7 @@ interface EditDialogProps {
   setIsManageOpen: React.Dispatch<SetStateAction<boolean>>
   selectedGroup: Group | null
   availableUsers: User[]
-  handleAddMember: (e: number[]) => void
-  handleRemoveMember: (e: number[]) => void
+  handleUpdate: (unstoreIds: number[], displayedParticipants: number[]) => void
 }
 
 type DisplayParticipants = {
@@ -31,8 +30,7 @@ export default function EditDialog({
   setIsManageOpen: onOpenChange,
   selectedGroup,
   availableUsers,
-  handleAddMember,
-  handleRemoveMember,
+  handleUpdate,
 }: EditDialogProps) {
   ''
   const [displayedParticipants, setDisplayedParticipants] = useState<DisplayParticipants[]>([])
@@ -82,17 +80,11 @@ export default function EditDialog({
     validators: {
       onSubmitAsync: editGroupSchema,
     },
-    onSubmit: () => {
-      if (unstoreIds.length > 0 || displayedParticipants.length > 0) {
-        if (unstoreIds.length > 0) {
-          handleRemoveMember(unstoreIds.map((ids) => ids))
-        }
-        if (displayedParticipants.length > 0) {
-          handleAddMember(displayedParticipants.map((participant) => Number(participant.id)))
-        }
-      }
-      return
-    },
+    onSubmit: () =>
+      handleUpdate(
+        unstoreIds,
+        displayedParticipants.map(({ id }) => Number(id))
+      ),
   })
 
   useEffect(() => {

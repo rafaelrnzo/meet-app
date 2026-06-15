@@ -1,5 +1,6 @@
 'use client'
 
+import RoleCheckbox from '@/app/(protected)/roles/_partials/RoleCheckbox'
 import type { RoleContentsProps } from '@/app/(protected)/roles/_partials/RoleContents'
 import RoleTabs from '@/app/(protected)/roles/_partials/RoleTabs'
 import { Modal } from '@/components/ui/modal'
@@ -28,6 +29,13 @@ export default function EditRoles({
   const [activeTab, setActiveTab] = useState<RoleTabsValue>('control_dashboard')
 
   const tabsTrigger: RoleTabsValue[] = ['control_dashboard', 'control_meet']
+  const keyMeetScreen = 'ui:manage_screen'
+  const groupCheckbox = [
+    {
+      label: 'Manajemen layar rapat',
+      permissions: groupedPermissions.meet_screen.filter(({ key }) => key === keyMeetScreen),
+    },
+  ]
 
   const form = useForm({
     defaultValues: {
@@ -41,6 +49,7 @@ export default function EditRoles({
       setActiveTab('control_dashboard')
     }
   }, [open])
+
   return (
     <Modal
       root={{ open, onOpenChange, modal: false }}
@@ -68,28 +77,36 @@ export default function EditRoles({
         onClick: () => form.reset(),
       }}
     >
-      <Tabs
-        defaultValue={activeTab}
-        className='h-full overflow-auto'
-        onValueChange={(tabs) => setActiveTab(tabs as RoleTabsValue)}
-      >
-        <TabsList variant='line'>
-          {tabsTrigger.map((tabs) => (
-            <TabsTrigger
-              key={tabs}
-              value={tabs}
-              className='cursor-pointer rounded-none text-sm font-medium text-neutral-400 hover:text-red-800 data-[state=active]:border-b-2 data-[state=active]:border-b-red-800 data-[state=active]:text-red-800 data-[state=active]:after:opacity-0!'
-            >
-              {tabs === 'control_dashboard'
-                ? 'Manajemen Izin Menu Dashboard'
-                : 'Manajemen Izin Kontrol Ruangan Rapat'}
-            </TabsTrigger>
-          ))}
-        </TabsList>
-        <TabsContent value={activeTab}>
-          <RoleTabs {...{ activeTab, groupedPermissions, selectedRole, formApi: form }} />
-        </TabsContent>
-      </Tabs>
+      {selectedRole?.name === 'moderator' ? (
+        <Tabs
+          defaultValue={activeTab}
+          className='h-full overflow-auto'
+          onValueChange={(tabs) => setActiveTab(tabs as RoleTabsValue)}
+        >
+          <TabsList variant='line'>
+            {tabsTrigger.map((tabs) => (
+              <TabsTrigger
+                key={tabs}
+                value={tabs}
+                className='cursor-pointer rounded-none text-sm font-medium text-neutral-400 hover:text-red-800 data-[state=active]:border-b-2 data-[state=active]:border-b-red-800 data-[state=active]:text-red-800 data-[state=active]:after:opacity-0!'
+              >
+                {tabs === 'control_dashboard'
+                  ? 'Manajemen Izin Menu Dashboard'
+                  : 'Manajemen Izin Kontrol Ruangan Rapat'}
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <TabsContent value={activeTab}>
+            <RoleTabs {...{ activeTab, groupedPermissions, selectedRole, formApi: form }} />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        <form.Field name='permissions'>
+          {(field) => {
+            return <RoleCheckbox {...{ data: groupCheckbox, field }} />
+          }}
+        </form.Field>
+      )}
     </Modal>
   )
 }
