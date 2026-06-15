@@ -23,7 +23,7 @@ import { displayedError } from '@/lib/utils'
 import ErrorPage from '@/compounds/error-page'
 
 export default function GroupsPage() {
-  const { isAdmin, hasPermission } = useAuth()
+  const { hasPermission } = useAuth()
   const [groups, setGroups] = useState<Group[]>([])
   const [users, setUsers] = useState<UserResponse>({ data: [] })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
@@ -152,17 +152,15 @@ export default function GroupsPage() {
             loading={loading}
             data={groups}
             columns={groupsColumn({ handleDelete, openManage })}
-            {...(canManage && {
-              add: {
-                children: (
-                  <>
-                    <Icon type='plus' /> Tambah Kelompok
-                  </>
-                ),
-                onClick: () => setIsCreateOpen(true),
-                hidden: !isAdmin,
-              },
-            })}
+            add={{
+              children: (
+                <>
+                  <Icon type='plus' /> Tambah Kelompok
+                </>
+              ),
+              onClick: () => setIsCreateOpen(true),
+              hidden: !canManage,
+            }}
             state={{
               columnVisibility: {
                 action: canManage,
