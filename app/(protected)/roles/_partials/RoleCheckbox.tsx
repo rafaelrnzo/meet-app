@@ -22,7 +22,9 @@ export default function RoleCheckbox({ data, field }: RoleCheckboxProps) {
   const keyRecordingAccess = 'module:recordings:access'
 
   return (
-    <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
+    <div
+      className={cn(data.length > 1 ? 'md:grid-cols-2' : 'grid-cols-1', 'grid grid-cols-1 gap-4')}
+    >
       {data.map((grouping, idx) => {
         const findKey = grouping.permissions.findIndex(
           ({ key }) => key === keyRoomAccess || key === keyRecordingAccess
@@ -38,10 +40,18 @@ export default function RoleCheckbox({ data, field }: RoleCheckboxProps) {
               <p className='text-sm text-slate-950'>{grouping.label}</p>
               <p className='text-xs text-neutral-400'>{grouping.permissions.length} izin</p>
             </div>
-            <Card key={idx} className='max-h-[106px] min-h-fit overflow-y-auto'>
-              <CardContent>
-                <FieldGroup className='gap-3 py-4'>
-                  <div className='grid grid-cols-1 gap-2 md:grid-cols-2'>
+            <Card
+              key={idx}
+              className={cn(
+                (idx === 1 || idx === 0) && grouping.permissions.length > 1
+                  ? 'h-[106px]'
+                  : 'min-h-fit',
+                'max-h-[106px] min-h-fit'
+              )}
+            >
+              <CardContent className='p-5'>
+                <FieldGroup>
+                  <div className='grid grid-cols-1 items-start gap-2 md:grid-cols-2'>
                     {grouping.permissions.length === 0 ? (
                       <span>Tidak ada izin</span>
                     ) : (
