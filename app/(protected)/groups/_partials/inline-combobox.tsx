@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Check } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -27,17 +27,6 @@ export default function InlineCombobox({
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Option[]>([])
-  const wrapperRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const handleClickOutside = (event: any) => {
-      if (wrapperRef.current && !wrapperRef?.current?.contains(event.target)) {
-        setOpen(false)
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside)
-    return () => document.removeEventListener('mousedown', handleClickOutside)
-  }, [])
 
   const filtered = useMemo(() => {
     return items.filter((item) => item.label.toLowerCase().includes(query.toLowerCase()))
@@ -69,8 +58,12 @@ export default function InlineCombobox({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected])
 
+  useEffect(() => {
+    if (!open) setSelected([])
+  }, [open])
+
   return (
-    <div ref={wrapperRef} className='min-h-11 gap-2'>
+    <div className='min-h-11 gap-2'>
       <div className='mb-4 flex items-center justify-between gap-2'>
         <div className='flex min-h-11 w-full flex-wrap items-center gap-2'>
           <Input
