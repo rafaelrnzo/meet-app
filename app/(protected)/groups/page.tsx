@@ -90,24 +90,17 @@ export default function GroupsPage() {
     setIsManageOpen(true)
   }
 
-  const handleAddMember = async (userId: number[]) => {
+  const handleUpdate = async (unstoreIds: number[], displayedParticipants: number[]) => {
     try {
       if (!selectedGroup) return
-      await addGroupMember(selectedGroup.id, userId)
-      setIsManageOpen(false)
-      toast.success('Kelompok berhasil diperbarui', {
-        description: `Kelompok "${selectedGroup.name}" berhasil diperbarui`,
-      })
-      loadData()
-    } catch (error) {
-      displayedError(error, 'Gagal memperbarui kelompok')
-    }
-  }
-
-  const handleRemoveMember = async (userId: number[]) => {
-    try {
-      if (!selectedGroup) return
-      await removeGroupMember(selectedGroup?.id, userId)
+      await Promise.all([
+        unstoreIds.length
+          ? await removeGroupMember(selectedGroup?.id, unstoreIds)
+          : Promise.resolve(),
+        displayedParticipants.length
+          ? addGroupMember(selectedGroup.id, displayedParticipants)
+          : Promise.resolve(),
+      ])
       setIsManageOpen(false)
       toast.success('Kelompok berhasil diperbarui', {
         description: `Kelompok "${selectedGroup.name}" berhasil diperbarui`,
@@ -176,8 +169,7 @@ export default function GroupsPage() {
           setIsManageOpen,
           selectedGroup,
           availableUsers,
-          handleAddMember,
-          handleRemoveMember,
+          handleUpdate,
         }}
       />
     </div>
