@@ -20,15 +20,19 @@ import NoData from '@/components/ui/no-data'
 import { Icon } from '@/components/ui/icon'
 import { toast } from '@/components/ui/sonner'
 import { displayedError } from '@/lib/utils'
+import ErrorPage from '@/compounds/error-page'
 
 export default function GroupsPage() {
-  const { isAdmin } = useAuth()
+  const { isAdmin, hasPermission } = useAuth()
   const [groups, setGroups] = useState<Group[]>([])
   const [users, setUsers] = useState<UserResponse>({ data: [] })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [isManageOpen, setIsManageOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  const canRead = hasPermission('group:read')
+  const canManage = hasPermission('group:manage')
 
   const loadData = async () => {
     try {
@@ -118,22 +122,25 @@ export default function GroupsPage() {
   const availableUsers = users?.data.filter(
     (u) => !selectedGroup?.members?.some((m) => m.id === u.id)
   )
+  if (!canRead) return <ErrorPage status={401} />
 
   return (
     <div>
       {!loading && groups.length === 0 ? (
         <NoData
           title='Tidak Ada kelompok yang Tersedia'
-          desc='Silakan buat kelompok baru'
-          insertButton={{
-            children: (
-              <>
-                <Icon type='plus' /> Buat Kelompok Baru
-              </>
-            ),
-            onClick: () => setIsCreateOpen(true),
-          }}
-          className='h-[calc(100vh-208px)]'
+          {...(canManage && {
+            desc: 'Silakan buat kelompok baru',
+            insertButton: {
+              children: (
+                <>
+                  <Icon type='plus' /> Buat Kelompok Baru
+                </>
+              ),
+              onClick: () => setIsCreateOpen(true),
+            },
+          })}
+          className='min-h-[calc(100vh-208px)]'
         />
       ) : (
         <PageContainer
@@ -145,14 +152,21 @@ export default function GroupsPage() {
             loading={loading}
             data={groups}
             columns={groupsColumn({ handleDelete, openManage })}
-            add={{
-              children: (
-                <>
-                  <Icon type='plus' /> Tambah Kelompok
-                </>
-              ),
-              onClick: () => setIsCreateOpen(true),
-              hidden: !isAdmin,
+            {...(canManage && {
+              add: {
+                children: (
+                  <>
+                    <Icon type='plus' /> Tambah Kelompok
+                  </>
+                ),
+                onClick: () => setIsCreateOpen(true),
+                hidden: !isAdmin,
+              },
+            })}
+            state={{
+              columnVisibility: {
+                action: canManage,
+              },
             }}
           />
         </PageContainer>
