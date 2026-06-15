@@ -55,7 +55,7 @@ export default function FormController({
               <Textarea
                 value={(field.state.value as string) ?? ''}
                 name={field.name}
-                onChange={(e) => field.handleChange(e.target.value)}
+                onChange={(e) => field.handleChange(e.target.value.trimStart())}
                 className='border border-neutral-400 shadow-sm'
                 {...props}
               />
@@ -76,7 +76,7 @@ export default function FormController({
               <Input
                 value={(field.state.value as string) ?? ''}
                 name={field.name}
-                onChange={(e) => field.handleChange(e.target.value)}
+                onChange={(e) => field.handleChange(e.target.value.trimStart())}
                 className='shadow-sm'
                 {...props}
               />

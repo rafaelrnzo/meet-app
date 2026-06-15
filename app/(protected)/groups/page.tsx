@@ -19,38 +19,41 @@ import EditDialog from '@/app/(protected)/groups/_partials/edit'
 import NoData from '@/components/ui/no-data'
 import { Icon } from '@/components/ui/icon'
 import { toast } from '@/components/ui/sonner'
+import { displayedError } from '@/lib/utils'
+import ErrorPage from '@/compounds/error-page'
 
 export default function GroupsPage() {
-  const { isAdmin, loading } = useAuth()
+  const { hasPermission } = useAuth()
   const [groups, setGroups] = useState<Group[]>([])
   const [users, setUsers] = useState<UserResponse>({ data: [] })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [isManageOpen, setIsManageOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
 
-  const displayedError = (error: unknown, titleError: string) => {
-    const message = error instanceof Error ? error.message : String(error)
-    const displayedMessage = message
-      ? message
-      : 'Ada kendala dari sistem, mohon tunggu sebentar atau coba muat ulang laman'
-    toast.error(titleError, {
-      description: displayedMessage,
-    })
-  }
+  const canRead = hasPermission('group:read')
+  const canManage = hasPermission('group:manage')
 
   const loadData = async () => {
-    const [g, u] = await Promise.all([fetchGroups(), fetchUsers()])
-    setGroups(
-      g.map((items) => ({
-        id: items.id,
-        name: items.name || '-',
-        description: items.description || '-',
-        members: items.members,
-        created_at: items.created_at,
-        is_editable: items.is_editable,
-      })) || []
-    )
-    setUsers(u || [])
+    try {
+      setLoading(true)
+      const [g, u] = await Promise.all([fetchGroups(), fetchUsers()])
+      setGroups(
+        g.map((items) => ({
+          id: items.id,
+          name: items.name || '-',
+          description: items.description || '-',
+          members: items.members,
+          created_at: items.created_at,
+          is_editable: items.is_editable,
+        })) || []
+      )
+      setUsers(u || [])
+    } catch (error) {
+      console.error(error)
+    } finally {
+      setTimeout(() => setLoading(false), 500)
+    }
   }
 
   useEffect(() => {
@@ -85,27 +88,19 @@ export default function GroupsPage() {
   const openManage = (g: Group) => {
     setSelectedGroup(g)
     setIsManageOpen(true)
-    // setSelectedUserId('')
   }
 
-  const handleAddMember = async (userId: number[]) => {
+  const handleUpdate = async (unstoreIds: number[], displayedParticipants: number[]) => {
     try {
       if (!selectedGroup) return
-      await addGroupMember(selectedGroup.id, userId)
-      setIsManageOpen(false)
-      toast.success('Kelompok berhasil diperbarui', {
-        description: `Kelompok "${selectedGroup.name}" berhasil diperbarui`,
-      })
-      loadData()
-    } catch (error) {
-      displayedError(error, 'Gagal memperbarui kelompok')
-    }
-  }
-
-  const handleRemoveMember = async (userId: number[]) => {
-    try {
-      if (!selectedGroup) return
-      await removeGroupMember(selectedGroup?.id, userId)
+      await Promise.all([
+        unstoreIds.length
+          ? await removeGroupMember(selectedGroup?.id, unstoreIds)
+          : Promise.resolve(),
+        displayedParticipants.length
+          ? addGroupMember(selectedGroup.id, displayedParticipants)
+          : Promise.resolve(),
+      ])
       setIsManageOpen(false)
       toast.success('Kelompok berhasil diperbarui', {
         description: `Kelompok "${selectedGroup.name}" berhasil diperbarui`,
@@ -120,24 +115,25 @@ export default function GroupsPage() {
   const availableUsers = users?.data.filter(
     (u) => !selectedGroup?.members?.some((m) => m.id === u.id)
   )
-
-  if (loading) return <div className='text-muted-foreground p-8 text-center'>Loading...</div>
+  if (!canRead) return <ErrorPage status={401} />
 
   return (
     <div>
-      {groups.length === 0 ? (
+      {!loading && groups.length === 0 ? (
         <NoData
           title='Tidak Ada kelompok yang Tersedia'
-          desc='Silakan buat kelompok baru'
-          insertButton={{
-            children: (
-              <>
-                <Icon type='plus' /> Buat Kelompok Baru
-              </>
-            ),
-            onClick: () => setIsCreateOpen(true),
-          }}
-          className='h-[calc(100vh-208px)]'
+          {...(canManage && {
+            desc: 'Silakan buat kelompok baru',
+            insertButton: {
+              children: (
+                <>
+                  <Icon type='plus' /> Buat Kelompok Baru
+                </>
+              ),
+              onClick: () => setIsCreateOpen(true),
+            },
+          })}
+          className='min-h-[calc(100vh-208px)]'
         />
       ) : (
         <PageContainer
@@ -146,6 +142,7 @@ export default function GroupsPage() {
           subTitle='Kelola anggota Anda dalam tiap kelompok'
         >
           <TableView
+            loading={loading}
             data={groups}
             columns={groupsColumn({ handleDelete, openManage })}
             add={{
@@ -155,7 +152,12 @@ export default function GroupsPage() {
                 </>
               ),
               onClick: () => setIsCreateOpen(true),
-              hidden: !isAdmin,
+              hidden: !canManage,
+            }}
+            state={{
+              columnVisibility: {
+                action: canManage,
+              },
             }}
           />
         </PageContainer>
@@ -167,8 +169,7 @@ export default function GroupsPage() {
           setIsManageOpen,
           selectedGroup,
           availableUsers,
-          handleAddMember,
-          handleRemoveMember,
+          handleUpdate,
         }}
       />
     </div>
