@@ -236,7 +236,7 @@ export const recordingColumn = ({
     enableSorting: false,
     cell: ({ row }) => {
       const { status } = row.original
-      if (status === 'PROCESSING') {
+      if (status !== 'COMPLETED') {
         return <Badge variant='destructive'>Record in Progress</Badge>
       }
       return (

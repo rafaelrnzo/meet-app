@@ -2,6 +2,7 @@
 'use client'
 
 import type { Recording as RecordingDto, RecordingParams } from '@/lib/api/admin-api'
+import type { RecordingSSEDTO } from '@/feat/recording/dto'
 import PageContainer from '@/compounds/page-container'
 import path from 'path'
 import { TableView } from '@/compounds/table-view'
@@ -12,7 +13,9 @@ import { recordingColumn } from '@/column/recording'
 import { toast } from '@/components/ui/sonner'
 import { useAuth } from '@/hooks/use-auth'
 import { useEffect, useState, useRef } from 'react'
-import { cn, djs } from '@/lib/utils'
+import { cn, djs, qstring } from '@/lib/utils'
+import { getToken } from '@/lib/api/auth-client'
+import { RecordingEvent } from '@/feat/recording/dto'
 
 export default function RecordingsPage() {
   const inputRenameRef = useRef<HTMLFormElement>(null)
@@ -28,7 +31,7 @@ export default function RecordingsPage() {
     setLoading(true)
     try {
       const response = await fetchRecordings(queryParams, signal)
-      setRecordings(response.filter((rec) => rec.status === 'COMPLETED'))
+      setRecordings(response)
     } catch (error) {
       if (error instanceof DOMException && error.name == 'AbortError') {
         return
@@ -92,7 +95,6 @@ export default function RecordingsPage() {
   const handleDelete = async (id: number, name: string) => {
     try {
       await deleteRecording(id)
-      fetchRecordings(queryParams)
       toast.success('Rekaman berhasil dihapus', {
         description: `Rekaman “${name}” berhasil dihapus`,
       })
@@ -139,6 +141,31 @@ export default function RecordingsPage() {
       document.removeEventListener('touchstart', handleClickOutsideRename)
     }
   }, [])
+
+  useEffect(() => {
+    const eventSourceUrl = qstring(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/recordings/events`,
+      {
+        token: getToken(),
+      }
+    )
+    const eventSource = new EventSource(eventSourceUrl)
+
+    eventSource.onmessage = (message: MessageEvent<string>) => {
+      const event: RecordingSSEDTO = JSON.parse(message.data)
+      if ([RecordingEvent.StatusUpdate, RecordingEvent.Delete].includes(event.type)) {
+        getRecordings(queryParams)
+      }
+    }
+
+    eventSource.onerror = () => {
+      eventSource.close()
+    }
+
+    return () => {
+      eventSource.close()
+    }
+  }, [queryParams])
 
   const columns = recordingColumn({
     renamingId,
