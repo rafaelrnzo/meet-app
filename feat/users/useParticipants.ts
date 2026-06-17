@@ -7,7 +7,6 @@ export const useParticipants = () => {
   const [users, setUsers] = useState({
     data: [] as Users[],
     page: 1,
-    limit: 10,
     total: 0,
     totalPages: 0,
   })
@@ -19,13 +18,15 @@ export const useParticipants = () => {
       setIsLoading(true)
 
       const response = await fetchUsers({
-        params: searchParams,
+        params: {
+          ...searchParams,
+          limit: 99999, // Note: fetch all
+        },
       })
 
       setUsers({
         data: response.data,
         page: response.page ?? 1,
-        limit: response.limit ?? 10,
         total: response.total ?? 0,
         totalPages: response.total_pages ?? 0,
       })
