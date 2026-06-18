@@ -101,7 +101,7 @@ export default function HomePage() {
                 await joinRoomAction({
                   code: roomCodeInput,
                   setIsEmptyRoomCode,
-                  onSuccess: (code) => router.push(`/meeting/${encodeURIComponent(code)}`),
+                  onSuccess: (code) => router.push(`/rooms/${encodeURIComponent(code)}`),
                 })
               })
             }

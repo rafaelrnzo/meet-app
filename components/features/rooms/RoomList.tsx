@@ -83,7 +83,7 @@ const ButtonJoin = ({
         startTransitionJoin(async () => {
           await joinRoomAction({
             code: room.room_code,
-            onSuccess: (code) => router.push(`/meeting/${encodeURIComponent(code)}`),
+            onSuccess: (code) => router.push(`/rooms/${encodeURIComponent(code)}`),
           })
         })
       }}
@@ -190,7 +190,7 @@ function RoomList(props: SummaryCardProps) {
   const handleShareLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
     const data = {
       title: 'Join Meeting',
-      url: new URL(`/meeting/${encodeURIComponent(roomCode)}`, window.location.origin).toString(),
+      url: new URL(`/rooms/${encodeURIComponent(roomCode)}`, window.location.origin).toString(),
     }
     const { success } = await shareLinkHandler(data)
     if (!success) {

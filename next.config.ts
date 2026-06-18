@@ -7,6 +7,14 @@ const nextConfig: NextConfig = {
     config.resolve.alias.canvas = false
     return config
   },
+  reactCompiler: true,
+  experimental: {
+    optimizePackageImports: [
+      '@phosphor-icons/react',
+      '@hugeicons/react',
+      '@hugeicons/core-free-icons',
+    ],
+  },
 }
 
 export default withPWA({

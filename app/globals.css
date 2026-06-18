@@ -154,3 +154,11 @@ input[type='password']::-ms-reveal,
 input[type='password']::-ms-clear {
   display: none;
 }
+
+[data-slot='container-content'] {
+  @apply p-0;
+}
+
+[data-slot='container-content'] > * {
+  @apply p-5 md:p-6;
+}

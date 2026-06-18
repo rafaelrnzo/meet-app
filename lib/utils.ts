@@ -6,15 +6,62 @@ import customParseFormat from 'dayjs/plugin/customParseFormat'
 import dayjs from 'dayjs'
 import 'dayjs/locale/id'
 import { toast } from '@/components/ui/sonner'
+import { default as utc } from 'dayjs/plugin/utc'
+import { default as timezone } from 'dayjs/plugin/timezone'
 
 dayjs.extend(customParseFormat)
 dayjs.extend(duration)
 dayjs.locale('id')
+dayjs.extend(utc)
+dayjs.extend(timezone)
 
-export const djs = dayjs
+export const encoder = new TextEncoder()
+
+export const decoder = new TextDecoder()
+
+export function djs(val?: Parameters<typeof dayjs>[0]) {
+  return dayjs(val).tz('Asia/Jakarta')
+}
+
+export function encodePassphrase(passphrase: string) {
+  return encodeURIComponent(passphrase)
+}
+
+export function decodePassphrase(base64String: string) {
+  return decodeURIComponent(base64String)
+}
+
+export function generateRoomId(): string {
+  return `${randomString(4)}-${randomString(4)}`
+}
+
+export function randomString(length: number): string {
+  const characters = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  const charactersLength = characters.length
+
+  let result = ''
+
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength))
+  }
+
+  return result
+}
+
+export function isLowPowerDevice() {
+  return navigator.hardwareConcurrency < 6
+}
+
+export function isMeetStaging() {
+  return new URL(location.origin).host === 'meet.staging.livekit.io'
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export function num(value: unknown) {
+  return isNaN(Number(value)) ? 0 : Number(value)
 }
 
 export function without<T extends object, K extends keyof T>(obj: T, keys: K[]) {
@@ -198,5 +245,12 @@ export async function copyHandler(text = '') {
   } catch {
     const success = await unsecuredCopyToClipboard(text)
     return { success }
+  }
+}
+
+export function loginfo(...data: unknown[]) {
+  if (typeof window === 'undefined') return console.log(...data)
+  if (!window.location.protocol.startsWith('https')) {
+    return console.info(...data)
   }
 }
