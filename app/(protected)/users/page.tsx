@@ -13,21 +13,15 @@ export default function UsersPage() {
   // State
   const [queryParams, setQueryParams] = useState({
     page: 1,
-    limit: 10,
     search: '',
     presence: 'all' as UserParams['presence'],
   })
 
   // Hooks
-  const { loading: authLoading } = useAuth({ requirePermission: 'user:read' })
   const { users, isLoading, refetchUsers, refetchRoles } = useParticipants()
 
   // Permissions
-  // TODO: Implement permissions for create, update, delete actions
-  // const { hasPermission } = useAuth({ requirePermission: 'user:read' })
-  // const canCreate = hasPermission('user:create')
-  // const canUpdate = hasPermission('user:update')
-  // const canDelete = hasPermission('user:delete')
+  const { loading: authLoading } = useAuth({ requirePermission: 'user:read' })
 
   // Handler & Computed
   const filteredUsers = useMemo(() => {
@@ -101,10 +95,6 @@ export default function UsersPage() {
         data={filteredUsers}
         columns={columns}
         loading={isLoading || authLoading}
-        pageCount={users.totalPages}
-        onPaginationParamsChange={(page, limit) => {
-          setQueryParams((prev) => ({ ...prev, page, limit }))
-        }}
       />
     </PageContainer>
   )

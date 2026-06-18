@@ -11,4 +11,5 @@ export type Users = User
 
 export interface UserParams {
   presence?: UserPrensence | 'all'
+  limit?: number
 }
