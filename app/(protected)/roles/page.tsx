@@ -11,6 +11,11 @@ import EditRoles from '@/app/(protected)/roles/_partials/edit'
 import { toast } from '@/components/ui/sonner'
 import { displayedError } from '@/lib/utils'
 import ErrorPage from '@/compounds/error-page'
+import { getToken } from '@/lib/api/auth-client'
+
+enum RolesEventSSE {
+  RolesUpdated = 'role_update',
+}
 
 export default function RolesPage() {
   const { isAdmin } = useAuth()
@@ -46,6 +51,23 @@ export default function RolesPage() {
   useEffect(() => {
     loadRoles()
     loadPermissions()
+
+    const es = new EventSource(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/roles/events?token=${getToken()}`
+    )
+    es.onmessage = (event: MessageEvent) => {
+      const payload = JSON.parse(event.data)
+      if ([RolesEventSSE.RolesUpdated].includes(payload.type)) {
+        loadRoles()
+      }
+    }
+    es.onerror = () => {
+      console.error('Error connecting to SSE server.')
+      es.close()
+    }
+    return () => {
+      es.close()
+    }
   }, [])
 
   const openManage = (role: Role) => {
