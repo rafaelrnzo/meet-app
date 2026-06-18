@@ -21,6 +21,12 @@ import { Icon } from '@/components/ui/icon'
 import { toast } from '@/components/ui/sonner'
 import { displayedError } from '@/lib/utils'
 import ErrorPage from '@/compounds/error-page'
+import { getToken } from '@/lib/api/auth-client'
+
+enum GroupsEventSSE {
+  GroupUpdated = 'group_updated',
+  GroupDeleted = 'group_deleted',
+}
 
 export default function GroupsPage() {
   const { hasPermission } = useAuth()
@@ -58,13 +64,29 @@ export default function GroupsPage() {
 
   useEffect(() => {
     loadData()
+
+    const es = new EventSource(
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/groups/events?token=${getToken()}`
+    )
+    es.onmessage = (event: MessageEvent) => {
+      const payload = JSON.parse(event.data)
+      if ([GroupsEventSSE.GroupUpdated, GroupsEventSSE.GroupDeleted].includes(payload.type)) {
+        loadData()
+      }
+    }
+    es.onerror = () => {
+      console.error('Error connecting to SSE server.')
+      es.close()
+    }
+    return () => {
+      es.close()
+    }
   }, [])
 
   const handleCreate = async (value: Pick<Group, 'name' | 'description'>) => {
     try {
       await createGroup(value)
       setIsCreateOpen(false)
-      loadData()
       toast.success('Kelompok berhasil dibuat', {
         description: `Kelompok "${value.name}" berhasil dibuat`,
       })
@@ -76,7 +98,6 @@ export default function GroupsPage() {
   const handleDelete = async ({ id, name }: { id: number; name: string }) => {
     try {
       await deleteGroup(id)
-      loadData()
       toast.success('Kelompok berhasil dihapus', {
         description: `Kelompok "${name}" berhasil dihapus`,
       })
@@ -105,7 +126,6 @@ export default function GroupsPage() {
       toast.success('Kelompok berhasil diperbarui', {
         description: `Kelompok "${selectedGroup.name}" berhasil diperbarui`,
       })
-      loadData()
     } catch (error) {
       displayedError(error, 'Gagal memperbarui kelompok')
     }
