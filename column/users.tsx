@@ -9,7 +9,7 @@ import { UserPrensence } from '@/feat/users/dto';
 export const usersColumn = (): ColumnDef<User>[] => {
     return [
         {
-            accessorKey: 'name',
+            accessorKey: 'username',
             header: 'Peserta',
             minSize: 325,
             maxSize: 325,
