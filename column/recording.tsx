@@ -1,5 +1,5 @@
 import type { ActionButtonProps } from '@/compounds/action-button'
-import type { ColumnDef, Getter } from '@tanstack/react-table'
+import type { ColumnDef, Getter, Row } from '@tanstack/react-table'
 import type { Recording as RecordingDto } from '@/lib/api/admin-api'
 import ActionButton from '@/compounds/action-button'
 import Link from 'next/link'
@@ -17,16 +17,12 @@ type ActionCompProps = Pick<
   'isAdmin' | 'canManage' | 'handleDownload' | 'handleDelete' | 'handleMailto'
 > & { recordingData: RecordingDto }
 
-type RenameRecordCompProps = Pick<
-  RecordingColumnProps,
-  'renamingId' | 'isAdmin' | 'setRenamingId' | 'inputRenameRef' | 'handleRename'
-> & {
-  recordingData: RecordingDto
-}
+type RenameRecordCompProps = Row<RecordingDto> &
+  Pick<RecordingColumnProps, 'isAdmin' | 'inputRenameRef' | 'handleRename'> & {
+    recordingData: RecordingDto
+  }
 
 interface RecordingColumnProps {
-  renamingId: number | null
-  setRenamingId: React.Dispatch<number | null>
   inputRenameRef: React.RefObject<HTMLFormElement | null>
   isAdmin: boolean
   canManage: boolean
@@ -139,16 +135,24 @@ const ActionHeader = ({ isAdmin, canManage }: Record<'isAdmin' | 'canManage', bo
 }
 
 const RenameRecordComp = (props: RenameRecordCompProps) => {
-  const { recordingData, renamingId, isAdmin, setRenamingId, inputRenameRef, handleRename } = props
-  const { id, name } = recordingData
+  const {
+    isAdmin,
+    inputRenameRef,
+    handleRename,
+    getToggleSelectedHandler,
+    getIsSelected,
+    original: data,
+  } = props
+  const { id, name } = data
+  const isSelected = getIsSelected()
 
-  if (renamingId !== id) {
+  if (!isSelected) {
     return (
       <div className='flex items-center gap-2 font-medium'>
         <span>{name.length > 25 ? `${name.slice(0, 25)}...` : name}</span>
         {isAdmin && (
           <Button
-            onClick={() => setRenamingId(id)}
+            onClick={getToggleSelectedHandler()}
             variant='secondary'
             size='icon-xs'
             className='p-0'
@@ -189,8 +193,6 @@ const RenameRecordComp = (props: RenameRecordCompProps) => {
 }
 
 export const recordingColumn = ({
-  renamingId,
-  setRenamingId,
   inputRenameRef,
   isAdmin,
   canManage,
@@ -204,7 +206,8 @@ export const recordingColumn = ({
     header: 'Nama rekaman',
     cell: ({ row }) => (
       <RenameRecordComp
-        {...{ isAdmin, handleRename, inputRenameRef, renamingId, setRenamingId }}
+        {...row}
+        {...{ isAdmin, handleRename, inputRenameRef }}
         recordingData={row.original}
       />
     ),
@@ -236,7 +239,7 @@ export const recordingColumn = ({
     enableSorting: false,
     cell: ({ row }) => {
       const { status } = row.original
-      if (status === 'PROCESSING') {
+      if (status !== 'COMPLETED') {
         return <Badge variant='destructive'>Record in Progress</Badge>
       }
       return (
