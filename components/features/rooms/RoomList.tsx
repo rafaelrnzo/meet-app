@@ -262,7 +262,6 @@ function RoomList(props: SummaryCardProps) {
                                   event.stopPropagation()
                                   handleShareLink({ roomId: room.id, roomCode: ownRoomCode })
                                 }}
-                                hidden={!isAdmin}
                               >
                                 <Icon type='share' />
                               </Button>
