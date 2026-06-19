@@ -5,6 +5,21 @@ import type { User } from '@/lib/api/admin-api';
 import type { ColumnDef } from '@tanstack/react-table'
 import { Badge } from '@/components/ui/badge'
 import { UserPrensence } from '@/feat/users/dto';
+import { Tooltip as TooltipBase, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+
+export const Tooltip = ({ trigger, content }: { trigger: React.ReactNode, content: React.ReactNode }) => {
+    return (
+        <TooltipBase>
+            <TooltipTrigger className='cursor-pointer '>
+                {trigger}
+            </TooltipTrigger>
+            <TooltipContent className='bg-red-800'>
+                {content}
+            </TooltipContent>
+        </TooltipBase>
+    )
+
+}
 
 export const usersColumn = (): ColumnDef<User>[] => {
     return [
@@ -14,26 +29,68 @@ export const usersColumn = (): ColumnDef<User>[] => {
             minSize: 325,
             maxSize: 325,
             cell: ({ row }) => {
-                const username = row.original.username.replace(/\b[a-z]/g, (match) => match.toUpperCase());
+                const username = row.original.username || '-'
+                const email = row.original.email || '-'
+                const nameAvatar = username !== '-' ? username.substring(0, 2).toUpperCase() : '??'
+
+                const isUsernameLong = username.length > 25
+                const displayUsername = isUsernameLong ? `${username.substring(0, 25)}...` : username
+
+                const isEmailLong = email.length > 25
+                const displayEmail = isEmailLong ? `${email.substring(0, 25)}...` : email
 
                 return (
-                    <div className='flex flex-row items-center gap-2.5'>
+                    <div className='flex flex-row items-center gap-2.5 min-w-0'>
                         <Avatar size='lg'>
-                            <AvatarFallback>CN</AvatarFallback>
+                            <AvatarFallback>{nameAvatar}</AvatarFallback>
                         </Avatar>
-                        <div>
-                            <p className='font-semibold'>
-                                {username}
-                            </p>
-                            {/* Tips: Ganti hardcode ini dengan email asli dari data jika ada, misal: row.original.email */}
-                            <p className='text-neutral-400'>{row.original.email ?? '-'}</p>
+                        <div className='flex flex-col min-w-0'>
+
+                            {isUsernameLong ? (
+                                <Tooltip
+                                    trigger={
+                                        <p className='font-semibold truncate max-w-[200px] text-left'>
+                                            {displayUsername}
+                                        </p>
+                                    }
+                                    content={
+                                        <p className='font-semibold text-white'>
+                                            {username}
+                                        </p>
+                                    }
+                                />
+                            ) : (
+                                <p className='font-semibold truncate max-w-[200px]'>
+                                    {username}
+                                </p>
+                            )}
+
+                            {isEmailLong ? (
+                                <Tooltip
+                                    trigger={
+                                        <p className='text-neutral-400 text-xs truncate max-w-[200px] text-left'>
+                                            {displayEmail}
+                                        </p>
+                                    }
+                                    content={
+                                        <p className='text-xs text-white'>
+                                            {email}
+                                        </p>
+                                    }
+                                />
+                            ) : (
+                                <p className='text-neutral-400 text-xs truncate max-w-[200px]'>
+                                    {email}
+                                </p>
+                            )}
+
                         </div>
                     </div>
                 )
             },
         },
         {
-            accessorKey: 'role',
+            accessorKey: 'role.name',
             header: 'Peran',
             minSize: 200,
             maxSize: 200,
@@ -56,6 +113,7 @@ export const usersColumn = (): ColumnDef<User>[] => {
             header: 'Status di ruangan rapat',
             minSize: 345,
             maxSize: 345,
+            enableSorting: false,
             cell: ({ row }) => {
                 const presence = row.original.presence || [];
                 const getBadgeConfig = (statusStr: string) => {

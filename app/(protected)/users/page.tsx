@@ -8,6 +8,8 @@ import { TableViewHeader } from '@/compounds/table-view/header'
 import { useParticipants } from '@/feat/users/useParticipants'
 import type { UserParams, UserPrensence } from '@/feat/users/dto'
 import { useAuth } from '@/hooks/use-auth'
+import { useRealTimeUsers } from '@/hooks/use-real-time-users'
+import { toast } from '@/components/ui/sonner'
 
 export default function UsersPage() {
   // State
@@ -17,11 +19,26 @@ export default function UsersPage() {
     presence: 'all' as UserParams['presence'],
   })
 
-  // Hooks
-  const { users, isLoading, refetchUsers, refetchRoles } = useParticipants()
-
-  // Permissions
   const { loading: authLoading } = useAuth({ requirePermission: 'user:read' })
+
+  // Hooks
+  const { users, isLoading, refetchUsers, refetchRoles, setUsers } = useParticipants()
+
+  useRealTimeUsers((event) => {
+    if (event.type === 'user_updated') {
+      setUsers((prev) => ({
+        ...prev,
+        data: prev.data.map((user) => {
+
+          if (user.id !== event.data?.id) return user
+          return {
+            ...user,
+            presence: event.data.presence
+          }
+        }),
+      }))
+    }
+  })
 
   // Handler & Computed
   const filteredUsers = useMemo(() => {
@@ -32,6 +49,12 @@ export default function UsersPage() {
     return users.data.filter((user) =>
       user.username.toLowerCase().includes(lower)
     )
+  }, [users.data, queryParams.search])
+
+  useEffect(() => {
+    if (!users.data.length && queryParams.search) {
+      toast.error(`${queryParams.search} tidak ditemukan`)
+    }
   }, [users.data, queryParams.search])
 
   useEffect(() => {
@@ -50,7 +73,6 @@ export default function UsersPage() {
       icon='users'
       title='Daftar Peserta'
       subTitle='Kelola setiap peserta badiklat'
-      backToTopButton
     >
       <TableViewHeader
         headerAddon={
@@ -59,7 +81,7 @@ export default function UsersPage() {
         search={{
           placeholder: 'Cari peserta ...',
           onSearch: (search) => setQueryParams((prev) => ({ ...prev, page: 1, search })),
-          'aria-invalid': false,
+          'aria-invalid': !users.data.length,
         }}
         filter={{
           placeholder: 'Status',
