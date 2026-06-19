@@ -48,6 +48,7 @@ export function RoomDetailSheet({
   isModalDetail,
   setModalDetail,
 }: RoomDetailSheetProps) {
+  const { hasPermission } = useAuth()
   const [isShowTooltip, setShowTooltip] = useState(false)
   const [isOpenDelete, setIsOpenDelete] = useState(false)
   const [isOpenBlock, setIsOpenBlock] = useState(false)
@@ -60,29 +61,11 @@ export function RoomDetailSheet({
   const [userIdentity, setUserIdentity] = useState('')
   const [files, setFiles] = useState<FileResponse[]>([])
 
-  const { isAdmin } = useAuth()
+  const canManage = hasPermission('room:manage')
+
   const ROLE_USER = 'user'
   const params = useRef<RoomParams>({})
   const MAX_FILE = 5
-
-  // Helper to construct full URL for presentations
-  // const getPresentationUrl = (path: string | undefined): string => {
-  //   if (!path) return ''
-
-  //   // If already a full URL (http/https), return as-is (backward compatibility)
-  //   if (path.startsWith('http://') || path.startsWith('https://')) {
-  //     return path
-  //   }
-
-  //   // If relative path, prepend backend URL
-  //   const API_BASE =
-  //     process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') ||
-  //     (typeof window !== 'undefined'
-  //       ? `${window.location.protocol}//${window.location.hostname}:8080`
-  //       : 'http://localhost:8080')
-
-  //   return `${API_BASE}${path.startsWith('/') ? path : '/' + path}`
-  // }
 
   const handleCopyLink = async () => {
     const { success } = await copyHandler(room?.room_code ?? '')
@@ -224,7 +207,7 @@ export function RoomDetailSheet({
                   <h2 className='text-lg font-semibold text-red-800'>{room.name}</h2>
                 </div>
                 <div className='flex items-center gap-2'>
-                  {isAdmin && (
+                  {canManage && (
                     <Button
                       variant='primary-outline'
                       onClick={() => {
@@ -270,22 +253,24 @@ export function RoomDetailSheet({
             </div>
 
             <div className='flex h-full flex-col overflow-y-auto'>
-              <Tabs defaultValue={activeTab} className='h-full overflow-auto'>
+              <Tabs defaultValue={activeTab} className='h-full overflow-x-hidden overflow-y-auto'>
                 <TabsList variant='line'>
-                  {tabsTrigger.map((tabs) => (
-                    <TabsTrigger
-                      key={tabs}
-                      value={tabs}
-                      onClick={() => setActiveTab(tabs)}
-                      className='cursor-pointer rounded-none text-sm font-medium text-neutral-400 hover:text-red-800 data-[state=active]:border-b-2 data-[state=active]:border-b-red-800 data-[state=active]:text-red-800 data-[state=active]:after:opacity-0!'
-                    >
-                      {tabs === 'overview'
-                        ? 'Ringkasan Ruangan'
-                        : tabs === 'participants'
-                          ? 'Akses dan Peserta Ruangan'
-                          : 'Pengaturan Ruangan'}
-                    </TabsTrigger>
-                  ))}
+                  {tabsTrigger
+                    .filter((tabs) => (!canManage ? tabs !== 'settings' : tabs))
+                    .map((tabs) => (
+                      <TabsTrigger
+                        key={tabs}
+                        value={tabs}
+                        onClick={() => setActiveTab(tabs)}
+                        className='cursor-pointer rounded-none text-sm font-medium text-neutral-400 hover:text-red-800 data-[state=active]:border-b-2 data-[state=active]:border-b-red-800 data-[state=active]:text-red-800 data-[state=active]:after:opacity-0!'
+                      >
+                        {tabs === 'overview'
+                          ? 'Ringkasan Ruangan'
+                          : tabs === 'participants'
+                            ? 'Akses dan Peserta Ruangan'
+                            : 'Pengaturan Ruangan'}
+                      </TabsTrigger>
+                    ))}
                 </TabsList>
                 <TabsContent value={activeTab}>
                   <RoomTabs
