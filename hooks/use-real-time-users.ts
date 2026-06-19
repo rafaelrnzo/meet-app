@@ -147,7 +147,6 @@ export function useRealTimeUsers(
     // ─── Handle named SSE events (event: room_updated\ndata: {...}) ─────────
     // Backend may send `event: <type>` headers — onmessage won't fire for these.
     ALL_NAMED_EVENT_TYPES.forEach((eventType) => {
-      console.log(eventType)
       eventSource.addEventListener(eventType, (event) => {
         try {
           const raw = JSON.parse(event.data)
