@@ -8,6 +8,7 @@ import 'dayjs/locale/id'
 import { toast } from '@/components/ui/sonner'
 import { default as utc } from 'dayjs/plugin/utc'
 import { default as timezone } from 'dayjs/plugin/timezone'
+import type { ResponseBase } from '@/feat/Auth/dto'
 
 dayjs.extend(customParseFormat)
 dayjs.extend(duration)
@@ -253,4 +254,26 @@ export function loginfo(...data: unknown[]) {
   if (!window.location.protocol.startsWith('https')) {
     return console.info(...data)
   }
+}
+
+export function createResponseSuccess<T>(data: T): ResponseBase<T> {
+  return { data }
+}
+
+export function createResponseError<T>(e: unknown, data?: T, fallback = ''): ResponseBase<T> {
+  // This will help us debug in development mode.
+  // → It's a good habit to log the error only during development
+  //   so that production users don’t see raw errors.
+  const error = { message: 'Something went wrong, try again later.' }
+  const fallbackData = data as T
+
+  if (e instanceof Error) {
+    error.message = e.message
+  }
+
+  if (fallback) {
+    error.message = fallback
+  }
+
+  return { data: fallbackData, error }
 }

@@ -143,7 +143,7 @@ export class LiveKitYjsProvider<T extends object = TLDrawCursor> {
     const { msgId, index, total, payload } = header
 
     if (!this._chunkBuffer.has(msgId)) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+       
       this._chunkBuffer.set(msgId, new Array(total).fill(null))
     }
 

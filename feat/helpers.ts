@@ -46,6 +46,7 @@ export function parseYoutubeURL(url?: string) {
   return youtubeVideoID
 }
 
+// eslint-disable-next-line @typescript-eslint/require-await
 export async function unsecuredCopyToClipboard(text: string) {
   const textArea = document.createElement('textarea')
   textArea.value = text
@@ -151,7 +152,6 @@ export function generateColor(identity: string): { hex: string; tldraw: string }
   return ColorPalette[Math.abs(hash) % ColorPalette.length]
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access */
 export function cloneSingleChild(
   children: ReactNode | ReactNode[],
   props?: Record<string, any>,
@@ -173,4 +173,3 @@ export function cloneSingleChild(
     return child
   })
 }
-/* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-argument, @typescript-eslint/no-unsafe-member-access */

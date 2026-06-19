@@ -190,7 +190,7 @@ export function useRealTimeRooms(
     ALL_NAMED_EVENT_TYPES.forEach((eventType) => {
       eventSource.addEventListener(eventType, (event) => {
         try {
-          const raw = JSON.parse((event as MessageEvent).data)
+          const raw = JSON.parse((event).data)
           // Normalise: backend may send {type, data} or just the data payload directly
           const data: RoomSSEEvent =
             raw?.type ? raw : { type: eventType, data: raw }

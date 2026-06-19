@@ -66,7 +66,7 @@ export async function fetchToken(
 
   const data = (await res.json()) as TokenResponse
 
-  if (!data.host || !data.host.trim()) {
+  if (!data.host?.trim()) {
     throw new Error(
       'Backend mengembalikan host kosong. Pastikan LIVEKIT_SERVER_URL di backend sudah diset.'
     )

@@ -20,11 +20,14 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import NoData from '@/components/ui/no-data'
 
 export default function RoomsPage() {
-  const { hasPermission } = useAuth({ requirePermission: 'module:rooms:access' })
+  const {
+    hasPermission,
+    isAdmin,
+    loading: authLoading,
+  } = useAuth({ requirePermission: 'module:rooms:access' })
   const [rooms, setRooms] = useState<DbRoom[]>([])
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
   const [groups, setGroups] = useState<GroupDto[]>([])
-  const { isAdmin, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [queryParams, setQueryParams] = useState<RoomParams>({ sort: 'newest' })
 
