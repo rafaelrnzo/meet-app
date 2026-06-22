@@ -6,7 +6,7 @@ import { fetcher } from '@/feat/Auth/helpers'
 import { qstring } from '@/lib/utils'
 
 // API Endpoints
-const KEYCLOAK_ID = process.env.APP_API_RBAC ?? ''
+const KEYCLOAK_ID = process.env.KEYCLOAK_ID ?? ''
 const KEYCLOAK_SECRET = process.env.KEYCLOAK_SECRET ?? ''
 const KEYCLOAK_ISSUER = process.env.KEYCLOAK_ISSUER ?? ''
 
@@ -14,20 +14,21 @@ const KEYCLOAK_ISSUER = process.env.KEYCLOAK_ISSUER ?? ''
  * Refresh the access token using the refresh token
  */
 export async function refreshToken(refreshToken: string) {
-  const params = {
+  const params = new URLSearchParams({
     client_id: KEYCLOAK_ID,
     client_secret: KEYCLOAK_SECRET,
     grant_type: 'refresh_token',
     refresh_token: refreshToken,
-  }
+  })
 
   return await fetcher<RefreshTokenResponseDTO>(
-    qstring([KEYCLOAK_ISSUER, '/protocol/openid-connect/token'].join(''), params),
+    [KEYCLOAK_ISSUER, '/protocol/openid-connect/token'].join(''),
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded',
       },
+      body: params.toString(),
     }
   )
 }

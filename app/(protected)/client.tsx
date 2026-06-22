@@ -34,12 +34,12 @@ export function ProtectedContent({ children }: { children: React.ReactNode }) {
     )
   }
 
-  if (!isAuthenticated || !user) {
+  if (!isAuthenticated) {
     return null
   }
 
   const username = user?.username || 'Unknown'
-  const role = user.role || (isAdmin ? 'admin' : 'user')
+  const role = user?.role || (isAdmin ? 'admin' : 'user')
   const roleName = role.name
   const menuItems = sidebarItems({ isAdmin, hasPermission: () => true })
 

@@ -55,23 +55,19 @@ const AuthOptions: NextAuthConfig = {
         token.refresh_token = account.refresh_token ?? ''
       }
 
-      console.log('-------------')
-      console.log(token)
-      console.log('-------------')
-
       // Fetch profile on first request
-      // if (!token.profile) {
-      //   const { data: profile } = await fetcher<AuthProfileDTO>(
-      //     `${APP_API_VIDEO_CONFERENCE}/api/me`,
-      //     {
-      //       method: 'GET',
-      //       headers: {
-      //         Authorization: `Bearer ${token.access_token}`,
-      //       },
-      //     }
-      //   )
-      //   token.profile = profile
-      // }
+      if (!token.profile) {
+        const { data: profile } = await fetcher<AuthProfileDTO>(
+          `${APP_API_VIDEO_CONFERENCE}/api/me`,
+          {
+            method: 'GET',
+            headers: {
+              Authorization: `Bearer ${token.access_token}`,
+            },
+          }
+        )
+        token.profile = profile
+      }
 
       if (shouldRefreshPermissions(token)) {
         // Refresh permissions
@@ -84,6 +80,7 @@ const AuthOptions: NextAuthConfig = {
 
       // Otherwise refresh access token
       return await refreshAccessToken(token)
+      // return token
     },
 
     session({ session, token }) {
