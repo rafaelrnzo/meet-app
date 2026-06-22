@@ -20,8 +20,6 @@ import NoData from '@/components/ui/no-data'
 import { Icon } from '@/components/ui/icon'
 import { toast } from '@/components/ui/sonner'
 import { displayedError } from '@/lib/utils'
-import ErrorPage from '@/compounds/error-page'
-import { getToken } from '@/lib/api/auth-client'
 
 enum GroupsEventSSE {
   GroupUpdated = 'group_updated',
@@ -29,15 +27,13 @@ enum GroupsEventSSE {
 }
 
 export default function GroupsPage() {
-  const { hasPermission } = useAuth()
+  const { hasPermission, token } = useAuth({ requirePermission: 'group:read' })
   const [groups, setGroups] = useState<Group[]>([])
   const [users, setUsers] = useState<UserResponse>({ data: [] })
   const [isCreateOpen, setIsCreateOpen] = useState(false)
   const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
   const [isManageOpen, setIsManageOpen] = useState(false)
   const [loading, setLoading] = useState(false)
-
-  const canRead = hasPermission('group:read')
   const canManage = hasPermission('group:manage')
 
   const loadData = async () => {
@@ -58,7 +54,7 @@ export default function GroupsPage() {
     } catch (error) {
       console.error(error)
     } finally {
-      setTimeout(() => setLoading(false), 500)
+      setLoading(false)
     }
   }
 
@@ -66,7 +62,7 @@ export default function GroupsPage() {
     loadData()
 
     const es = new EventSource(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/groups/events?token=${getToken()}`
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/groups/events?token=${token}`
     )
     es.onmessage = (event: MessageEvent) => {
       const payload = JSON.parse(event.data)
@@ -81,7 +77,7 @@ export default function GroupsPage() {
     return () => {
       es.close()
     }
-  }, [])
+  }, [token])
 
   const handleCreate = async (value: Pick<Group, 'name' | 'description'>) => {
     try {
@@ -135,7 +131,6 @@ export default function GroupsPage() {
   const availableUsers = users?.data.filter(
     (u) => !selectedGroup?.members?.some((m) => m.id === u.id)
   )
-  if (!canRead) return <ErrorPage status={401} />
 
   return (
     <div>

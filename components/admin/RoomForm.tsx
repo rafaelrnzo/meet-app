@@ -18,18 +18,11 @@ import {
 import { Textarea } from '@/components/ui/textarea'
 import { cn, djs, omit } from '@/lib/utils'
 import { CalendarWithTime } from '@/components/ui/calendar-with-time'
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from '@/components/ui/combobox'
+import { Combobox } from '@/components/ui/combobox'
 import { Card, CardContent } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { getRoomDefaultValue, getRoomPayload } from '@/feat/rooms/dto'
-import type { RoomSchemaValue, SelectOptions } from '@/feat/rooms/dto'
+import type { RoomSchemaValue } from '@/feat/rooms/dto'
 import { roomSchema } from '@/feat/rooms/schema'
 import type { AnyFormApi } from '@tanstack/react-form'
 import { useForm, useStore } from '@tanstack/react-form'
@@ -58,8 +51,6 @@ interface FormFieldProps {
   errors?: ({ message?: string } | undefined)[]
   className?: HTMLDivElement['className']
 }
-
-type GroupOptions = SelectOptions & { totalMember: number }
 
 const FormField = (props: FormFieldProps) => {
   const {
@@ -150,24 +141,17 @@ export function RoomForm({
     return remainingParticipant > 0 ? remainingParticipant : 0
   })
 
-  const fetchUsers = async (params?: ParamsUserAssignment, signal?: AbortSignal) => {
+  const fetchUsers = async (params?: ParamsUserAssignment) => {
     try {
-      const response = await fetchUsersAssignment(params, signal)
+      const response = await fetchUsersAssignment(params)
       setUsers(response)
-    } catch (error) {
-      if (error instanceof DOMException && error.name == 'AbortError') {
-        return
-      }
+    } catch {
       setUsers([])
     }
   }
 
   useEffect(() => {
-    const controller = new AbortController()
-    fetchUsers(queryParams, controller.signal)
-    return () => {
-      controller.abort()
-    }
+    fetchUsers(queryParams)
   }, [queryParams])
 
   useEffect(() => {
@@ -358,57 +342,34 @@ export function RoomForm({
           >
             {(field) => {
               const { name, state, handleChange } = field
-              const { value: defaultValue, meta } = state
+              const { value, meta } = state
               const { errors, isTouched } = meta
               const isInvalid = isTouched && errors.length > 0
-              const options: GroupOptions[] = groups
+              const options = groups
                 .filter((item) => item.members && item.members?.length > 0)
                 .map((item) => ({
                   value: `${item.id}`,
                   label: item.name,
-                  totalMember: item.members?.length ?? 0,
+                  count: `${item.members?.length ?? 0}`,
                 }))
-              const value = options.find((item) => item.value === defaultValue) ?? {
-                value: '',
-                label: '',
-              }
 
               return (
                 <FormField label='Kelompok' {...{ name, isInvalid, errors }}>
                   <Combobox
                     items={options}
-                    itemToStringValue={(group: SelectOptions) => group.label}
-                    {...{ value }}
-                    onValueChange={(val) => {
-                      handleChange(val?.value ?? '')
+                    commandEmpty={{ children: 'Tidak ada data.' }}
+                    commandInput={{ placeholder: 'Cari kelompok' }}
+                    popoverTrigger={{ children: 'Pilih kelompok ...' }}
+                    selected={value}
+                    onSelect={(value) => {
+                      handleChange(value ?? '')
                       setQueryParams((prev) =>
-                        val
-                          ? { ...prev, exclude_group_id: +val.value }
+                        value
+                          ? { ...prev, exclude_group_id: +value }
                           : omit(prev, ['exclude_group_id'])
                       )
                     }}
-                  >
-                    <ComboboxInput
-                      aria-invalid={isInvalid}
-                      placeholder='Pilih kelompok ...'
-                      showClear={!!value.value}
-                    />
-                    <ComboboxContent>
-                      <ComboboxEmpty>Tidak ada data.</ComboboxEmpty>
-                      <ComboboxList>
-                        {(group: GroupOptions) => (
-                          <ComboboxItem
-                            key={group.value}
-                            value={group}
-                            className='flex items-center justify-between gap-2.5'
-                          >
-                            <span className='wrap-anywhere'>{group.label.trim() || '-'}</span>
-                            <span>{group.totalMember}</span>
-                          </ComboboxItem>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                  />
                 </FormField>
               )
             }}

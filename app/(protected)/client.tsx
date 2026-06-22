@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useEffect, useState } from 'react'
+import React from 'react'
 import { usePathname } from 'next/navigation'
 import { useAuth } from '@/hooks/use-auth'
 import { sidebarItems } from '@/lib/menu-items'
@@ -12,18 +12,7 @@ import { cn } from '@/lib/utils'
 export function ProtectedContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
-  const {
-    loading,
-    isAuthenticated,
-    isAdmin,
-    hasPermission,
-    user = {
-      username: 'superadmin',
-      role: {
-        name: 'superadmin',
-      },
-    },
-  } = useAuth()
+  const { loading, isAuthenticated, isAdmin, user, role } = useAuth()
   const { openMobile } = useSidebar()
 
   if (loading) {
@@ -39,8 +28,7 @@ export function ProtectedContent({ children }: { children: React.ReactNode }) {
   }
 
   const username = user?.username || 'Unknown'
-  const role = user?.role || (isAdmin ? 'admin' : 'user')
-  const roleName = role.name
+  const roleName = role?.name ?? ''
   const menuItems = sidebarItems({ isAdmin, hasPermission: () => true })
 
   return (

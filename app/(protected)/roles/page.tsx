@@ -10,15 +10,13 @@ import { rolesColumn } from '@/column/roles'
 import EditRoles from '@/app/(protected)/roles/_partials/edit'
 import { toast } from '@/components/ui/sonner'
 import { displayedError } from '@/lib/utils'
-import ErrorPage from '@/compounds/error-page'
-import { getToken } from '@/lib/api/auth-client'
 
 enum RolesEventSSE {
   RolesUpdated = 'role_update',
 }
 
 export default function RolesPage() {
-  const { isAdmin } = useAuth()
+  const { token } = useAuth({ requireAdmin: true })
   const [roles, setRoles] = useState<Role[]>([])
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
@@ -34,7 +32,7 @@ export default function RolesPage() {
       setRoles([])
       console.error(error)
     } finally {
-      setTimeout(() => setLoading(false), 500)
+      setLoading(false)
     }
   }
 
@@ -53,7 +51,7 @@ export default function RolesPage() {
     loadPermissions()
 
     const es = new EventSource(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/roles/events?token=${getToken()}`
+      `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/roles/events?token=${token}`
     )
     es.onmessage = (event: MessageEvent) => {
       const payload = JSON.parse(event.data)
@@ -68,7 +66,7 @@ export default function RolesPage() {
     return () => {
       es.close()
     }
-  }, [])
+  }, [token])
 
   const openManage = (role: Role) => {
     setSelectedRole(role)
@@ -111,7 +109,6 @@ export default function RolesPage() {
     }
   }
   const groupedPermissions = getGroupedPermissions()
-  if (!isAdmin) return <ErrorPage status={401} />
 
   return (
     <>

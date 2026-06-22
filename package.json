@@ -9,7 +9,6 @@
     "format": "pnpm exec eslint \".\" --ext .ts,.tsx --fix && pnpm exec prettier \"**/*.{ts,tsx}\" --write"
   },
   "dependencies": {
-    "@base-ui/react": "^1.4.1",
     "@excalidraw/excalidraw": "^0.18.1",
     "@hugeicons/core-free-icons": "^4.2.0",
     "@hugeicons/react": "^1.1.6",

@@ -13,17 +13,17 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar'
 import { Button } from '@/components/ui/button'
-import type { StoredUser } from '@/lib/api/auth-client'
 import { sidebarItems } from '@/lib/menu-items'
 import { useAuth } from '@/hooks/use-auth'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { Icon } from '@/components/ui/icon'
+import type { AuthProfileDTO } from '@/feat/Auth/dto'
 
 function SidebarList({
   user,
   ...props
-}: React.ComponentProps<typeof Sidebar> & { user: StoredUser | null }) {
+}: React.ComponentProps<typeof Sidebar> & { user?: AuthProfileDTO }) {
   const { toggleSidebar } = useSidebar()
   const { isAdmin, hasPermission, logout } = useAuth()
   const pathname = usePathname()

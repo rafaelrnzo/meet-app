@@ -50,7 +50,7 @@ export default function HomePage() {
           if (liveData.status === 'fulfilled') setActiveRooms(liveData.value || [])
         }
       } finally {
-        setTimeout(() => setLoading(false), 500)
+        setLoading(false)
       }
     },
     [isAdmin]

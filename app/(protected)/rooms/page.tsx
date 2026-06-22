@@ -41,7 +41,6 @@ export default function RoomsPage() {
   const [isModalDetail, setModalDetail] = useState(false)
 
   const canCreate = hasPermission('room:manage')
-  const canUpdate = hasPermission('room:manage')
   const canDelete = isAdmin
   const canShareLink = hasPermission('room:share')
   const isMobile = useIsMobile()
@@ -64,7 +63,7 @@ export default function RoomsPage() {
       } catch (error) {
         console.error('Failed to load data', error)
       } finally {
-        setTimeout(() => setLoading(false), 500)
+        setLoading(false)
       }
     },
     [isAdmin]
@@ -227,7 +226,7 @@ export default function RoomsPage() {
               staticRooms={displayedRooms}
               activeRooms={activeRooms}
               isAdmin={isAdmin}
-              handleDetail={canUpdate ? handleViewDetails : void 0}
+              handleDetail={handleViewDetails}
               handleCloseModal={() => {
                 setIsDetailOpen(false)
                 if (isFormOpen && editingRoom) setIsFormOpen(false)
