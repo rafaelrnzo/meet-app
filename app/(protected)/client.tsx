@@ -12,7 +12,7 @@ import { cn } from '@/lib/utils'
 export function ProtectedContent({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
   const isMobile = useIsMobile()
-  const { loading, isAuthenticated, isAdmin, user, role } = useAuth()
+  const { loading, isAuthenticated, isAdmin, user, role, hasPermission } = useAuth()
   const { openMobile } = useSidebar()
 
   if (loading) {
@@ -29,7 +29,7 @@ export function ProtectedContent({ children }: { children: React.ReactNode }) {
 
   const username = user?.username || 'Unknown'
   const roleName = role?.name ?? ''
-  const menuItems = sidebarItems({ isAdmin, hasPermission: () => true })
+  const menuItems = sidebarItems({ isAdmin, hasPermission })
 
   return (
     <>

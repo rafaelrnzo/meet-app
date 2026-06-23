@@ -37,7 +37,9 @@ export async function apiRequest<T>(
 
   if (!res.ok) {
     const data = await res.json().catch(() => '')
-    throw new Error(data?.error || `Request failed with status ${res.status}`)
+    throw new Error(data?.error || `Request failed with status ${res.status}`, {
+      cause: { status: res.status },
+    })
   }
 
   // Handle empty responses (like 204 No Content)
@@ -187,6 +189,15 @@ export async function getOnePresentation(roomId: number) {
 export async function deleteRoomPresentation(roomId: number) {
   await apiRequest(`/admin/rooms/${roomId}/presentation`, {
     method: 'DELETE',
+  })
+}
+
+export async function fetchRoomToken(roomCode: string): Promise<DbRoom[]> {
+  // TODO: cek lagi, sedang direfactor BE
+  return apiRequest('/api/livekit/token', {
+    method: 'POST',
+    cache: 'no-store',
+    body: JSON.stringify({ room_code: roomCode }),
   })
 }
 
