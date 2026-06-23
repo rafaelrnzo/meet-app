@@ -37,6 +37,7 @@ export interface AuthProfileDTO {
 export interface AuthDTO {
   access_token: string
   expires_in: number
+  expires_at: number
   refresh_expires_in: number
   refresh_token: string
   token_type: string

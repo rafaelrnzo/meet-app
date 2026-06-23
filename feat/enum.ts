@@ -34,6 +34,7 @@ export enum ConnectionInterceptor {
   Blocked = 'blocked',
   Waiting = 'waiting',
   Limit = 'limit',
+  Unauthorized = 'unauthorized',
 }
 
 export enum SearchParamsKey {

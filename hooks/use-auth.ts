@@ -1,7 +1,7 @@
 import { toast } from '@/components/ui/sonner'
 import { logoutSession } from '@/feat/Auth/api'
 import { useSession } from 'next-auth/react'
-import { unauthorized, useRouter } from 'next/navigation'
+import { notFound, useRouter } from 'next/navigation'
 
 type UseAuthOptions = {
   requireAdmin?: boolean
@@ -36,7 +36,7 @@ export function useAuth(options?: UseAuthOptions) {
     ((!!requireAdmin && !isAdmin) || (!!requirePermission && !hasPermission(requirePermission)))
 
   if (isUnauthorized) {
-    unauthorized()
+    notFound()
   }
 
   return {

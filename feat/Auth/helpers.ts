@@ -53,10 +53,10 @@ export async function refreshAccessToken(token: JWT): Promise<JWT> {
  * Check if token is expired or about to expire
  */
 export function isTokenExpired(token: JWT): boolean {
-  if (!token.expires_in) return true
+  if (!token.expires_at) return true
 
   const currentTime = Math.floor(Date.now() / 1000)
-  const expiryTime = token.expires_in
+  const expiryTime = token.expires_at
 
   return currentTime >= expiryTime - REFRESH_TOKEN_BUFFER
 }

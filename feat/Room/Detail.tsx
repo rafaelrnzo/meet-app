@@ -8,6 +8,7 @@ import type { LocalUserChoicesPassword } from '@/feat/Room'
 import { useEffect, useRef, useState } from 'react'
 import { RoomContent, RoomConference, InterceptorRoom, PreJoin } from '@/feat/Room'
 import { ConnectionInterceptor } from '@/feat/enum'
+import { prejoinVerify } from '@/feat/Room/api'
 
 const LIVEKIT_CSS_ENABLE = true
 
@@ -37,30 +38,32 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
   const isReady = !!connectionDetails && !!preJoinChoices
   const handlePreJoinError = useRef((e: unknown) => console.log('Failed to handle prejoin:', e))
   const handlePreJoinSubmit = useRef(async ({ password, ...values }: LocalUserChoicesPassword) => {
-    const url = new URL('/api/connection-details', window.location.origin)
+    // const url = new URL('/api/connection-details', window.location.origin)
 
-    url.searchParams.append('roomName', props.roomName)
-    url.searchParams.append('participantName', values.username)
+    // url.searchParams.append('roomName', props.roomName)
+    // url.searchParams.append('participantName', values.username)
 
     setPreJoinChoices(values)
     setLoading(true)
 
-    if (props.region) url.searchParams.append('region', props.region)
-    if (password) url.searchParams.append('password', password)
+    // if (props.region) url.searchParams.append('region', props.region)
+    // if (password) url.searchParams.append('password', password)
 
     try {
-      const connectionDetailsResp = await fetch(url.toString())
-      const { interceptor, ...connectionDetailsData } =
-        (await connectionDetailsResp.json()) as ConnectionDetails & {
-          interceptor?: ConnectionInterceptor
-        }
+      // const connectionDetailsResp = await fetch(url.toString())
+      const { data, interceptor } = await prejoinVerify({
+        roomName: props.roomName,
+        participantName: values.username,
+        password,
+        region: props.region,
+      })
 
-      if (interceptor) {
-        setInterceptor(interceptor)
-        connectionDetailsRef.current = connectionDetailsData
-      } else {
-        setConnectionDetails(connectionDetailsData)
-      }
+      // if (interceptor) {
+      //   setInterceptor(interceptor)
+      //   connectionDetailsRef.current = connectionDetailsData
+      // } else {
+      //   setConnectionDetails(connectionDetailsData)
+      // }
     } catch (e) {
       setInterceptor(ConnectionInterceptor.Unknown)
       console.log('Failed to join the room:', e)
