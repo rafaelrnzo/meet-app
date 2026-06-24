@@ -25,6 +25,7 @@ interface RoomPayload {
   end_date: string
   password: string
   is_mute_on_start: boolean
+  metadata: string
 }
 
 interface SelectOptions {
@@ -68,6 +69,7 @@ const getRoomPayload = (data: RoomSchemaValue): RoomPayload => {
     end_date: data.endDate?.toISOString() ?? '',
     password: data.password,
     is_mute_on_start: data.isMuteOnStart,
+    metadata: JSON.stringify({ polling: [], banned: [] }),
   }
 }
 

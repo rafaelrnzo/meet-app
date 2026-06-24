@@ -1,6 +1,5 @@
 import { defaultErrorMessage } from '@/config'
-import { fetchRoomByCode } from '@/lib/api/admin-api'
-import { fetchToken } from '@/lib/api/api'
+import { fetchRoomByCode, fetchRoomToken } from '@/lib/api/admin-api'
 import { copyHandler, djs } from '@/lib/utils'
 import { toast } from '@/components/ui/sonner'
 
@@ -68,7 +67,7 @@ const joinRoomAction = async ({
   const room = await fetchRoomByCode(targetCode).catch(() => null)
 
   try {
-    await fetchToken(targetCode)
+    await fetchRoomToken(targetCode)
     showSuccess(room?.name, targetCode)
     onSuccess(targetCode)
   } catch (error) {
@@ -85,10 +84,12 @@ const joinRoomAction = async ({
           return showMeetingNotStartedError(room?.start_date)
         }
 
+        // TODO: cek lagi, sedang direfactor BE
         if (message.toLowerCase().includes(`meeting has ended`)) {
           return showMeetingHasEndedError(room?.name, targetCode)
         }
 
+        // TODO: cek lagi, sedang direfactor BE
         if (message.toLowerCase().includes('room is full')) {
           return showRoomIsFullError()
         }

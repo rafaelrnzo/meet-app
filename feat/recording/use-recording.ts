@@ -7,7 +7,6 @@ import path from 'path'
 import { defaultErrorMessage } from '@/config'
 import { deleteRecording, fetchRecordings, updateRecordingName } from '@/lib/api/admin-api'
 import { djs, qstring } from '@/lib/utils'
-import { getToken } from '@/lib/api/auth-client'
 import { mailtoHandler } from './helper'
 import { RecordingEvent } from './dto'
 import { toast } from '@/components/ui/sonner'
@@ -15,7 +14,7 @@ import { useAuth } from '@/hooks/use-auth'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
 export const useRecording = () => {
-  const { loading: authLoading } = useAuth()
+  const { loading: authLoading, token } = useAuth()
   const [recordings, setRecordings] = useState<Recording[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [queryParams, setQueryParams] = useState<RecordingParams>({ search: '' })
@@ -123,9 +122,7 @@ export const useRecording = () => {
   useEffect(() => {
     const eventSourceUrl = qstring(
       `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/recordings/events`,
-      {
-        token: getToken(),
-      }
+      { token }
     )
     const eventSource = new EventSource(eventSourceUrl)
 
@@ -143,7 +140,7 @@ export const useRecording = () => {
     return () => {
       eventSource.close()
     }
-  }, [])
+  }, [token])
 
   // handle click outside input rename
   useEffect(() => {

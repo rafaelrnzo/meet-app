@@ -10,7 +10,6 @@ import { cn, displayedError, djs } from '@/lib/utils'
 import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { RoomForm } from '@/components/admin/RoomForm'
-import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 import type { SortRoomType } from '@/feat/rooms/dto'
 import { SORT_ROOM } from '@/feat/rooms/dto'
 import { handleSearchNotFound } from '@/feat/rooms/helper'
@@ -20,11 +19,14 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import NoData from '@/components/ui/no-data'
 
 export default function RoomsPage() {
-  const { hasPermission } = useAuth({ requirePermission: 'module:rooms:access' })
+  const {
+    hasPermission,
+    isAdmin,
+    loading: authLoading,
+  } = useAuth({ requirePermission: 'module:rooms:access' })
   const [rooms, setRooms] = useState<DbRoom[]>([])
   const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
   const [groups, setGroups] = useState<GroupDto[]>([])
-  const { isAdmin, loading: authLoading } = useAuth()
   const [loading, setLoading] = useState(false)
   const [queryParams, setQueryParams] = useState<RoomParams>({ sort: 'newest' })
 
@@ -38,7 +40,6 @@ export default function RoomsPage() {
   const [isModalDetail, setModalDetail] = useState(false)
 
   const canCreate = hasPermission('room:manage')
-  const canUpdate = hasPermission('room:manage')
   const canDelete = isAdmin
   const canShareLink = hasPermission('room:share')
   const isMobile = useIsMobile()
@@ -61,7 +62,7 @@ export default function RoomsPage() {
       } catch (error) {
         console.error('Failed to load data', error)
       } finally {
-        setTimeout(() => setLoading(false), 500)
+        setLoading(false)
       }
     },
     [isAdmin]
@@ -73,12 +74,12 @@ export default function RoomsPage() {
     }
   }, [authLoading, loadData])
 
-  useRealTimeRooms((event) => {
-    setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
-    if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
-      loadData()
-    }
-  })
+  // useSourceEventRooms((event) => {
+  //   // setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
+  //   if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
+  //     loadData()
+  //   }
+  // })
 
   const handleCreate = () => {
     setEditingRoom(null)
@@ -224,7 +225,7 @@ export default function RoomsPage() {
               staticRooms={displayedRooms}
               activeRooms={activeRooms}
               isAdmin={isAdmin}
-              handleDetail={canUpdate ? handleViewDetails : void 0}
+              handleDetail={handleViewDetails}
               handleCloseModal={() => {
                 setIsDetailOpen(false)
                 if (isFormOpen && editingRoom) setIsFormOpen(false)

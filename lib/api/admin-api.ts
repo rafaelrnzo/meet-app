@@ -1,37 +1,26 @@
+'use server'
+
 import type { RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
-import Cookies from 'js-cookie'
 import { qstring } from '@/lib/utils'
 import type { UserParams } from '@/feat/users/dto'
+import { auth } from '@/lib/auth'
 
-const API_BASE = process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') || 'http://localhost:8080'
-
-function getToken(): string | null {
-  if (typeof window === 'undefined') return null
-  try {
-    return (
-      Cookies.get('token') ||
-      Cookies.get('vc_token') ||
-      Cookies.get('access_token') ||
-      localStorage.getItem('token') ||
-      localStorage.getItem('vc_token') ||
-      localStorage.getItem('access_token')
-    )
-  } catch (e) {
-    console.error('Failed to access storage', e)
-    return null
-  }
-}
+const API_BASE = process.env.APP_API_VIDEO_CONFERENCE
 
 export async function apiRequest<T>(
   path: string,
   options: RequestInit = {},
   searchParams = {}
 ): Promise<T> {
-  const token = getToken()
+  const session = await auth()
+  const token = session?.access_token
 
   const headers: Record<string, string> = {
-    'Content-Type': 'application/json',
     ...((options.headers as Record<string, string>) || {}),
+  }
+
+  if (options.body && !(options.body instanceof FormData)) {
+    headers['Content-Type'] = 'application/json'
   }
 
   if (token) {
@@ -41,7 +30,6 @@ export async function apiRequest<T>(
   const params = new URLSearchParams(searchParams)
   const queryString = params.toString()
   const url = queryString ? `${API_BASE}${path}?${queryString}` : `${API_BASE}${path}`
-  console.log(`[API Request] ${options.method || 'GET'} ${url}`)
   const res = await fetch(url, {
     ...options,
     headers,
@@ -49,13 +37,14 @@ export async function apiRequest<T>(
 
   if (!res.ok) {
     const data = await res.json().catch(() => '')
-    throw new Error(data?.error || `Request failed with status ${res.status}`)
+    throw new Error(data?.error || `Request failed with status ${res.status}`, {
+      cause: { status: res.status },
+    })
   }
 
   // Handle empty responses (like 204 No Content)
   const text = await res.text()
   const data = text ? JSON.parse(text) : null
-  console.log(`[API Response] ${url}:`, data)
   return data
 }
 
@@ -178,24 +167,12 @@ export async function uploadRoomPresentation(id: number, file: File): Promise<{ 
   const formData = new FormData()
   formData.append('file', file)
 
-  const token = getToken()
-  const headers: Record<string, string> = {}
-  if (token) {
-    headers.Authorization = `Bearer ${token}`
-  }
-
-  const res = await fetch(`${API_BASE}/admin/rooms/${id}/presentation`, {
+  const res = await apiRequest<{ path: string }>(`/admin/rooms/${id}/presentation`, {
     method: 'POST',
-    headers,
     body: formData,
   })
 
-  if (!res.ok) {
-    const text = await res.text()
-    throw new Error(text || 'Failed to upload presentation')
-  }
-
-  return res.json()
+  return res
 }
 
 export async function getOnePresentation(roomId: number) {
@@ -212,6 +189,15 @@ export async function getOnePresentation(roomId: number) {
 export async function deleteRoomPresentation(roomId: number) {
   await apiRequest(`/admin/rooms/${roomId}/presentation`, {
     method: 'DELETE',
+  })
+}
+
+export async function fetchRoomToken(roomCode: string): Promise<DbRoom[]> {
+  // TODO: cek lagi, sedang direfactor BE
+  return apiRequest('/api/livekit/token', {
+    method: 'POST',
+    cache: 'no-store',
+    body: JSON.stringify({ room_code: roomCode }),
   })
 }
 
@@ -380,14 +366,10 @@ export async function fetchUsers(props?: { params?: UserParams }): Promise<UserR
   )
 }
 
-export async function fetchUsersAssignment(
-  params?: ParamsUserAssignment,
-  signal?: AbortSignal
-): Promise<User[]> {
+export async function fetchUsersAssignment(params?: ParamsUserAssignment): Promise<User[]> {
   return apiRequest<User[]>(
     '/admin/users/assignment',
     {
-      signal,
       method: 'GET',
       cache: 'no-store',
     },

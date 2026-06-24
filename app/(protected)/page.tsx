@@ -13,7 +13,6 @@ import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Loader } from 'lucide-react'
-import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 import { handleSearchNotFound, joinRoomAction } from '@/feat/rooms/helper'
 
 export default function HomePage() {
@@ -50,19 +49,19 @@ export default function HomePage() {
           if (liveData.status === 'fulfilled') setActiveRooms(liveData.value || [])
         }
       } finally {
-        setTimeout(() => setLoading(false), 500)
+        setLoading(false)
       }
     },
     [isAdmin]
   )
 
   // SSE for real-time updates
-  useRealTimeRooms((event) => {
-    setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
-    if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
-      loadData()
-    }
-  })
+  // useSourceEventRooms((event) => {
+  //   // setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
+  //   if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
+  //     loadData()
+  //   }
+  // })
 
   useEffect(() => {
     if (!authLoading) {
@@ -101,7 +100,7 @@ export default function HomePage() {
                 await joinRoomAction({
                   code: roomCodeInput,
                   setIsEmptyRoomCode,
-                  onSuccess: (code) => router.push(`/meeting/${encodeURIComponent(code)}`),
+                  onSuccess: (code) => router.push(`/rooms/${encodeURIComponent(code)}`),
                 })
               })
             }
