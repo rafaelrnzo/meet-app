@@ -81,7 +81,7 @@ export async function GET(request: NextRequest) {
 
     interceptor = (process.env.LIVEKIT_API_INTERCEPTOR ?? null) as never
 
-    if (!interceptor || interceptor === ConnectionInterceptor.Waiting) {
+    if (!interceptor || interceptor === ConnectionInterceptor.Pending) {
       return new NextResponse(JSON.stringify({ ...data, interceptor }), {
         status: !interceptor ? 200 : 307,
         headers: {

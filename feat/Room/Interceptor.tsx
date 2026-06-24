@@ -19,7 +19,7 @@ export const InterceptorRoom: FC<InterceptorRoomProps> = ({
       description: 'Silakan kembali beberapa saat lagi.',
       back: 'Kembali',
     },
-    [ConnectionInterceptor.Waiting]: {
+    [ConnectionInterceptor.Pending]: {
       title: 'Menunggu pesetujuan admin',
       description: 'Mohon tunggu, admin akan segera mengizinkan Anda masuk.',
       back: 'Kembali',

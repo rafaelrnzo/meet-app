@@ -45,6 +45,7 @@ export interface AuthDTO {
   session_state: string
   scope: string
   profile: AuthProfileDTO
+  publicUrl: string
 }
 
 export interface ResponseBase<T> {

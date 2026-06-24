@@ -13,7 +13,6 @@ import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Loader } from 'lucide-react'
-import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 import { handleSearchNotFound, joinRoomAction } from '@/feat/rooms/helper'
 
 export default function HomePage() {
@@ -57,12 +56,12 @@ export default function HomePage() {
   )
 
   // SSE for real-time updates
-  useRealTimeRooms((event) => {
-    setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
-    if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
-      loadData()
-    }
-  })
+  // useSourceEventRooms((event) => {
+  //   // setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
+  //   if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
+  //     loadData()
+  //   }
+  // })
 
   useEffect(() => {
     if (!authLoading) {

@@ -66,7 +66,7 @@ export function isTokenExpired(token: JWT): boolean {
  */
 export function shouldRefreshPermissions(token: JWT): boolean {
   const hasRolesAndPermissions = !!token.roles && !!token.permissions
-  const isNotExpired = djs().unix() < djs(token?.expires_in).unix()
+  const isNotExpired = djs().unix() < djs(token?.expires_at).unix()
 
   return !hasRolesAndPermissions || !isNotExpired
 }

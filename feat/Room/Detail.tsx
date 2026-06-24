@@ -8,7 +8,9 @@ import type { LocalUserChoicesPassword } from '@/feat/Room'
 import { useEffect, useRef, useState } from 'react'
 import { RoomContent, RoomConference, InterceptorRoom, PreJoin } from '@/feat/Room'
 import { ConnectionInterceptor } from '@/feat/enum'
-import { prejoinVerify } from '@/feat/Room/api'
+import { useSession } from 'next-auth/react'
+import { qstring } from '@/lib/utils'
+import { prejoinVerify } from '@/feat/api'
 
 const LIVEKIT_CSS_ENABLE = true
 
@@ -31,39 +33,33 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
   const [loading, setLoading] = useState(false)
   const [preJoinChoices, setPreJoinChoices] = useState<LocalUserChoices | undefined>()
   const [connectionDetails, setConnectionDetails] = useState<ConnectionDetails | undefined>()
+  const { data: session } = useSession()
+  const username = session?.profile.username ?? 'Unknown'
 
   // Reference
   const preJoinDefaults = useRef({ username: '', audioEnabled: false, videoEnabled: false })
-  const connectionDetailsRef = useRef<ConnectionDetails | undefined>(undefined)
+  const userChoiceRef = useRef<LocalUserChoicesPassword | null>(null)
   const isReady = !!connectionDetails && !!preJoinChoices
   const handlePreJoinError = useRef((e: unknown) => console.log('Failed to handle prejoin:', e))
   const handlePreJoinSubmit = useRef(async ({ password, ...values }: LocalUserChoicesPassword) => {
-    // const url = new URL('/api/connection-details', window.location.origin)
-
-    // url.searchParams.append('roomName', props.roomName)
-    // url.searchParams.append('participantName', values.username)
+    userChoiceRef.current = { password, ...values, username }
 
     setPreJoinChoices(values)
     setLoading(true)
 
-    // if (props.region) url.searchParams.append('region', props.region)
-    // if (password) url.searchParams.append('password', password)
-
     try {
-      // const connectionDetailsResp = await fetch(url.toString())
-      const { data, interceptor } = await prejoinVerify({
+      const { data: connectionDetailsData, interceptor } = await prejoinVerify({
         roomName: props.roomName,
-        participantName: values.username,
+        participantName: username,
         password,
         region: props.region,
       })
 
-      // if (interceptor) {
-      //   setInterceptor(interceptor)
-      //   connectionDetailsRef.current = connectionDetailsData
-      // } else {
-      //   setConnectionDetails(connectionDetailsData)
-      // }
+      if (connectionDetailsData) {
+        setConnectionDetails(connectionDetailsData)
+      } else {
+        setInterceptor(interceptor)
+      }
     } catch (e) {
       setInterceptor(ConnectionInterceptor.Unknown)
       console.log('Failed to join the room:', e)
@@ -104,10 +100,43 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
   }, [isReady])
 
   useEffect(() => {
-    if (interceptor === ConnectionInterceptor.Waiting) {
-      const timeout = setTimeout(() => setConnectionDetails(connectionDetailsRef.current), 5_000)
+    if (interceptor === ConnectionInterceptor.Pending) {
+      const url = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '') + '/api/waiting-rooms/request'
+      const es = new EventSource(
+        qstring(
+          url,
+          { room_code: props.roomName, token: session?.access_token },
+          { skipEmpty: true }
+        )
+      )
 
-      return () => window.clearTimeout(timeout)
+      es.onmessage = async (e: MessageEvent<string>) => {
+        const { status }: { status: string } = JSON.parse(e.data)
+
+        if (!userChoiceRef.current) return
+        if (status === 'accepted') {
+          await handlePreJoinSubmit.current(userChoiceRef.current)
+          es.close()
+        }
+        if (status === 'rejected') {
+          // @TODO
+          alert('Kamu telah di tolak untuk join ruangan')
+
+          handleBackToPrejoin.current()
+          es.close()
+        }
+      }
+
+      es.onerror = (e) => {
+        console.log(e)
+        // @TODO
+        // alert('Tidak dapat mengakses ruangan saat ini')
+
+        // handleBackToPrejoin.current()
+        // es.close()
+      }
+
+      return () => es.close()
     }
   }, [interceptor])
 
@@ -129,12 +158,11 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
     </RoomConference>
   ) : (
     <PreJoin
-      defaults={{ ...preJoinDefaults.current, username: 'Rafa' }}
+      defaults={{ ...preJoinDefaults.current, username }}
       onSubmit={handlePreJoinSubmit.current}
       onError={handlePreJoinError.current}
       isLoading={loading}
-      // isGuest={props.isTesting}
-      isGuest
+      isGuest={false}
     />
   )
 }

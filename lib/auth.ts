@@ -88,6 +88,7 @@ const AuthOptions: NextAuthConfig = {
       session.refresh_token = token.refresh_token
       session.profile = token.profile
       session.roles = token.profile.role
+      session.publicUrl = APP_API_VIDEO_CONFERENCE ?? ''
 
       return session
     },

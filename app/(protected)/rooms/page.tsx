@@ -10,7 +10,6 @@ import { cn, displayedError, djs } from '@/lib/utils'
 import PageContainer from '@/compounds/page-container'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { RoomForm } from '@/components/admin/RoomForm'
-import { applyRoomEventToActiveRooms, useRealTimeRooms } from '@/hooks/use-real-time-rooms'
 import type { SortRoomType } from '@/feat/rooms/dto'
 import { SORT_ROOM } from '@/feat/rooms/dto'
 import { handleSearchNotFound } from '@/feat/rooms/helper'
@@ -75,12 +74,12 @@ export default function RoomsPage() {
     }
   }, [authLoading, loadData])
 
-  useRealTimeRooms((event) => {
-    setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
-    if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
-      loadData()
-    }
-  })
+  // useSourceEventRooms((event) => {
+  //   // setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
+  //   if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
+  //     loadData()
+  //   }
+  // })
 
   const handleCreate = () => {
     setEditingRoom(null)
