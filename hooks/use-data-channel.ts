@@ -1,9 +1,4 @@
-import type {
-  DataPacket_Kind,
-  DataPublishOptions,
-  Encryption_Type,
-  RemoteParticipant,
-} from 'livekit-client'
+import type { DataPublishOptions, RemoteParticipant } from 'livekit-client'
 import type { LiveKitAction } from '@/feat/enum'
 import { useEffect, useEffectEvent, useState } from 'react'
 import { ConnectionState, RoomEvent } from 'livekit-client'
@@ -17,38 +12,30 @@ export function useDataChannel<P>(
   const room = useRoomContext()
   const [message, setMessage] = useState<P>()
 
-  const handleData = useEffectEvent(
-    (
-      data: Uint8Array,
-      participant?: RemoteParticipant,
-      _kind?: DataPacket_Kind,
-      _topic?: string,
-      _encryptionType?: Encryption_Type
-    ) => {
-      try {
-        const rawString = decoder.decode(data)
+  const handleData = useEffectEvent((data: Uint8Array, participant?: RemoteParticipant) => {
+    try {
+      const rawString = decoder.decode(data)
 
-        // Invalid json parse
-        if (!rawString.trim().startsWith('{')) {
-          return
-        }
-
-        const { action: current, payload } = JSON.parse(decoder.decode(data)) as {
-          action: LiveKitAction
-          payload: P
-        }
-
-        if (!participant) return
-
-        if (current === action) {
-          loginfo(`Receiving action "${action}"`, payload)
-          onMessage({ payload, participant })
-        }
-      } catch (e) {
-        console.log('Failed to receive the message:', e)
+      // Invalid json parse
+      if (!rawString.trim().startsWith('{')) {
+        return
       }
+
+      const { action: current, payload } = JSON.parse(decoder.decode(data)) as {
+        action: LiveKitAction
+        payload: P
+      }
+
+      if (!participant) return
+
+      if (current === action) {
+        loginfo(`Receiving action "${action}"`, payload)
+        onMessage({ payload, participant })
+      }
+    } catch (e) {
+      console.log('Failed to receive the message:', e)
     }
-  )
+  })
 
   const send = (payload?: P, options?: DataPublishOptions) => {
     if (room.state !== ConnectionState.Connected) return

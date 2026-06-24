@@ -46,7 +46,6 @@ export function parseYoutubeURL(url?: string) {
   return youtubeVideoID
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export async function unsecuredCopyToClipboard(text: string) {
   const textArea = document.createElement('textarea')
   textArea.value = text

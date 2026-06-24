@@ -44,9 +44,9 @@ export default function RoleCheckbox({ data, field }: RoleCheckboxProps) {
               key={idx}
               className={cn(
                 (idx === 1 || idx === 0) && grouping.permissions.length > 1
-                  ? 'h-[106px]'
+                  ? 'h-26.5'
                   : 'min-h-fit',
-                'max-h-[106px] min-h-fit'
+                'max-h-26.5 min-h-fit'
               )}
             >
               <CardContent className='p-5'>

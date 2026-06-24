@@ -1,9 +1,7 @@
-import '@/lib/polyfill'
-import '@livekit/components-styles'
 import { TooltipProvider } from '@/components/ui/tooltip'
-import './globals.css'
 import { Toaster } from '@/components/ui/sonner'
 import { Inter } from 'next/font/google'
+import './globals.css'
 
 export const metadata = {
   title: 'LiveKit Meeting',

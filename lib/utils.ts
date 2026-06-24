@@ -1,14 +1,14 @@
 import type { ClassValue } from 'clsx'
-import { clsx } from 'clsx'
+import type { ResponseBase } from '@/feat/Auth/dto'
 import { twMerge } from 'tailwind-merge'
-import duration from 'dayjs/plugin/duration'
-import customParseFormat from 'dayjs/plugin/customParseFormat'
-import dayjs from 'dayjs'
-import 'dayjs/locale/id'
-import { toast } from '@/components/ui/sonner'
 import { default as utc } from 'dayjs/plugin/utc'
 import { default as timezone } from 'dayjs/plugin/timezone'
-import type { ResponseBase } from '@/feat/Auth/dto'
+import { default as duration } from 'dayjs/plugin/duration'
+import { default as customParseFormat } from 'dayjs/plugin/customParseFormat'
+import { default as dayjs } from 'dayjs'
+import { clsx } from 'clsx'
+import { toast } from '@/components/ui/sonner'
+import 'dayjs/locale/id'
 
 dayjs.extend(customParseFormat)
 dayjs.extend(duration)
@@ -215,7 +215,6 @@ export function qstring<T extends object = object>(
   return url + (pairs.length > 0 ? `?${pairs.join('&')}` : '')
 }
 
-// eslint-disable-next-line @typescript-eslint/require-await
 export async function unsecuredCopyToClipboard(text: string): Promise<boolean> {
   const textArea = document.createElement('textarea')
   textArea.value = text

@@ -1,8 +1,7 @@
 'use server'
 
-import { ScreenCode } from '@/feat/enum'
+import { ScreenCode, ConnectionInterceptor } from '@/feat/enum'
 import { createAuthHeaders, fetcher } from '@/feat/Auth/helpers'
-import { ConnectionInterceptor } from '@/feat/enum'
 import type { ConnectionDetails } from '@/feat/types'
 import { auth } from '@/lib/auth'
 
@@ -31,7 +30,7 @@ export async function prejoinVerify(payload: PrejoinPayload) {
     })
 
     return data as { data: ConnectionDetails; interceptor: ConnectionInterceptor }
-  } catch (e) {
+  } catch {
     return { data: null, interceptor: ConnectionInterceptor.Unknown }
   }
 }
@@ -57,7 +56,7 @@ export async function acceptOrDeniedParticipant({
     })
 
     return { data: { message: 'Success' }, interceptor: null }
-  } catch (e) {
+  } catch {
     return { data: null, interceptor: ConnectionInterceptor.Unknown }
   }
 }

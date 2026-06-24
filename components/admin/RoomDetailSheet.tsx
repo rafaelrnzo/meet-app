@@ -200,13 +200,13 @@ export function RoomDetailSheet({
       {isOpen && room && (
         <>
           <motion.div
-            {...({
+            {...{
               initial: { opacity: 0 },
               animate: { opacity: 1 },
               exit: { opacity: 0 },
               onClick: onClose,
               className: 'fixed inset-0 z-50 bg-black/40',
-            } as any)}
+            }}
           />
           <motion.div
             {...({
@@ -406,7 +406,7 @@ export function RoomDetailSheet({
         header={{
           children: (
             <div className='relative w-full'>
-              <div className='h-[172px] rounded-md bg-red-100 p-3'>
+              <div className='h-43 rounded-md bg-red-100 p-3'>
                 <p className='mb-3 text-left text-base font-semibold text-red-800'>{room?.name}</p>
                 <div className='flex flex-col gap-3'>
                   <Button

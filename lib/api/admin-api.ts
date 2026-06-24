@@ -1,8 +1,8 @@
 'use server'
 
+import type { UserParams } from '@/feat/users/dto'
 import type { RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
 import { qstring } from '@/lib/utils'
-import type { UserParams } from '@/feat/users/dto'
 import { auth } from '@/lib/auth'
 
 const API_BASE = process.env.APP_API_VIDEO_CONFERENCE
@@ -45,10 +45,10 @@ export async function apiRequest<T>(
   // Handle empty responses (like 204 No Content)
   const text = await res.text()
   const data = text ? JSON.parse(text) : null
-  return data
+  return data as T
 }
 
-export type DbRoom = {
+export interface DbRoom {
   id: number
   name: string
   room_code: string
@@ -68,7 +68,7 @@ export type DbRoom = {
   is_mute_on_start: boolean
 }
 
-export type MemberRoom = {
+export interface MemberRoom {
   id: string | number
   username: string
   role: {
@@ -79,7 +79,7 @@ export type MemberRoom = {
   room_presence: 'waiting' | 'banned'
 }
 
-export type RoomParams = {
+export interface RoomParams {
   search?: string
   sort?: SortRoomType
 }
@@ -201,7 +201,7 @@ export async function fetchRoomToken(roomCode: string): Promise<DbRoom[]> {
   })
 }
 
-export type Group = {
+export interface Group {
   id: number
   name: string
   description: string
@@ -244,7 +244,7 @@ export async function removeGroupMember(groupId: number, payload: number[]): Pro
   })
 }
 
-export type ActiveRoom = {
+export interface ActiveRoom {
   num_publishers: number
   sid: string
   name: string
@@ -273,14 +273,14 @@ export async function closeActiveRoom(name: string): Promise<void> {
   })
 }
 
-export type Permission = {
+export interface Permission {
   ID: number
   key: string
   description: string
   label?: string
 }
 
-export type Role = {
+export interface Role {
   id: number
   name: string
   description: string
@@ -331,7 +331,7 @@ export async function addRolePermission(roleId: number, permId: number[]): Promi
   })
 }
 
-export type User = {
+export interface User {
   id: number
   username: string
   email?: string
@@ -341,7 +341,7 @@ export type User = {
   presence?: string[]
 }
 
-export type UserResponse = {
+export interface UserResponse {
   data: User[]
   page?: number
   limit?: number
@@ -349,7 +349,7 @@ export type UserResponse = {
   total_pages?: number
 }
 
-export type ParamsUserAssignment = {
+export interface ParamsUserAssignment {
   exclude_group_id?: number
   search?: string
 }
@@ -401,7 +401,7 @@ export async function deleteUser(id: number): Promise<void> {
   })
 }
 
-export type Recording = {
+export interface Recording {
   id: number
   room_id: string
   room_name: string
@@ -412,7 +412,7 @@ export type Recording = {
   created_at: string
 }
 
-export type RecordingParams = {
+export interface RecordingParams {
   room_id?: string
   search?: string
 }

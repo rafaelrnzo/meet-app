@@ -34,9 +34,15 @@ export const InterceptorRoom: FC<InterceptorRoomProps> = ({
       description: 'Silakan hubungi admin untuk bergabung ke rapat ini.',
       back: 'Kembali',
     },
+    [ConnectionInterceptor.Unauthorized]: {
+      title: 'Anda tidak diizinkan masuk',
+      description: 'Silakan hubungi admin untuk bergabung ke rapat ini.',
+      back: 'Kembali',
+    },
   }
 
-  const { title, description, back } = copy[interceptor]
+  const { title, description, back } =
+    copy[interceptor in copy ? interceptor : ConnectionInterceptor.Unknown]
 
   return (
     <div className='relative flex h-full min-h-screen flex-col items-center justify-center'>

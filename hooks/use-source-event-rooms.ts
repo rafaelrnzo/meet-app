@@ -31,7 +31,6 @@ type SourceEventParams = {
 export function useSourceEventRooms(callbackFn: (event: SourceEventParams) => void) {
   const callbackEvent = useEffectEvent(callbackFn)
   const { data: session } = useSession()
-  const sessionData = { publicUrl: session?.publicUrl ?? '', token: session?.access_token ?? '' }
 
   const parseCallbackFn = useEffectEvent((event: MessageEvent<string>) => {
     try {
@@ -45,7 +44,8 @@ export function useSourceEventRooms(callbackFn: (event: SourceEventParams) => vo
   })
 
   useEffect(() => {
-    const { publicUrl, token } = sessionData
+    const publicUrl = session?.publicUrl ?? ''
+    const token = session?.access_token ?? ''
 
     const es = new EventSource(`${publicUrl}/api/rooms/events?token=${token}`)
     es.onmessage = parseCallbackFn
@@ -65,5 +65,5 @@ export function useSourceEventRooms(callbackFn: (event: SourceEventParams) => vo
         es.removeEventListener(sourceEvent, parseCallbackFn)
       })
     }
-  }, [])
+  }, [session?.access_token, session?.publicUrl])
 }

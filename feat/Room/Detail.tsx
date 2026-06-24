@@ -55,6 +55,8 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
         region: props.region,
       })
 
+      console.log(connectionDetails)
+
       if (connectionDetailsData) {
         setConnectionDetails(connectionDetailsData)
       } else {
@@ -138,7 +140,7 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
 
       return () => es.close()
     }
-  }, [interceptor])
+  }, [interceptor, props.roomName, session?.access_token])
 
   if (interceptor) {
     return <InterceptorRoom interceptor={interceptor} onClick={handleBackToPrejoin.current} />

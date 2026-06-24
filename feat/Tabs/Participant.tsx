@@ -2,7 +2,7 @@
 
 import type { FC } from 'react'
 import { useEffect, useState } from 'react'
-import { useParticipants, useRoomInfo } from '@livekit/components-react'
+import { useParticipants } from '@livekit/components-react'
 import { qstring } from '@/lib/utils'
 import { useSession } from 'next-auth/react'
 import { acceptOrDeniedParticipant } from '@/feat/api'
@@ -40,7 +40,7 @@ export const TabsParticipant: FC = () => {
     }
 
     return () => es.close()
-  }, [roomName])
+  }, [roomName, session?.access_token])
 
   async function handleParticipant(action: 'accept' | 'reject', participantId: string) {
     try {

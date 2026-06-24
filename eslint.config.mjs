@@ -113,6 +113,7 @@ export default [
       '@typescript-eslint/no-unsafe-enum-comparison': 'off',
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/no-misused-promises': 'off',
+      '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/consistent-type-imports': [
         'warn',
         { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
@@ -139,7 +140,7 @@ export default [
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
 
-      'no-empty': 'warn',
+      'no-empty': 'off',
     },
   },
 ]
