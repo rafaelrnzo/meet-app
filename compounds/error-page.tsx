@@ -1,6 +1,6 @@
 'use client'
 
-import NoData from '@/components/ui/no-data'
+import { default as NoData } from '@/components/ui/no-data'
 
 const ERROR_CONFIG = {
   401: {

@@ -1,7 +1,7 @@
-import { useState, useEffect, useCallback } from 'react'
-import type { UserParams, Users } from './dto'
-import { fetchRoles, fetchUsers } from '@/lib/api/admin-api'
 import type { Role } from '@/lib/api/admin-api'
+import type { UserParams, Users } from './dto'
+import { useState, useEffect, useCallback } from 'react'
+import { fetchRoles, fetchUsers } from '@/lib/api/admin-api'
 
 export const useParticipants = () => {
   const [users, setUsers] = useState({

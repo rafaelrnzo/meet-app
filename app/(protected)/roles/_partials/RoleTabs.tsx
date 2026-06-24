@@ -1,7 +1,7 @@
 'use client'
 
-import type { RoleTabsValue } from '@/app/(protected)/roles/_partials/edit'
 import type { RoleContentsProps } from '@/app/(protected)/roles/_partials/RoleContents'
+import type { RoleTabsValue } from '@/app/(protected)/roles/_partials/edit'
 import {
   ControlDashboardContents,
   ControlMeetContents,

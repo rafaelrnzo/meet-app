@@ -1,9 +1,9 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
-import { ChevronUp } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { ChevronUp } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { Button } from '@/components/ui/button'
 
 const MIN_SCROLL_Y = 250
 

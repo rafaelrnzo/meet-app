@@ -1,5 +1,5 @@
-import { useSession } from 'next-auth/react'
 import { useEffectEvent, useEffect } from 'react'
+import { useSession } from 'next-auth/react'
 
 type SourceEventType = (typeof SOURCE_EVENTS)[number]
 const SOURCE_EVENTS = [

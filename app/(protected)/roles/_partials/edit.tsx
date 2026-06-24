@@ -1,14 +1,14 @@
 'use client'
 
-import RoleCheckbox from '@/app/(protected)/roles/_partials/RoleCheckbox'
-import type { RoleContentsProps } from '@/app/(protected)/roles/_partials/RoleContents'
-import RoleTabs from '@/app/(protected)/roles/_partials/RoleTabs'
-import { Modal } from '@/components/ui/modal'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import type { Role } from '@/lib/api/admin-api'
-import { useForm } from '@tanstack/react-form'
-import { useEffect, useState } from 'react'
 import type { SetStateAction } from 'react'
+import type { Role } from '@/lib/api/admin-api'
+import type { RoleContentsProps } from '@/app/(protected)/roles/_partials/RoleContents'
+import { useEffect, useState } from 'react'
+import { useForm } from '@tanstack/react-form'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Modal } from '@/components/ui/modal'
+import { default as RoleTabs } from '@/app/(protected)/roles/_partials/RoleTabs'
+import { default as RoleCheckbox } from '@/app/(protected)/roles/_partials/RoleCheckbox'
 
 export type RoleTabsValue = 'control_dashboard' | 'control_meet'
 

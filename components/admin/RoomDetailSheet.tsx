@@ -1,8 +1,10 @@
 'use client'
 
+import type { DbRoom, ActiveRoom, MemberRoom, RoomParams } from '@/lib/api/admin-api'
+import type { FileResponse, StatusOption, TabsValue } from '@/feat/rooms/dto'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { DbRoom, ActiveRoom, MemberRoom, RoomParams } from '@/lib/api/admin-api'
+import { displayedError, copyHandler } from '@/lib/utils'
 import {
   deleteRoomPresentation,
   fetchMemberRoom,
@@ -10,19 +12,17 @@ import {
   updateRoomPermissions,
   uploadRoomPresentation,
 } from '@/lib/api/admin-api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useAuth } from '@/hooks/use-auth'
+import { defaultErrorMessage } from '@/config'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import RoomTabs from '@/components/features/rooms/RoomTabs'
-import { useAuth } from '@/hooks/use-auth'
 import { toast } from '@/components/ui/sonner'
 import { Modal, ModalDelete } from '@/components/ui/modal'
-import { displayedError, copyHandler } from '@/lib/utils'
-import RoomDetailModal from '@/components/features/rooms/RoomDetailModal'
-import type { FileResponse, StatusOption, TabsValue } from '@/feat/rooms/dto'
+import { Input } from '@/components/ui/input'
 import { Icon } from '@/components/ui/icon'
-import { defaultErrorMessage } from '@/config'
+import { Button } from '@/components/ui/button'
+import { default as RoomTabs } from '@/components/features/rooms/RoomTabs'
+import { default as RoomDetailModal } from '@/components/features/rooms/RoomDetailModal'
 
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
 interface RoomDetailSheetProps {

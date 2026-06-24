@@ -2,8 +2,8 @@
 
 import * as React from 'react'
 import { Switch as SwitchPrimitives } from 'radix-ui'
-import { cn } from '@/lib/utils'
 import { Check, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import { Label } from '@/components/ui/label'
 
 interface ActiveSwitchProps {

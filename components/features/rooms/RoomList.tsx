@@ -1,6 +1,22 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
+import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
+import type { GenerateRoomCodeExp, NewRoomCode } from '@/feat/rooms/dto'
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
+import { Loader } from 'lucide-react'
+import { default as Cookies } from 'js-cookie'
+import { GenerateRoomCode } from './GenerateRoomCode'
+import { cn, djs, copyHandler } from '@/lib/utils'
+import { generateCode } from '@/lib/api/admin-api'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { shareLinkHandler } from '@/feat/rooms/helper'
+import { defaultErrorMessage } from '@/config'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { toast } from '@/components/ui/sonner'
+import { Skeleton } from '@/components/ui/skeleton'
+import { Input } from '@/components/ui/input'
+import { Icon } from '@/components/ui/icon'
 import {
   Card,
   CardContent,
@@ -9,24 +25,8 @@ import {
   CardHeader,
   CardTitle,
 } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { generateCode } from '@/lib/api/admin-api'
-import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
-import { cn, djs, copyHandler } from '@/lib/utils'
-import { Loader } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useRouter } from 'next/navigation'
-import Cookies from 'js-cookie'
-import { toast } from '@/components/ui/sonner'
-import { useIsMobile } from '@/hooks/use-mobile'
-import { Skeleton } from '@/components/ui/skeleton'
-import { shareLinkHandler } from '@/feat/rooms/helper'
-import { GenerateRoomCode } from './GenerateRoomCode'
-import type { GenerateRoomCodeExp, NewRoomCode } from '@/feat/rooms/dto'
-import { Icon } from '@/components/ui/icon'
-import { defaultErrorMessage } from '@/config'
 
 interface SummaryCardProps {
   loading?: boolean

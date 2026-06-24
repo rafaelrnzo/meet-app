@@ -1,6 +1,6 @@
+import { SessionProvider } from 'next-auth/react'
 import { isVideoCodec } from '@/feat/helpers'
 import { RoomsDetail } from '@/app/rooms/[name]/client'
-import { SessionProvider } from 'next-auth/react'
 
 interface RoomsDetailPageProps {
   params: Promise<{ name: string }>

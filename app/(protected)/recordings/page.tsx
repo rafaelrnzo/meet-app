@@ -1,11 +1,11 @@
 'use client'
 
-import PageContainer from '@/compounds/page-container'
 import { cn } from '@/lib/utils'
-import { recordingColumn } from '@/column/recording'
-import { TableView } from '@/compounds/table-view'
 import { useAuth } from '@/hooks/use-auth'
 import { useRecording } from '@/feat/recording/use-recording'
+import { TableView } from '@/compounds/table-view'
+import { default as PageContainer } from '@/compounds/page-container'
+import { recordingColumn } from '@/column/recording'
 
 export default function RecordingsPage() {
   const {

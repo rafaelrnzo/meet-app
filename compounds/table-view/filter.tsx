@@ -1,3 +1,5 @@
+import { default as React } from 'react'
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectTrigger,
@@ -5,8 +7,6 @@ import {
   SelectGroup,
   SelectItem,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
-import React from 'react'
 
 interface TableViewFilterProps {
   options: { value: string; label: string }[]

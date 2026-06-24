@@ -1,8 +1,8 @@
 'use client'
 
-import RoleCheckbox from '@/app/(protected)/roles/_partials/RoleCheckbox'
-import type { Permission } from '@/lib/api/admin-api'
 import type { AnyFormApi, useForm } from '@tanstack/react-form'
+import type { Permission } from '@/lib/api/admin-api'
+import { default as RoleCheckbox } from '@/app/(protected)/roles/_partials/RoleCheckbox'
 
 export interface RoleContentsProps {
   groupedPermissions: {

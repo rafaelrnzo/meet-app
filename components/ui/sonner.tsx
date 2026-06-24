@@ -1,6 +1,7 @@
 'use client'
 
-import { cn } from '@/lib/utils'
+import type { ToasterProps } from 'sonner'
+import { Toaster as Sonner, toast as toastDefault } from 'sonner'
 import {
   Check,
   CircleCheckIcon,
@@ -10,8 +11,7 @@ import {
   TriangleAlertIcon,
   X,
 } from 'lucide-react'
-import { Toaster as Sonner, toast as toastDefault } from 'sonner'
-import type { ToasterProps } from 'sonner'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
 interface ToastProps {

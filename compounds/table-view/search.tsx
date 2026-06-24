@@ -1,8 +1,8 @@
 'use client'
-import { cn } from '@/lib/utils'
-import { TableViewFilter } from './filter'
 import type { TableViewFilterProps } from './filter'
-import React, { useRef } from 'react'
+import { useRef } from 'react'
+import { TableViewFilter } from './filter'
+import { cn } from '@/lib/utils'
 import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import { Icon } from '@/components/ui/icon'
 

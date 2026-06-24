@@ -1,17 +1,17 @@
 'use client'
 
+import type { RowSelectionState } from '@tanstack/react-table'
 import type { Recording, RecordingParams } from '@/lib/api/admin-api'
 import type { RecordingSSEDTO } from './dto'
-import type { RowSelectionState } from '@tanstack/react-table'
-import path from 'path'
-import { defaultErrorMessage } from '@/config'
-import { deleteRecording, fetchRecordings, updateRecordingName } from '@/lib/api/admin-api'
-import { djs, qstring } from '@/lib/utils'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { default as path } from 'path'
 import { mailtoHandler } from './helper'
 import { RecordingEvent } from './dto'
-import { toast } from '@/components/ui/sonner'
+import { djs, qstring } from '@/lib/utils'
+import { deleteRecording, fetchRecordings, updateRecordingName } from '@/lib/api/admin-api'
 import { useAuth } from '@/hooks/use-auth'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { defaultErrorMessage } from '@/config'
+import { toast } from '@/components/ui/sonner'
 
 export const useRecording = () => {
   const { loading: authLoading, token } = useAuth()

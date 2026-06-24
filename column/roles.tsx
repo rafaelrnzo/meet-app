@@ -1,10 +1,10 @@
 'use client'
 
-import { Icon } from '@/components/ui/icon'
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import ActionButton from '@/compounds/action-button'
-import type { Role } from '@/lib/api/admin-api'
 import type { CellContext, ColumnDef } from '@tanstack/react-table'
+import type { Role } from '@/lib/api/admin-api'
+import { default as ActionButton } from '@/compounds/action-button'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
+import { Icon } from '@/components/ui/icon'
 
 interface RolesColumnProps {
   openManage: (e: Role) => void

@@ -1,8 +1,8 @@
 'use client'
 
-import React, { useRef, useState } from 'react'
-import { Input } from '@/components/ui/input'
+import { useRef, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
 
 type TimeField = 'hour' | 'minute' | 'second'
 

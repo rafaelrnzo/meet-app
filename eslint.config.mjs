@@ -97,7 +97,7 @@ export default [
       ...tsPlugin.configs['stylistic-type-checked'].rules,
 
       // Custom
-      'custom/prefer-default-as-named': 'off',
+      'custom/prefer-default-as-named': 'warn',
       'custom/prefer-named-export': 'off',
 
       // Next

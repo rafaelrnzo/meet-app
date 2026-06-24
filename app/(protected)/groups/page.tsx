@@ -1,6 +1,8 @@
 'use client'
 
+import type { Group, UserResponse } from '@/lib/api/admin-api'
 import { useEffect, useState } from 'react'
+import { displayedError } from '@/lib/utils'
 import {
   fetchGroups,
   createGroup,
@@ -9,17 +11,15 @@ import {
   removeGroupMember,
   fetchUsers,
 } from '@/lib/api/admin-api'
-import type { Group, UserResponse } from '@/lib/api/admin-api'
-import { useAuth } from '../../../hooks/use-auth'
-import PageContainer from '@/compounds/page-container'
 import { TableView } from '@/compounds/table-view'
-import { groupsColumn } from '@/column/groups'
-import { CreateDialog } from '@/app/(protected)/groups/_partials/create'
-import EditDialog from '@/app/(protected)/groups/_partials/edit'
-import NoData from '@/components/ui/no-data'
-import { Icon } from '@/components/ui/icon'
+import { default as PageContainer } from '@/compounds/page-container'
 import { toast } from '@/components/ui/sonner'
-import { displayedError } from '@/lib/utils'
+import { default as NoData } from '@/components/ui/no-data'
+import { Icon } from '@/components/ui/icon'
+import { groupsColumn } from '@/column/groups'
+import { default as EditDialog } from '@/app/(protected)/groups/_partials/edit'
+import { CreateDialog } from '@/app/(protected)/groups/_partials/create'
+import { useAuth } from '../../../hooks/use-auth'
 
 enum GroupsEventSSE {
   GroupUpdated = 'group_updated',

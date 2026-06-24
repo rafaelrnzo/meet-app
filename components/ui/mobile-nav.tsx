@@ -1,11 +1,13 @@
 'use client'
 
-import React from 'react'
-import Link from 'next/link'
+import { default as React } from 'react'
 import { usePathname } from 'next/navigation'
+import { default as Link } from 'next/link'
+import { Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { sidebarItems } from '@/lib/menu-items'
-import { Menu } from 'lucide-react'
+import { useAuth } from '@/hooks/use-auth'
+import { Icon } from '@/components/ui/icon'
 import {
   Dialog,
   DialogContent,
@@ -13,8 +15,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
-import { useAuth } from '@/hooks/use-auth'
-import { Icon } from '@/components/ui/icon'
 
 export function MobileNav() {
   const pathname = usePathname()

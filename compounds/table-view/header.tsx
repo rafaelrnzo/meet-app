@@ -1,18 +1,18 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import type { TableViewFilterProps } from '@/compounds/table-view/filter'
-import { TableViewFilter } from '@/compounds/table-view/filter'
-import type { TableViewSearchProps } from '@/compounds/table-view/search'
-import { TableViewSearch } from '@/compounds/table-view/search'
-import { cn } from '@/lib/utils'
-import { ChevronDown, ChevronsUpDown } from 'lucide-react'
-import type { TableViewButtonProps } from '@/compounds/table-view'
 import type { SortingState, Table } from '@tanstack/react-table'
+import type { TableViewSearchProps } from '@/compounds/table-view/search'
+import type { TableViewFilterProps } from '@/compounds/table-view/filter'
+import type { TableViewButtonProps } from '@/compounds/table-view'
+import { useState } from 'react'
+import { ChevronDown, ChevronsUpDown } from 'lucide-react'
 import { SelectPageSize } from './pagination'
-import React, { useState } from 'react'
+import { cn } from '@/lib/utils'
+import { TableViewSearch } from '@/compounds/table-view/search'
+import { TableViewFilter } from '@/compounds/table-view/filter'
 import { InputGroup, InputGroupAddon } from '@/components/ui/input-group'
 import { Icon } from '@/components/ui/icon'
+import { Button } from '@/components/ui/button'
 
 interface TableViewHeaderProps<TData> {
   search?: TableViewSearchProps

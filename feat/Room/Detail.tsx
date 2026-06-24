@@ -6,10 +6,10 @@ import type { LocalUserChoices } from '@livekit/components-react'
 import type { ConnectionDetails } from '@/feat/types'
 import type { LocalUserChoicesPassword } from '@/feat/Room'
 import { useEffect, useRef, useState } from 'react'
-import { RoomContent, RoomConference, InterceptorRoom, PreJoin } from '@/feat/Room'
-import { ConnectionInterceptor } from '@/feat/enum'
 import { useSession } from 'next-auth/react'
 import { qstring } from '@/lib/utils'
+import { RoomContent, RoomConference, InterceptorRoom, PreJoin } from '@/feat/Room'
+import { ConnectionInterceptor } from '@/feat/enum'
 import { prejoinVerify } from '@/feat/api'
 
 const LIVEKIT_CSS_ENABLE = true

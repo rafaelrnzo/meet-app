@@ -1,16 +1,16 @@
 'use client'
 
+import type { TabsValue } from '@/feat/rooms/dto'
 import type { RoomContentsProps } from '@/components/features/rooms/RoomContents'
-import { OverviewContent, ParticipantsContent } from '@/components/features/rooms/RoomContents'
+import { useState } from 'react'
+import { buttonVariants } from '@/components/ui/button'
 import {
   AccordionContent,
   Accordion,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion'
-import { buttonVariants } from '@/components/ui/button'
-import type { TabsValue } from '@/feat/rooms/dto'
-import { useState } from 'react'
+import { OverviewContent, ParticipantsContent } from '@/components/features/rooms/RoomContents'
 
 export default function RoomDetailModal({ overview, participants, settings }: RoomContentsProps) {
   const {

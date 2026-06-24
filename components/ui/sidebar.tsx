@@ -1,14 +1,13 @@
 'use client'
 
+import type { VariantProps } from 'class-variance-authority'
 import * as React from 'react'
-import { cva  } from 'class-variance-authority'
-import type {VariantProps} from 'class-variance-authority';
 import { Slot } from 'radix-ui'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Separator } from '@/components/ui/separator'
+import { useIsMobile } from '@/hooks/use-mobile'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Sheet,
   SheetContent,
@@ -16,9 +15,10 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
-import { Skeleton } from '@/components/ui/skeleton'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { Separator } from '@/components/ui/separator'
+import { Input } from '@/components/ui/input'
 import { Icon } from '@/components/ui/icon'
+import { Button } from '@/components/ui/button'
 
 const SIDEBAR_COOKIE_NAME = 'sidebar_state'
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7

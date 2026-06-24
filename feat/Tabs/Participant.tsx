@@ -2,11 +2,11 @@
 
 import type { FC } from 'react'
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import { useParticipants } from '@livekit/components-react'
 import { qstring } from '@/lib/utils'
-import { useSession } from 'next-auth/react'
 import { acceptOrDeniedParticipant } from '@/feat/api'
-import { useParams } from 'next/navigation'
 
 interface HostMessage {
   status: string

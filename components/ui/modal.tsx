@@ -3,6 +3,8 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/spinner'
+import { Separator } from '@/components/ui/separator'
+import { Icon } from '@/components/ui/icon'
 import {
   Dialog,
   DialogContent,
@@ -15,8 +17,6 @@ import {
   DialogPortal,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Separator } from '@/components/ui/separator'
-import { Icon } from '@/components/ui/icon'
 
 interface ModalDialogProps {
   root?: React.ComponentProps<typeof Dialog>

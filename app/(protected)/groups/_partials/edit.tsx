@@ -1,16 +1,16 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { useEffect, useMemo, useState } from 'react'
+import type { InferType } from 'yup'
 import type { SetStateAction } from 'react'
 import type { Group, User } from '@/lib/api/admin-api'
-import { Modal } from '@/components/ui/modal'
 import type { Option } from '@/app/(protected)/groups/_partials/form-controller'
-import FormController from '@/app/(protected)/groups/_partials/form-controller'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
-import type { InferType } from 'yup'
 import { editGroupSchema } from '@/schema/groups'
+import { Modal } from '@/components/ui/modal'
 import { Icon } from '@/components/ui/icon'
+import { Button } from '@/components/ui/button'
+import { default as FormController } from '@/app/(protected)/groups/_partials/form-controller'
 
 interface EditDialogProps {
   isManageOpen: boolean

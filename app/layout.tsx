@@ -1,6 +1,6 @@
+import { Inter } from 'next/font/google'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
-import { Inter } from 'next/font/google'
 import './globals.css'
 
 export const metadata = {

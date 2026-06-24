@@ -1,6 +1,11 @@
 'use client'
 
+import type { VariantProps } from 'class-variance-authority'
 import type { Row, RowData, SortingState, TableOptions } from '@tanstack/react-table'
+import type { TableViewSearchProps } from '@/compounds/table-view/search'
+import type { TableViewFilterProps } from '@/compounds/table-view/filter'
+import type { buttonVariants } from '@/components/ui/button'
+import { useMemo, useState } from 'react'
 import {
   flexRender,
   getCoreRowModel,
@@ -8,6 +13,10 @@ import {
   getSortedRowModel,
   useReactTable,
 } from '@tanstack/react-table'
+import { cn } from '@/lib/utils'
+import { ARR_PAGE_SIZE, TableViewPagination } from '@/compounds/table-view/pagination'
+import { TableViewHeader } from '@/compounds/table-view/header'
+import { TableViewColumnHeader } from '@/compounds/table-view/column-header'
 import {
   Table,
   TableBody,
@@ -16,15 +25,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { ARR_PAGE_SIZE, TableViewPagination } from '@/compounds/table-view/pagination'
-import { useMemo, useState } from 'react'
-import { TableViewColumnHeader } from '@/compounds/table-view/column-header'
-import { cn } from '@/lib/utils'
-import type { VariantProps } from 'class-variance-authority'
-import type { buttonVariants } from '@/components/ui/button'
-import type { TableViewSearchProps } from '@/compounds/table-view/search'
-import type { TableViewFilterProps } from '@/compounds/table-view/filter'
-import { TableViewHeader } from '@/compounds/table-view/header'
 import { Skeleton } from '@/components/ui/skeleton'
 
 type TableViewButtonProps = React.ComponentProps<'button'> &
@@ -142,9 +142,9 @@ function TableView<TData>({
     () =>
       loading
         ? defaultColumns.map((column) => ({
-          ...column,
-          cell: () => <Skeleton className='h-6.5 w-full' />,
-        }))
+            ...column,
+            cell: () => <Skeleton className='h-6.5 w-full' />,
+          }))
         : defaultColumns,
     [defaultColumns, loading]
   )
@@ -175,7 +175,6 @@ function TableView<TData>({
     getSortedRowModel: getSortedRowModel(),
     onSortingChange: setSorting,
     getCoreRowModel: getCoreRowModel(),
-
   })
   const tableRowsData = table.getRowModel().rows
 

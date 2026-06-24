@@ -1,11 +1,11 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Icon } from '@/components/ui/icon'
-import { Input } from '@/components/ui/input'
-import { cn, formatFileSize } from '@/lib/utils'
-import { FileText, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { FileText, X } from 'lucide-react'
+import { cn, formatFileSize } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Icon } from '@/components/ui/icon'
+import { Button } from '@/components/ui/button'
 
 export type FileOption = {
   url?: string

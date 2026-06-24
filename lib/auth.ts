@@ -1,7 +1,7 @@
 import type { NextAuthConfig, DefaultSession } from 'next-auth'
+import type { AuthDTO, AuthProfileDTO, RoleDTO } from '@/feat/Auth/dto'
 import { default as KeycloakProvider } from 'next-auth/providers/keycloak'
 import { default as NextAuth } from 'next-auth'
-import type { AuthDTO, AuthProfileDTO, RoleDTO } from '@/feat/Auth/dto'
 import {
   fetcher,
   isTokenExpired,

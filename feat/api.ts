@@ -1,9 +1,9 @@
 'use server'
 
-import { ScreenCode, ConnectionInterceptor } from '@/feat/enum'
-import { createAuthHeaders, fetcher } from '@/feat/Auth/helpers'
 import type { ConnectionDetails } from '@/feat/types'
 import { auth } from '@/lib/auth'
+import { ScreenCode, ConnectionInterceptor } from '@/feat/enum'
+import { createAuthHeaders, fetcher } from '@/feat/Auth/helpers'
 
 const DEFAULT_YOUTUBE_URL = 'https://youtu.be/e1QIqXmZ2os?si=Gd9591aZIBoeI3Mi'
 

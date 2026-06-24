@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
-import PageContainer from '@/compounds/page-container'
-import { TableView } from '@/compounds/table-view'
-import { usersColumn } from '@/column/users'
-import { TableViewHeader } from '@/compounds/table-view/header'
-import { useParticipants } from '@/feat/users/useParticipants'
 import type { UserParams, UserPrensence } from '@/feat/users/dto'
+import { useEffect, useMemo, useState } from 'react'
 import { useAuth } from '@/hooks/use-auth'
+import { useParticipants } from '@/feat/users/useParticipants'
+import { TableViewHeader } from '@/compounds/table-view/header'
+import { TableView } from '@/compounds/table-view'
+import { default as PageContainer } from '@/compounds/page-container'
+import { usersColumn } from '@/column/users'
 
 export default function UsersPage() {
   // State
@@ -29,9 +29,7 @@ export default function UsersPage() {
 
     const lower = queryParams.search.toLowerCase()
 
-    return users.data.filter((user) =>
-      user.username.toLowerCase().includes(lower)
-    )
+    return users.data.filter((user) => user.username.toLowerCase().includes(lower))
   }, [users.data, queryParams.search])
 
   useEffect(() => {
@@ -43,7 +41,7 @@ export default function UsersPage() {
   }, [refetchRoles])
 
   // Column
-  const columns = useMemo(() => usersColumn(), []);
+  const columns = useMemo(() => usersColumn(), [])
 
   return (
     <PageContainer
@@ -53,9 +51,7 @@ export default function UsersPage() {
       backToTopButton
     >
       <TableViewHeader
-        headerAddon={
-          <p className='text-red-800 font-semibold'> {users.total} Daftar Peserta</p>
-        }
+        headerAddon={<p className='font-semibold text-red-800'> {users.total} Daftar Peserta</p>}
         search={{
           placeholder: 'Cari peserta ...',
           onSearch: (search) => setQueryParams((prev) => ({ ...prev, page: 1, search })),
@@ -86,16 +82,12 @@ export default function UsersPage() {
                   page: 1,
                   presence,
                 }))
-              }
+              },
             },
           },
         }}
       />
-      <TableView
-        data={filteredUsers}
-        columns={columns}
-        loading={isLoading || authLoading}
-      />
+      <TableView data={filteredUsers} columns={columns} loading={isLoading || authLoading} />
     </PageContainer>
   )
 }

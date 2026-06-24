@@ -1,6 +1,6 @@
 import type * as yup from 'yup'
-import type { roomSchema } from './schema'
 import type { DbRoom } from '@/lib/api/admin-api'
+import type { roomSchema } from './schema'
 import { djs } from '@/lib/utils'
 
 type RoomSchemaValue = yup.InferType<ReturnType<typeof roomSchema>>
