@@ -11,7 +11,7 @@ export const JoinRoom: FC<{ rooms: DbRoom[] }> = ({ rooms }) => {
   const [queryRoom, setQueryRoom] = useState('')
   const router = useRouter()
   const encodedQuery = encodeURIComponent(queryRoom.trim().toLowerCase())
-  const room = rooms.find((room) => `${room.id}`.toLowerCase().startsWith(encodedQuery))
+  const room = rooms.find((room) => `${room.room_code}`.toLowerCase() === encodedQuery)
   const disabled = !room || !queryRoom.trim().length
 
   return (
@@ -21,7 +21,6 @@ export const JoinRoom: FC<{ rooms: DbRoom[] }> = ({ rooms }) => {
         placeholder='Masukkan kode ruangan di sini ...'
         value={queryRoom}
         onChange={(e) => setQueryRoom(e.target.value)}
-        aria-invalid={disabled}
       />
       <Button
         className='max-md:w-full'

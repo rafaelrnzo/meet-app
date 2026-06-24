@@ -3,9 +3,9 @@ import type { ResponseNext } from '@/feat/types'
 import { auth } from '@/lib/auth'
 import { fetchActiveRooms, fetchUserDbRooms } from '@/lib/api/admin-api'
 import { default as PageContainer } from '@/compounds/page-container'
+import { RoomListHeader } from '@/components/RoomListHeader'
 import { JoinRoom } from '@/components/JoinRoom'
 import { RoomList } from '@/components/features/rooms/RoomList'
-import { RoomListHeader } from '@/components/CardHeader'
 
 export default async function HomePage(props: ResponseNext) {
   const session = await auth()
