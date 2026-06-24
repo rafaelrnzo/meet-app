@@ -30,3 +30,8 @@ export interface TabProps {
   parentId?: number
   description?: string
 }
+
+export interface ResponseNext<P = object, S = object> {
+  params: Promise<P>
+  searchParams: Promise<S>
+}

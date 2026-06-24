@@ -107,7 +107,22 @@ export default [
       'import/no-unresolved': 'error',
       'import/no-duplicates': 'error',
       'import/consistent-type-specifier-style': ['warn', 'prefer-top-level'],
-      'import/order': 'off',
+      'import/order': [
+        'warn',
+        {
+          groups: ['type', ['builtin', 'external', 'internal', 'sibling']],
+          pathGroups: [
+            { pattern: 'react', group: 'external', position: 'before' },
+            { pattern: 'react-dom', group: 'external', position: 'before' },
+            { pattern: 'next/**', group: 'external', position: 'before' },
+            { pattern: '@radix-ui/**', group: 'external', position: 'before' },
+            { pattern: '@/**', group: 'internal', position: 'after' },
+          ],
+          alphabetize: { order: 'desc', caseInsensitive: true },
+          pathGroupsExcludedImportTypes: ['type'],
+          'newlines-between': 'never',
+        },
+      ],
 
       // TS Rules
       '@typescript-eslint/no-unsafe-enum-comparison': 'off',

@@ -1,18 +1,22 @@
 import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
+import type { ResponseNext } from '@/feat/types'
 import { auth } from '@/lib/auth'
 import { fetchActiveRooms, fetchUserDbRooms } from '@/lib/api/admin-api'
 import { default as PageContainer } from '@/compounds/page-container'
+import { JoinRoom } from '@/components/JoinRoom'
 import { RoomList } from '@/components/features/rooms/RoomList'
+import { RoomListHeader } from '@/components/CardHeader'
 
-export default async function HomePage() {
+export default async function HomePage(props: ResponseNext) {
   const session = await auth()
+  const searchParams = await props.searchParams
   const isAdmin = session?.roles.name === 'admin'
   const hasPermission = session?.roles?.permissions?.includes('room:share' as never) ?? false
 
   let rooms: DbRoom[] = []
   let activeRooms: ActiveRoom[] = []
 
-  try { rooms = await fetchUserDbRooms() } catch {} // prettier-ignore
+  try { rooms = await fetchUserDbRooms(searchParams) } catch {} // prettier-ignore
   try { activeRooms = await fetchActiveRooms() } catch {} // prettier-ignore
 
   // @TODO: SSE CLIENT
@@ -23,7 +27,9 @@ export default async function HomePage() {
       title='Beranda'
       subTitle='Bergabung dalam ruangan secara instan'
       backToTopButton
+      insertAfterTitle={<JoinRoom rooms={rooms} />}
     >
+      <RoomListHeader />
       <RoomList
         staticRooms={rooms}
         activeRooms={activeRooms}
