@@ -2,7 +2,7 @@
 
 import * as React from 'react'
 import { Check, ChevronDown, ChevronUp } from 'lucide-react'
-import * as SelectPrimitive from '@radix-ui/react-select'
+import { Select as SelectPrimitive } from 'radix-ui'
 
 import { cn } from '@/lib/utils'
 
@@ -19,9 +19,9 @@ const SelectTrigger = React.forwardRef<
   <SelectPrimitive.Trigger
     ref={ref}
     className={cn(
-      'group  rounded-md border border-neutral-400 shadow ring-offset-background focus:ring-ring flex h-11 w-full items-center justify-between bg-transparent px-3 py-1 text-sm focus:outline-none  transition-[color,box-shadow] outline-none  [&>span]:min-w-0 [&>span]:flex-1 [&>span]:truncate [&>span]:text-left data-place hover:bg-neutral-50 disabled:pointer-events-none',
+      'group ring-offset-background focus:ring-ring data-place flex h-11 w-full items-center justify-between rounded-md border border-neutral-400 bg-transparent px-3 py-1 text-sm shadow transition-[color,box-shadow] outline-none hover:bg-neutral-50 focus:outline-none disabled:pointer-events-none [&>span]:min-w-0 [&>span]:flex-1 [&>span]:truncate [&>span]:text-left',
       'focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-2',
-      'aria-invalid:ring-red-200 dark:aria-invalid:ring-destructive/40 aria-invalid:border-red-200 aria-invalid:bg-red-200 disabled:cursor-not-allowed disabled:opacity-50 font-normal text-neutral-950 disabled:bg-slate-300 data-placeholder:text-neutral-400  disabled:data-placeholder:text-slate-600 aria-invalid:text-error',
+      'dark:aria-invalid:ring-destructive/40 aria-invalid:text-error font-normal text-neutral-950 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:opacity-50 aria-invalid:border-red-200 aria-invalid:bg-red-200 aria-invalid:ring-red-200 data-placeholder:text-neutral-400 disabled:data-placeholder:text-slate-600',
       className
     )}
     {...props}
@@ -72,7 +72,7 @@ const SelectContent = React.forwardRef<
       className={cn(
         'bg-popover text-popover-foreground data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 relative z-50 max-h-96 min-w-32 overflow-hidden rounded-md border shadow-md',
         position === 'popper' &&
-        'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
+          'data-[side=bottom]:translate-y-1 data-[side=left]:-translate-x-1 data-[side=right]:translate-x-1 data-[side=top]:-translate-y-1',
         className
       )}
       position={position}
@@ -83,7 +83,7 @@ const SelectContent = React.forwardRef<
         className={cn(
           'p-1',
           position === 'popper' &&
-          'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]'
+            'h-[var(--radix-select-trigger-height)] w-full min-w-[var(--radix-select-trigger-width)]'
         )}
       >
         {children}
@@ -113,7 +113,7 @@ const SelectItem = React.forwardRef<
   <SelectPrimitive.Item
     ref={ref}
     className={cn(
-      'focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center rounded-sm py-1.5 pr-8 pl-2 text-sm outline-none select-none data-disabled:pointer-events-none ',
+      'focus:bg-accent focus:text-accent-foreground relative flex w-full cursor-default items-center rounded-sm py-1.5 pr-8 pl-2 text-sm outline-none select-none data-disabled:pointer-events-none',
       className
     )}
     {...props}

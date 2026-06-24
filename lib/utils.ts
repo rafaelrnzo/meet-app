@@ -6,15 +6,63 @@ import customParseFormat from 'dayjs/plugin/customParseFormat'
 import dayjs from 'dayjs'
 import 'dayjs/locale/id'
 import { toast } from '@/components/ui/sonner'
+import { default as utc } from 'dayjs/plugin/utc'
+import { default as timezone } from 'dayjs/plugin/timezone'
+import type { ResponseBase } from '@/feat/Auth/dto'
 
 dayjs.extend(customParseFormat)
 dayjs.extend(duration)
 dayjs.locale('id')
+dayjs.extend(utc)
+dayjs.extend(timezone)
 
-export const djs = dayjs
+export const encoder = new TextEncoder()
+
+export const decoder = new TextDecoder()
+
+export function djs(val?: Parameters<typeof dayjs>[0]) {
+  return dayjs(val).tz('Asia/Jakarta')
+}
+
+export function encodePassphrase(passphrase: string) {
+  return encodeURIComponent(passphrase)
+}
+
+export function decodePassphrase(base64String: string) {
+  return decodeURIComponent(base64String)
+}
+
+export function generateRoomId(): string {
+  return `${randomString(4)}-${randomString(4)}`
+}
+
+export function randomString(length: number): string {
+  const characters = 'abcdefghijklmnopqrstuvwxyz0123456789'
+  const charactersLength = characters.length
+
+  let result = ''
+
+  for (let i = 0; i < length; i++) {
+    result += characters.charAt(Math.floor(Math.random() * charactersLength))
+  }
+
+  return result
+}
+
+export function isLowPowerDevice() {
+  return navigator.hardwareConcurrency < 6
+}
+
+export function isMeetStaging() {
+  return new URL(location.origin).host === 'meet.staging.livekit.io'
+}
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
+}
+
+export function num(value: unknown) {
+  return isNaN(Number(value)) ? 0 : Number(value)
 }
 
 export function without<T extends object, K extends keyof T>(obj: T, keys: K[]) {
@@ -199,4 +247,33 @@ export async function copyHandler(text = '') {
     const success = await unsecuredCopyToClipboard(text)
     return { success }
   }
+}
+
+export function loginfo(...data: unknown[]) {
+  if (typeof window === 'undefined') return console.log(...data)
+  if (!window.location.protocol.startsWith('https')) {
+    return console.info(...data)
+  }
+}
+
+export function createResponseSuccess<T>(data: T): ResponseBase<T> {
+  return { data }
+}
+
+export function createResponseError<T>(e: unknown, data?: T, fallback = ''): ResponseBase<T> {
+  // This will help us debug in development mode.
+  // → It's a good habit to log the error only during development
+  //   so that production users don’t see raw errors.
+  const error = { message: 'Something went wrong, try again later.' }
+  const fallbackData = data as T
+
+  if (e instanceof Error) {
+    error.message = e.message
+  }
+
+  if (fallback) {
+    error.message = fallback
+  }
+
+  return { data: fallbackData, error }
 }

@@ -20,7 +20,7 @@ import Cookies from 'js-cookie'
 import { toast } from '@/components/ui/sonner'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { Skeleton } from '@/components/ui/skeleton'
-import { joinRoomAction, shareLinkHandler } from '@/feat/rooms/helper'
+import { shareLinkHandler } from '@/feat/rooms/helper'
 import { GenerateRoomCode } from './GenerateRoomCode'
 import type { GenerateRoomCodeExp, NewRoomCode } from '@/feat/rooms/dto'
 import { Icon } from '@/components/ui/icon'
@@ -54,7 +54,7 @@ const ButtonJoin = ({
   const startDate = djs(room.start_date)
   const endDate = djs(room.end_date)
   const [now, setNow] = useState(djs())
-  const [isPendingJoin, startTransitionJoin] = useTransition()
+  const [isPendingJoin] = useTransition()
   const status = useMemo(() => (now.isBefore(startDate) ? 'upcoming' : 'open'), [now, startDate])
 
   useEffect(() => {
@@ -80,12 +80,7 @@ const ButtonJoin = ({
       disabled={(!isAdmin && (status !== 'open' || isFull)) || isPendingJoin}
       onClick={(event) => {
         event.stopPropagation()
-        startTransitionJoin(async () => {
-          await joinRoomAction({
-            code: room.room_code,
-            onSuccess: (code) => router.push(`/meeting/${encodeURIComponent(code)}`),
-          })
-        })
+        router.push(`/rooms/${encodeURIComponent(room.room_code)}`)
       }}
     >
       {isPendingJoin && <Loader className='animate-spin' />}
@@ -190,7 +185,7 @@ function RoomList(props: SummaryCardProps) {
   const handleShareLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
     const data = {
       title: 'Join Meeting',
-      url: new URL(`/meeting/${encodeURIComponent(roomCode)}`, window.location.origin).toString(),
+      url: new URL(`/rooms/${encodeURIComponent(roomCode)}`, window.location.origin).toString(),
     }
     const { success } = await shareLinkHandler(data)
     if (!success) {

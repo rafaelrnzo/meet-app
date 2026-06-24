@@ -1,8 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import type { DialogCloseProps } from '@radix-ui/react-dialog'
-import { DialogPortal } from '@radix-ui/react-dialog'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/spinner'
 import {
@@ -14,6 +12,7 @@ import {
   DialogTrigger,
   DialogClose,
   DialogFooter,
+  DialogPortal,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
@@ -34,7 +33,7 @@ interface ModalDialogProps {
 }
 
 interface ModalProps extends ModalDialogProps {
-  close?: DialogCloseProps
+  close?: React.ComponentProps<typeof DialogClose>
 }
 
 function Modal({
