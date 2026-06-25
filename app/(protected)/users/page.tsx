@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useEventSource } from '@/hooks/use-event-source'
 import { useAuth } from '@/hooks/use-auth'
 import { useParticipants } from '@/feat/users/use-participants'
+import { UserSSEType } from '@/feat/users/dto'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { TableView } from '@/compounds/table-view'
 import { default as PageContainer } from '@/compounds/page-container'
@@ -27,7 +28,7 @@ export default function UsersPage() {
   useEventSource<UserSSE>({
     eventUrl: `${publicUrl}/admin/users/events?token=${token}`,
     onMessage: (event) => {
-      if (event.type === 'user_updated' || event.type === 'user_deleted' || event.data) {
+      if ([UserSSEType.UPDATE, UserSSEType.DELETE].includes(event.type) && event.data) {
         refetchUsers({ searchParams: queryParams, withLoading: false })
       }
     },

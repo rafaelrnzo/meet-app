@@ -1,7 +1,14 @@
 import type { User } from '@/lib/api/admin-api'
 
+export enum UserSSEType {
+  CONNECTED = 'connected',
+  PING = 'ping',
+  UPDATE = 'user_updated',
+  DELETE = 'user_deleted',
+}
+
 export type UserSSE = {
-  type: 'connected' | 'ping' | 'user_updated' | 'user_deleted'
+  type: UserSSEType
   data?: Users & {
     status?: string
     room_id?: string

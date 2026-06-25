@@ -95,7 +95,7 @@ export const usersColumn = (): ColumnDef<User>[] => {
             className='rounded border-red-800 bg-red-50 px-3 py-2 text-sm text-red-800 capitalize not-italic'
           >
             {' '}
-            {roles[role] ?? role} {row.original.id}
+            {roles[role] ?? role}
           </Badge>
         )
       },
