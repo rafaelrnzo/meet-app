@@ -1,4 +1,7 @@
 import type { TabProps } from '@/feat/types'
+import { TabsSettingsRooms } from '@/feat/Tabs/SettingsRooms'
+import { TabsSettingsRecordings } from '@/feat/Tabs/SettingsRecordings'
+import { TabsSettingsParticipants } from '@/feat/Tabs/SettingsParticipants'
 import {
   TabsPolling,
   TabsMeeting,
@@ -76,6 +79,27 @@ export const RoomTabs = [
     hide: false,
     description: 'Gunakan pengaturan ini untuk mengatur rapat Anda.',
   },
+  {
+    id: TabsCode.TabsSettingsRecordings,
+    parentId: 5,
+    content: () => TabsSettingsRecordings,
+    hide: false,
+    description: 'Daftar rekaman rapat',
+  },
+  {
+    id: TabsCode.TabsSettingsRooms,
+    parentId: 5,
+    content: () => TabsSettingsRooms,
+    hide: false,
+    description: 'Daftar ruang rapat yang tersedia',
+  },
+  {
+    id: TabsCode.TabsSettingsParticipants,
+    parentId: 5,
+    content: () => TabsSettingsParticipants,
+    hide: false,
+    description: 'Daftar peserta',
+  },
 ] satisfies TabProps[]
 
 export const RoomTabsTools = [
@@ -107,7 +131,7 @@ export const RoomTabsTools = [
     id: 5,
     title: 'Alat pengaturan',
     icon: 'settings' as const,
-    tabIds: [5],
+    tabIds: [5, 51, 52, 53],
   },
 ]
 

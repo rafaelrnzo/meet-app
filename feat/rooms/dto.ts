@@ -17,15 +17,15 @@ type FileResponse = {
 
 interface RoomPayload {
   name: string
-  description: string
+  description?: string
   max_participants: number
-  assigned_to: string[]
-  group_id: number
-  start_date: string
-  end_date: string
-  password: string
-  is_mute_on_start: boolean
-  metadata: string
+  assigned_to?: string[]
+  group_id?: number
+  start_date?: string
+  end_date?: string
+  password?: string
+  is_mute_on_start?: boolean
+  metadata?: string
 }
 
 interface SelectOptions {
@@ -77,6 +77,46 @@ const SORT_ROOM = ['newest', 'oldest', 'name_asc', 'name_desc', 'group'] as cons
 
 type SortRoomType = (typeof SORT_ROOM)[number]
 
+enum RoomSSEEvent {
+  RoomUpdated = 'room_updated',
+  ParticipantJoined = 'participant_joined',
+  ParticipantLeft = 'participant_left',
+  RecordingStarted = 'recording_started',
+  RecordingStopped = 'recording_stopped',
+}
+
+interface RoomEventUpdated {
+  type: RoomSSEEvent.RoomUpdated
+  data: {
+    is_live: boolean
+    participants: number
+    room_id: string
+    updated_at: string
+  }
+}
+
+interface RoomEventParticipantData {
+  room_id: string
+  identity: string
+  participant_count: number
+}
+
+interface RoomEventParticipant {
+  type: RoomSSEEvent.ParticipantJoined | RoomSSEEvent.ParticipantLeft
+  data: RoomEventParticipantData
+}
+
+type RoomSSEDTO = RoomEventUpdated | RoomEventParticipant
+
+interface RoomMetadata {
+  waiting_room_enabled: boolean
+  allow_screen: boolean
+  allow_reaction: boolean
+  allow_audio: boolean
+  allow_video: boolean
+  // room_id: number
+}
+
 export type {
   RoomSchemaValue,
   SelectOptions,
@@ -87,5 +127,7 @@ export type {
   TabsValue,
   StatusOption,
   FileResponse,
+  RoomSSEDTO,
+  RoomMetadata,
 }
-export { getRoomDefaultValue, getRoomPayload, SORT_ROOM }
+export { getRoomDefaultValue, getRoomPayload, SORT_ROOM, RoomSSEEvent }
