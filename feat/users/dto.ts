@@ -1,5 +1,15 @@
 import type { User } from '@/lib/api/admin-api'
 
+export type UserSSE = {
+  type: 'connected' | 'ping' | 'user_updated' | 'user_deleted'
+  data?: Users & {
+    status?: string
+    room_id?: string
+    participant_count?: number
+    [key: string]: any
+  }
+}
+
 export enum UserPrensence {
   ACTIVE = 'active',
   WAITING = 'waiting to join',

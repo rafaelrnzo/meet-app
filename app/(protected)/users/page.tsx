@@ -1,10 +1,10 @@
 'use client'
 
-import type { UserParams, UserPrensence } from '@/feat/users/dto'
+import type { UserParams, UserPrensence, UserSSE } from '@/feat/users/dto'
 import { useEffect, useMemo, useState } from 'react'
-import { useRealTimeUsers } from '@/hooks/use-real-time-users'
+import { useEventSource } from '@/hooks/use-event-source'
 import { useAuth } from '@/hooks/use-auth'
-import { useParticipants } from '@/feat/users/useParticipants'
+import { useParticipants } from '@/feat/users/use-participants'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { TableView } from '@/compounds/table-view'
 import { default as PageContainer } from '@/compounds/page-container'
@@ -19,24 +19,18 @@ export default function UsersPage() {
     presence: 'all' as UserParams['presence'],
   })
 
-  const { loading: authLoading } = useAuth({ requirePermission: 'user:read' })
+  const { loading: authLoading, publicUrl, token } = useAuth({ requirePermission: 'user:read' })
 
   // Hooks
-  const { users, isLoading, refetchUsers, refetchRoles, setUsers } = useParticipants()
+  const { users, isLoading, refetchUsers, refetchRoles } = useParticipants()
 
-  useRealTimeUsers((event) => {
-    if (event.type === 'user_updated') {
-      setUsers((prev) => ({
-        ...prev,
-        data: prev.data.map((user) => {
-          if (user.id !== event.data?.id) return user
-          return {
-            ...user,
-            presence: event.data.presence,
-          }
-        }),
-      }))
-    }
+  useEventSource<UserSSE>({
+    eventUrl: `${publicUrl}/admin/users/events?token=${token}`,
+    onMessage: (event) => {
+      if (event.type === 'user_updated' || event.type === 'user_deleted' || event.data) {
+        refetchUsers({ searchParams: queryParams, withLoading: false })
+      }
+    },
   })
 
   // Handler & Computed
@@ -55,7 +49,7 @@ export default function UsersPage() {
   }, [users.data, queryParams.search])
 
   useEffect(() => {
-    refetchUsers(queryParams)
+    refetchUsers({ searchParams: queryParams, withLoading: false })
   }, [queryParams, refetchUsers])
 
   useEffect(() => {
