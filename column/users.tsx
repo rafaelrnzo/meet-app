@@ -16,7 +16,7 @@ export const Tooltip = ({
 }) => {
   return (
     <TooltipBase>
-      <TooltipTrigger className='cursor-pointer'>{trigger}</TooltipTrigger>
+      <TooltipTrigger className='cursor-text'>{trigger}</TooltipTrigger>
       <TooltipContent className='bg-red-800'>{content}</TooltipContent>
     </TooltipBase>
   )
