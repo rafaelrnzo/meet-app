@@ -61,7 +61,7 @@ export function RoomDetailSheet({
   const [userIdentity, setUserIdentity] = useState('')
   const [files, setFiles] = useState<FileResponse[]>([])
 
-  const canManage = hasPermission('room:manage')
+  const canManage = hasPermission('room:manage') && !activeRoom?.num_participants
 
   const ROLE_USER = 'user'
   const params = useRef<RoomParams>({})
