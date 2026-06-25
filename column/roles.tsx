@@ -44,7 +44,13 @@ export const rolesColumn = ({ openManage }: RolesColumnProps): ColumnDef<Role>[]
     maxSize: 250,
     cell: ({ row }) => {
       const name = row.original.name
-      const truncateName = name.length > 25 ? name.slice(0, 25) + '...' : name
+      const rename =
+        name === 'user'
+          ? 'Peserta'
+          : name === 'admin'
+            ? 'Super admin'
+            : name.charAt(0).toUpperCase() + row.original.name.slice(1)
+      const truncateName = rename.length > 25 ? rename.slice(0, 25) + '...' : rename
       return <p className='line-clamp-1 wrap-break-word'>{truncateName}</p>
     },
   },
@@ -84,7 +90,6 @@ export const rolesColumn = ({ openManage }: RolesColumnProps): ColumnDef<Role>[]
               </span>
               <ol>
                 <li>1. Ikon roda gigi berfungsi untuk memperbarui jumlah izin pada suatu peran</li>
-                <li>2. Ikon tempat sampah untuk menghapus rekaman</li>
               </ol>
             </TooltipContent>
           </Tooltip>
