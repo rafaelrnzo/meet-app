@@ -366,6 +366,13 @@ export async function fetchUsers(props?: { params?: UserParams }): Promise<UserR
   )
 }
 
+export async function fetchUsersEvent() {
+  return apiRequest('/admin/users/events', {
+    method: 'GET',
+    cache: 'no-store',
+  })
+}
+
 export async function fetchUsersAssignment(params?: ParamsUserAssignment): Promise<User[]> {
   return apiRequest<User[]>(
     '/admin/users/assignment',
