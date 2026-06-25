@@ -16,6 +16,7 @@ import { ToggleTrack } from '@/components/ToggleTrack'
 import { HugeIcon, ChevronUp } from '@/components/HugeIcon'
 import { HandRaisedIcon } from '@/components/HandRaised'
 import { ButtonIcon } from '@/components/Button'
+import ReactionIcon from '@/components/ReactionIcon'
 
 export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
   const room = useRoomContext()
@@ -60,9 +61,7 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
       <ButtonIcon isActive={shareScreenEnabled} onClick={handleToggleShareScreen}>
         <MonitorPlayIcon weight='fill' size={22} />
       </ButtonIcon>
-      <ButtonIcon isActive>
-        <SmileyIcon weight='fill' size={24} />
-      </ButtonIcon>
+      <ReactionIcon />
       <HandRaisedIcon />
       {children}
       <ButtonIcon onClick={() => router.replace('/')}>
