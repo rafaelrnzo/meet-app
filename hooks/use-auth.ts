@@ -48,5 +48,6 @@ export function useAuth(options?: UseAuthOptions) {
     user: data?.profile,
     hasPermission,
     logout: logoutHandler,
+    publicUrl: data?.publicUrl,
   }
 }
