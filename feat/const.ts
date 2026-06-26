@@ -6,7 +6,7 @@ import {
   TabsPersonalize,
   TabsSettings,
 } from '@/feat/Tabs'
-import { GroupCode, GroupsCode, TabsCode } from '@/feat/enum'
+import { CameraResolution, GroupCode, GroupsCode, TabsCode } from '@/feat/enum'
 import { WatchYoutube } from '@/feat/Activity/WatchYoutube'
 
 export const ChunkSize = 60_000
@@ -189,6 +189,15 @@ export const TabsContents = [
       },
     ],
   },
+]
+
+export const CameraResolutionOptions = [
+  { label: 'UHD (4K)', value: CameraResolution.UHD },
+  { label: 'QHD (2K)', value: CameraResolution.QHD },
+  { label: 'Full HD (1080p)', value: CameraResolution.FULLHD },
+  { label: 'High Definition (720p)', value: CameraResolution.HIGH },
+  { label: 'Standard (540p)', value: CameraResolution.STANDART },
+  { label: 'Data Saver (360p)', value: CameraResolution.LOW },
 ]
 
 export type TabsRoomToolsIconKey = (typeof RoomTabsTools)[number]['icon']
