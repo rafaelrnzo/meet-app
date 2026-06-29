@@ -10,11 +10,12 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
   X,
+  HandIcon,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 
-interface ToastProps {
+interface ToastProps extends ToasterProps {
   description?: string
   duration?: number
 }
@@ -52,7 +53,7 @@ const CustomToast = ({
   description,
 }: {
   id: number | string
-  severity: 'success' | 'info' | 'error' | 'warning'
+  severity: 'success' | 'info' | 'error' | 'warning' | 'raise'
   title?: string
   description: React.ReactNode
 }) => {
@@ -77,9 +78,30 @@ const CustomToast = ({
       bg: 'bg-red-50',
       text: 'text-error',
     },
+    raise: {
+      icon: <HandIcon className='size-4 fill-amber-500 text-amber-500' />,
+      bg: 'bg-rose-50 border border-neutral-300',
+      text: 'text-neutral-800 font-medium text-sm',
+    },
   }
 
   const config = config_template[severity]
+
+  if (severity === 'raise') {
+    return (
+      <div
+        className={cn(
+          'relative flex w-[320px] items-center justify-between gap-3 rounded-xl p-3 shadow-sm md:w-[360px]',
+          config.bg
+        )}
+      >
+        <div className='flex min-w-0 items-center gap-2'>
+          <div className='shrink-0'>{config.icon}</div>
+          <p className={cn('truncate', config.text)}>{title}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -110,7 +132,8 @@ const CustomToast = ({
 }
 
 const createToast =
-  (severity: 'success' | 'info' | 'error' | 'warning') => (title: string, props?: ToastProps) =>
+  (severity: 'success' | 'info' | 'error' | 'warning' | 'raise') =>
+  (title: string, props?: ToastProps) =>
     toastDefault.custom(
       (id) => (
         <CustomToast
@@ -121,6 +144,7 @@ const createToast =
         />
       ),
       {
+        ...props,
         ...(props?.duration && { duration: props.duration }),
       }
     )
@@ -131,6 +155,7 @@ const toast = {
   error: createToast('error'),
   info: createToast('info'),
   warning: createToast('warning'),
+  raise: createToast('raise'),
 }
 
 export { Toaster, toast }
