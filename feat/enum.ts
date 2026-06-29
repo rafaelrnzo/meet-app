@@ -27,6 +27,7 @@ export enum ParticipantAttribute {
   ScreenActiveUrl = 'SCREEN_ACTIVE_URL',
   ScreenActivePolling = 'SCREEN_ACTIVE_POLLING',
   HandRaised = 'HAND_RAISED',
+  RoleName = 'ROLE_NAME',
 }
 
 export enum ConnectionInterceptor {
@@ -83,4 +84,13 @@ export enum GroupCode {
   WatchYoutube = 5,
   Recording = 6,
   PickRandom = 7,
+}
+
+export enum CameraResolution {
+  UHD = '4k',
+  QHD = '2k',
+  FULLHD = '1080p',
+  HIGH = '720p',
+  STANDART = '540p',
+  LOW = '360p',
 }

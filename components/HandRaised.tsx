@@ -1,49 +1,116 @@
-import type { FC } from 'react'
+import type { ToasterProps } from 'sonner'
+import type { RaisedHandUser } from '@/hooks/use-hand-raises'
+import { useEffect, useRef, useCallback } from 'react'
 import { HandFistIcon, HandIcon } from '@phosphor-icons/react'
+import { useLocalParticipant } from '@livekit/components-react'
+import { toast } from './ui/sonner'
 import { useHandRaises } from '@/hooks'
-import { Button, ButtonIcon } from '@/components/Button'
+import { ParticipantAttribute } from '@/feat/enum'
+import { ButtonIcon } from '@/components/Button'
 
-export const HandRaiseDialog: FC = () => {
-  const { raisedHands, lowerHand } = useHandRaises()
+export const HandRaiseToast = () => {
+  const { raisedHands } = useHandRaises()
+  const toastIdRef = useRef<string | number | null>(null)
+  const prevRaisedHandsRef = useRef<Map<string, RaisedHandUser>>(new Map())
+  const audioRef = useRef<HTMLAudioElement | null>(null)
 
-  if (!raisedHands.size) {
-    return null
-  }
+  const { localParticipant } = useLocalParticipant()
+  const roleAttribute = localParticipant?.attributes?.[ParticipantAttribute.RoleName.toLowerCase()]
 
-  return (
-    <div className='fixed bottom-20 left-6 z-50 flex max-h-70 w-64 flex-col rounded-xl border border-neutral-700 bg-neutral-800 p-3 shadow-2xl'>
-      <div className='flex items-center gap-2 border-b border-neutral-700 pb-2 text-sm font-medium text-neutral-300'>
-        <div className='flex h-6 w-6 items-center justify-center rounded-full bg-amber-950 text-amber-400'>
-          <HandIcon size={14} weight='fill' />
-        </div>
-        <span>Angkat tangan</span>
-        <span className='ml-auto rounded-full bg-neutral-700 px-2 py-0.5 text-xs font-semibold text-neutral-400'>
-          {raisedHands.size}
-        </span>
-      </div>
-      <div className='mt-2 flex flex-col gap-0.5 overflow-y-auto pr-1'>
-        {Array.from(raisedHands.values()).map((user) => (
-          <div
-            key={user.identity}
-            className='flex items-center justify-between gap-2.5 rounded-lg px-2 py-1.5 text-sm text-neutral-300'
-          >
-            <p className='flex items-center gap-2.5'>
-              <HandIcon size={16} weight='fill' className='shrink-0 text-amber-500' />
-              <span className='truncate font-medium'>{user.isMe ? `Kamu` : user.name}</span>
-            </p>
-            {!user.isMe && (
-              <Button className='p-1 px-2 text-xs' onClick={() => lowerHand(user.identity)}>
-                Turunkan
-              </Button>
-            )}
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+  useEffect(() => {
+    audioRef.current = new Audio('/raise_hand.mp3')
+  }, [])
+
+  const playSound = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+      audioRef.current.play().catch((err) => {
+        console.warn(err)
+      })
+    }
+  }, [])
+
+  const dismissToast = useCallback(() => {
+    if (toastIdRef.current) {
+      toast.dismiss(toastIdRef.current)
+      toastIdRef.current = null
+    }
+  }, [])
+
+  useEffect(() => {
+    const list = Array.from(raisedHands.values())
+    const count = list.length
+    const prevList = Array.from(prevRaisedHandsRef.current.values())
+    const isCurrentUserHost = ['admin', 'moderator'].includes(roleAttribute || '')
+
+    const checkShowAsHost = (userRole: string) => {
+      const isTargetHost = ['admin', 'moderator'].includes(userRole)
+      return isTargetHost && !isCurrentUserHost
+    }
+
+    if (prevRaisedHandsRef.current.size > count) {
+      const loweredUser = prevList.find((user) => !raisedHands.has(user.identity))
+
+      if (loweredUser) {
+        dismissToast()
+
+        const lowerMessage = loweredUser.isMe
+          ? 'Kamu menurunkan tangan'
+          : `${checkShowAsHost(loweredUser.roleName) ? 'Host' : loweredUser.name} menurunkan tangan`
+
+        toast.raise(lowerMessage, {
+          duration: 2500,
+          position: 'top-center',
+          id: toastIdRef.current ? String(toastIdRef.current.toString()) : undefined,
+        })
+
+        prevRaisedHandsRef.current = new Map(raisedHands)
+        return
+      }
+    }
+
+    if (count > prevRaisedHandsRef.current.size) {
+      playSound()
+    }
+
+    prevRaisedHandsRef.current = new Map(raisedHands)
+
+    if (count === 0) {
+      dismissToast()
+      return
+    }
+
+    let message = ''
+    if (count === 1) {
+      const activeUser = list[0]
+      message = activeUser.isMe
+        ? 'Kamu mengangkat tangan'
+        : `${checkShowAsHost(activeUser.roleName) ? 'Host' : activeUser.name} mengangkat tangan`
+    } else {
+      message = `${count} orang mengangkat tangan`
+    }
+
+    const toastOptions: ToasterProps = {
+      duration: 2500,
+      position: 'top-center',
+      id: toastIdRef.current ? String(toastIdRef.current.toString()) : undefined,
+    }
+
+    toastIdRef.current = toast.raise(message, toastOptions)
+  }, [raisedHands, roleAttribute, dismissToast, playSound])
+
+  useEffect(() => {
+    return () => {
+      if (toastIdRef.current) {
+        toast.dismiss(toastIdRef.current)
+      }
+    }
+  }, [])
+
+  return null
 }
 
-export const HandRaisedIcon: FC = () => {
+export const HandRaisedIcon = () => {
   const { isRaised, toggleHand } = useHandRaises()
 
   return (

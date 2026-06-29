@@ -19,7 +19,7 @@ import { cn } from '@/lib/utils'
 import { useParamsState, useConferenceRoom } from '@/hooks'
 import { RoomToast, RoomPanel, RoomControl, RoomCanvas } from '@/feat/Room'
 import { RoomTabs } from '@/feat/const'
-import { HandRaiseDialog } from '@/components/HandRaised'
+import { HandRaiseToast } from '@/components/HandRaised'
 
 export const RoomGrid: FC<{ context: LayoutContextType }> = ({ context: layoutContext }) => {
   const { tracks, focusTrack, carouselTracks } = useConferenceRoom({ layoutContext })
@@ -77,7 +77,7 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
 
   return (
     <LayoutContextProvider value={layoutContext}>
-      <HandRaiseDialog />
+      <HandRaiseToast />
       <RoomAudioRenderer />
       <main {...props} className={cn('bg-secondary/40 fixed inset-0 p-3', className)}>
         <div className='flex h-full flex-col gap-3'>
