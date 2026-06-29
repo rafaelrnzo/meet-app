@@ -85,3 +85,12 @@ export enum GroupCode {
   Recording = 6,
   PickRandom = 7,
 }
+
+export enum CameraResolution {
+  UHD = '4k',
+  QHD = '2k',
+  FULLHD = '1080p',
+  HIGH = '720p',
+  STANDART = '540p',
+  LOW = '360p',
+}
