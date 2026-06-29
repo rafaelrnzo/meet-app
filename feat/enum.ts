@@ -19,6 +19,7 @@ export enum LiveKitAction {
   MicrophoneUpdate = 'MICROPHONE_UPDATE',
   PollingVoteNow = 'POLLING_VOTE_NOW',
   Reaction = 'REACTION',
+  PickUser = 'RANDOM_USER_SELECTED',
 }
 
 export enum ParticipantAttribute {
@@ -28,6 +29,7 @@ export enum ParticipantAttribute {
   ScreenActiveUrl = 'SCREEN_ACTIVE_URL',
   ScreenActivePolling = 'SCREEN_ACTIVE_POLLING',
   HandRaised = 'HAND_RAISED',
+  RoleName = 'ROLE_NAME',
 }
 
 export enum ConnectionInterceptor {
