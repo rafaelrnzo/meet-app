@@ -1,9 +1,8 @@
 'use client'
 
 import type { ComponentProps, CSSProperties, FC } from 'react'
-import type { RemoteParticipant } from 'livekit-client'
 import type { LayoutContextType } from '@livekit/components-react'
-import { createContext, useEffect, useState } from 'react'
+import { createContext } from 'react'
 import { ConnectionState } from 'livekit-client'
 import {
   useCreateLayoutContext,

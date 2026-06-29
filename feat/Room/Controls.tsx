@@ -2,7 +2,7 @@
 
 import type { FC, ReactNode } from 'react'
 import { ConnectionState } from 'livekit-client'
-import { MonitorPlayIcon, PhoneSlashIcon, SmileyIcon } from '@phosphor-icons/react'
+import { MonitorPlayIcon, PhoneSlashIcon } from '@phosphor-icons/react'
 import {
   MicDisabledIcon,
   CameraDisabledIcon,
@@ -13,10 +13,10 @@ import {
 } from '@livekit/components-react'
 import { useParamsState, useMediaControls } from '@/hooks'
 import { ToggleTrack } from '@/components/ToggleTrack'
+import { default as ReactionIcon } from '@/components/ReactionIcon'
 import { HugeIcon, ChevronUp } from '@/components/HugeIcon'
 import { HandRaisedIcon } from '@/components/HandRaised'
 import { ButtonIcon } from '@/components/Button'
-import ReactionIcon from '@/components/ReactionIcon'
 
 export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
   const room = useRoomContext()

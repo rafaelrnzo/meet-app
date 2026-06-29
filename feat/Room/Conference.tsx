@@ -14,6 +14,7 @@ import { ConnectionState, MediaDeviceFailure, Room, RoomEvent, VideoPresets } fr
 import { RoomContext } from '@livekit/components-react'
 import { useParamsState } from '@/hooks'
 import { RoomState, RoomLayout } from '@/feat/Room'
+import { toast } from '@/components/ui/sonner'
 
 export interface RoomConferenceProps {
   children?: ReactNode
@@ -60,12 +61,21 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
   const room = useMemo(() => new Room(roomOptions.current()), []) // Maybe changed
   const roomEvent = useRef({
     leave: () => router.replace('/'),
-    error: (e: unknown) => {
-      console.log('Failed to get active media devices:', e)
+    error: (e: Error) => {
+      const failure = MediaDeviceFailure.getFailure(e)
 
-      alert(
-        `Encountered an unexpected error, check the console logs for details: ${(e as Error).message}`
-      )
+      if (
+        failure === MediaDeviceFailure.PermissionDenied ||
+        failure === MediaDeviceFailure.NotFound
+      ) {
+        toast.error(
+          'Error: Tidak dapat menemukan mikrofon dan kamera, atau pengguna menolak atas izin akses mikrofon dan kamera. Silahkan muat ulang halaman ini, atau tutup dan kembali ke halaman ini untuk mengaktifkan mikrofon dan kamera.'
+        )
+      } else {
+        toast.error('Error: Terjadi kesalahan media yang tidak diketahui.', {
+          description: e instanceof Error ? e.message : String(e),
+        })
+      }
     },
   })
 
@@ -75,15 +85,6 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
 
     room.on(RoomEvent.Disconnected, leave)
     room.on(RoomEvent.MediaDevicesError, error)
-    room.on(RoomEvent.MediaDevicesError, (error) => {
-      const failure = MediaDeviceFailure.getFailure(error)
-
-      if (failure === MediaDeviceFailure.PermissionDenied) {
-        console.log('User disallowed access to the capturing device.')
-      } else if (failure === MediaDeviceFailure.NotFound) {
-        console.log('The requested device is unavailable.')
-      }
-    })
 
     let mounted = true
 
