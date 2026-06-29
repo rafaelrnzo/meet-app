@@ -177,7 +177,7 @@ export default function EditDialog({
             items={allOptions}
             onValueChange={(value) => {
               if (!value) return
-              const numbers = (value as { value: number }[]).map((v) => Number(v))
+              const numbers = (value as unknown as { value: number }[]).map((v) => Number(v))
               setDisabledAdd(numbers)
             }}
             buttonProps={{
@@ -197,7 +197,7 @@ export default function EditDialog({
           <span className='mb-2 text-sm font-normal text-neutral-950'>
             Peserta saat ini {`(${displayedParticipants.length || 0})`}
           </span>
-          <div className='max-h-[281px] overflow-auto'>
+          <div className='max-h-70.25 overflow-auto'>
             {displayedParticipants.map((member) => (
               <div
                 key={member.id}

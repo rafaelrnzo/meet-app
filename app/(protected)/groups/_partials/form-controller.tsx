@@ -28,6 +28,7 @@ type FormProps = {
   name: ReturnType<typeof useForm>['Field']['name']
   formApi: AnyFormApi
   subLabel?: string
+  required?: boolean
   listeners?: Parameters<ReturnType<typeof useForm>['Field']>[0]['listeners']
 }
 

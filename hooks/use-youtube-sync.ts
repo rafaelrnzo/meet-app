@@ -1,3 +1,4 @@
+// @ts-ignore
 import type { default as YT } from 'youtube'
 import { useEffect, useRef, useEffectEvent } from 'react'
 import { RoomEvent } from 'livekit-client'
@@ -205,7 +206,7 @@ export function useYoutubeSync(onReady?: () => void) {
             })
           }
         },
-        onStateChange: (event) => {
+        onStateChange: (event: YT.OnStateChangeEvent) => {
           if (!hasControl) return
           if (isRemoteApplyingRef.current) return
 
