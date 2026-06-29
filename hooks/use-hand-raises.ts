@@ -1,3 +1,4 @@
+import type { RoleName } from '@/feat/types'
 import { useLocalParticipant, useParticipants } from '@livekit/components-react'
 import { useDataChannel } from '@/hooks'
 import { LiveKitAction, ParticipantAttribute } from '@/feat/enum'
@@ -6,6 +7,7 @@ export interface RaisedHandUser {
   identity: string
   name: string
   isMe: boolean
+  roleName: RoleName
 }
 
 export function useHandRaises() {
@@ -23,36 +25,37 @@ export function useHandRaises() {
     }
   }
 
-  const { send } = useDataChannel<string>(LiveKitAction.HandRaisedLower, () => {
-    // No need received payload, directed by `destinationIdentities`
+  const { send: sendLower } = useDataChannel<string>(LiveKitAction.HandRaisedLower, () => {
     setHandStatus(false)
   })
 
   const raisedHands = () => {
     const listMap = new Map<string, RaisedHandUser>()
     const uniqueParticipants = Array.from(new Set([localParticipant, ...remoteParticipants]))
-
     uniqueParticipants.forEach(({ attributes, identity, name = '' }) => {
       if (attributes?.[ParticipantAttribute.HandRaised] === 'true') {
-        listMap.set(identity, { identity, name, isMe: identity === localParticipant.identity })
+        listMap.set(identity, {
+          identity,
+          name,
+          isMe: identity === localParticipant.identity,
+          roleName: attributes.role_name as RaisedHandUser['roleName'],
+        })
       }
     })
 
     return listMap
   }
 
-  const raiseHand = () => setHandStatus(true)
   const toggleHand = () => setHandStatus(!isRaised)
   const lowerHand = (identity: string) => {
     if (localParticipant) {
-      send(identity, { reliable: false, destinationIdentities: [identity] })
+      sendLower(identity, { reliable: false, destinationIdentities: [identity] })
     }
   }
 
   return {
     isRaised,
     raisedHands: raisedHands(),
-    raiseHand,
     lowerHand,
     toggleHand,
   }
