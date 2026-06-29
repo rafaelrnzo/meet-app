@@ -38,7 +38,7 @@ export function useHandRaises() {
           identity,
           name,
           isMe: identity === localParticipant.identity,
-          roleName: attributes.role_name as RaisedHandUser['roleName'],
+          roleName: attributes[ParticipantAttribute.RoleName.toLowerCase()] as RoleName,
         })
       }
     })

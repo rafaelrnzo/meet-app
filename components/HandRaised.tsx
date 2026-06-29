@@ -13,7 +13,7 @@ export const HandRaiseToast = () => {
   const toastIdRef = useRef<string | number | null>(null)
   const prevRaisedHandsRef = useRef<Map<string, RaisedHandUser>>(new Map())
   const { localParticipant } = useLocalParticipant()
-  const roleAttribute = localParticipant.attributes[ParticipantAttribute.RoleName]
+  const roleAttribute = localParticipant.attributes[ParticipantAttribute.RoleName.toLowerCase()]
 
   const dismissToast = useCallback(() => {
     if (toastIdRef.current) {

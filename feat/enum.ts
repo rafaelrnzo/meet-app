@@ -27,7 +27,7 @@ export enum ParticipantAttribute {
   ScreenActiveUrl = 'SCREEN_ACTIVE_URL',
   ScreenActivePolling = 'SCREEN_ACTIVE_POLLING',
   HandRaised = 'HAND_RAISED',
-  RoleName = 'role_name',
+  RoleName = 'ROLE_NAME',
 }
 
 export enum ConnectionInterceptor {
