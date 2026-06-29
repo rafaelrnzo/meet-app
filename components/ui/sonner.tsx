@@ -99,13 +99,6 @@ const CustomToast = ({
           <div className='shrink-0'>{config.icon}</div>
           <p className={cn('truncate', config.text)}>{title}</p>
         </div>
-
-        <button
-          onClick={() => toastDefault.dismiss(id)}
-          className='shrink-0 rounded p-0.5 text-rose-800 transition-colors hover:bg-rose-100'
-        >
-          <X className='size-4 stroke-[2.5]' />
-        </button>
       </div>
     )
   }

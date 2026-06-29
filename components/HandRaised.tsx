@@ -12,8 +12,23 @@ export const HandRaiseToast = () => {
   const { raisedHands } = useHandRaises()
   const toastIdRef = useRef<string | number | null>(null)
   const prevRaisedHandsRef = useRef<Map<string, RaisedHandUser>>(new Map())
+  const audioRef = useRef<HTMLAudioElement | null>(null)
+
   const { localParticipant } = useLocalParticipant()
-  const roleAttribute = localParticipant.attributes[ParticipantAttribute.RoleName.toLowerCase()]
+  const roleAttribute = localParticipant?.attributes?.[ParticipantAttribute.RoleName.toLowerCase()]
+
+  useEffect(() => {
+    audioRef.current = new Audio('/raise_hand.mp3')
+  }, [])
+
+  const playSound = useCallback(() => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = 0
+      audioRef.current.play().catch((err) => {
+        console.warn(err)
+      })
+    }
+  }, [])
 
   const dismissToast = useCallback(() => {
     if (toastIdRef.current) {
@@ -26,7 +41,7 @@ export const HandRaiseToast = () => {
     const list = Array.from(raisedHands.values())
     const count = list.length
     const prevList = Array.from(prevRaisedHandsRef.current.values())
-    const isCurrentUserHost = ['admin', 'moderator'].includes(roleAttribute)
+    const isCurrentUserHost = ['admin', 'moderator'].includes(roleAttribute || '')
 
     const checkShowAsHost = (userRole: string) => {
       const isTargetHost = ['admin', 'moderator'].includes(userRole)
@@ -46,11 +61,16 @@ export const HandRaiseToast = () => {
         toast.raise(lowerMessage, {
           duration: 2500,
           position: 'top-center',
+          id: toastIdRef.current ? String(toastIdRef.current.toString()) : undefined,
         })
 
         prevRaisedHandsRef.current = new Map(raisedHands)
         return
       }
+    }
+
+    if (count > prevRaisedHandsRef.current.size) {
+      playSound()
     }
 
     prevRaisedHandsRef.current = new Map(raisedHands)
@@ -73,11 +93,11 @@ export const HandRaiseToast = () => {
     const toastOptions: ToasterProps = {
       duration: 2500,
       position: 'top-center',
-      id: toastIdRef.current ? String(toastIdRef.current) : undefined,
+      id: toastIdRef.current ? String(toastIdRef.current.toString()) : undefined,
     }
 
     toastIdRef.current = toast.raise(message, toastOptions)
-  }, [raisedHands, roleAttribute, dismissToast])
+  }, [raisedHands, roleAttribute, dismissToast, playSound])
 
   useEffect(() => {
     return () => {
