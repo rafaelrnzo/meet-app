@@ -4,6 +4,7 @@ import type { FC } from 'react'
 import type { SwitchBackgroundProcessorOptions } from '@livekit/track-processors'
 import { useRef, useState } from 'react'
 import { Track } from 'livekit-client'
+import { EmptyIcon } from '@phosphor-icons/react'
 import { BackgroundProcessor, supportsBackgroundProcessors } from '@livekit/track-processors'
 import { useLocalParticipant } from '@livekit/components-react'
 import { Loading03FreeIcons } from '@hugeicons/core-free-icons'
@@ -15,7 +16,7 @@ const BLUR_RADIUS = 15
 
 interface VirtualBackgroundButton {
   title?: string
-  icon?: string
+  icon?: React.ReactNode
   className?: string
   backgroundOptions: SwitchBackgroundProcessorOptions
 }
@@ -23,13 +24,13 @@ interface VirtualBackgroundButton {
 const backgroundItems = [
   {
     title: 'Tidak ada',
-    icon: '',
+    icon: <EmptyIcon size={20} className='text-neutral-400' />,
     className: 'bg-neutral-200',
     backgroundOptions: { mode: 'disabled' },
   },
   {
     title: 'Blur',
-    icon: '',
+    icon: <div className='size-5 bg-gray-300 blur'></div>,
     backgroundOptions: { mode: 'background-blur', blurRadius: BLUR_RADIUS },
   },
   {

@@ -69,6 +69,9 @@ export enum TabsCode {
   TabsChats = 3,
   TabsPersonalize = 4,
   TabsSettings = 5,
+  TabsSettingsRecordings = 51,
+  TabsSettingsRooms = 52,
+  TabsSettingsParticipants = 53,
 }
 
 export enum GroupsCode {
