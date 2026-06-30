@@ -27,6 +27,14 @@ export default function EditRoles({
   handleAddPermissions,
 }: EditRolesProps) {
   const [activeTab, setActiveTab] = useState<RoleTabsValue>('control_dashboard')
+  const roleName = selectedRole?.name
+  const rename = roleName
+    ? roleName === 'user'
+      ? 'Peserta'
+      : roleName === 'admin'
+        ? 'Super admin'
+        : roleName.charAt(0).toUpperCase() + roleName.slice(1)
+    : ''
 
   const tabsTrigger: RoleTabsValue[] = ['control_dashboard', 'control_meet']
   const keyMeetScreen = 'ui:manage_screen'
@@ -54,7 +62,7 @@ export default function EditRoles({
     <Modal
       root={{ open, onOpenChange, modal: false }}
       title={{
-        children: <p className='line-clamp-2 wrap-anywhere'>Kelola izin - {selectedRole?.name}</p>,
+        children: <p className='line-clamp-2 wrap-anywhere'>Kelola izin - {rename}</p>,
       }}
       description={{
         children: 'Perbarui izin dari setiap peserta badiklat',

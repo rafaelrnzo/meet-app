@@ -2,7 +2,7 @@
 
 import type { FC, ReactNode } from 'react'
 import { ConnectionState } from 'livekit-client'
-import { MonitorPlayIcon, PhoneSlashIcon, SmileyIcon } from '@phosphor-icons/react'
+import { MonitorPlayIcon, PhoneSlashIcon } from '@phosphor-icons/react'
 import {
   MicDisabledIcon,
   MicIcon,
@@ -11,6 +11,7 @@ import {
 } from '@livekit/components-react'
 import { useParamsState, useMediaControls } from '@/hooks'
 import { ToggleTrack } from '@/components/ToggleTrack'
+import { default as ReactionIcon } from '@/components/ReactionIcon'
 import { HandRaisedIcon } from '@/components/HandRaised'
 import { default as CameraControl } from '@/components/CameraControl'
 import { ButtonIcon } from '@/components/Button'
@@ -42,9 +43,7 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
       <ButtonIcon isActive={shareScreenEnabled} onClick={handleToggleShareScreen}>
         <MonitorPlayIcon weight='fill' size={22} />
       </ButtonIcon>
-      <ButtonIcon isActive>
-        <SmileyIcon weight='fill' size={24} />
-      </ButtonIcon>
+      <ReactionIcon />
       <HandRaisedIcon />
       {children}
       <ButtonIcon onClick={() => router.replace('/')}>

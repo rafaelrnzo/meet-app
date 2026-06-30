@@ -111,7 +111,7 @@ export const RoomTabsTools = [
   },
 ]
 
-export const TabsContents = [
+export const TabsContents = (role: string) => [
   {
     id: GroupsCode.Collaboration,
     headline: 'Kolaborasi',
@@ -185,7 +185,7 @@ export const TabsContents = [
         icon: 'phosphor/dice-six' as const,
         title: 'Pilih peserta acak',
         description: 'Pilih peserta secara acak',
-        hide: false,
+        hide: role === 'user',
       },
     ],
   },
@@ -202,8 +202,8 @@ export const CameraResolutionOptions = [
 
 export type TabsRoomToolsIconKey = (typeof RoomTabsTools)[number]['icon']
 
-export type TabsContentIconKey = (typeof TabsContents)[number]['lists'][number]['icon']
+export type TabsContentIconKey = ReturnType<typeof TabsContents>[number]['lists'][number]['icon']
 
-export type TabsContentList = (typeof TabsContents)[number]['lists'][number]
+export type TabsContentList = ReturnType<typeof TabsContents>[number]['lists'][number]
 
-export type TabsContentIconId = (typeof TabsContents)[number]['lists'][number]['id']
+export type TabsContentIconId = ReturnType<typeof TabsContents>[number]['lists'][number]['id']
