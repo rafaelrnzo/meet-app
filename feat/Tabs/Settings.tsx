@@ -146,8 +146,8 @@ export const TabsSettings: FC = () => {
 
     try {
       await updateDbRoom(roomData.id, {
-        name: roomData.name,
-        max_participants: roomData.max_participants,
+        ...roomData,
+        group_id: Number(roomData.group_id),
         password,
       })
       toast.success('Berhasil ubah sandi ruangan', {

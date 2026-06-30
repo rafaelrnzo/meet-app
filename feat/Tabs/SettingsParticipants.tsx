@@ -45,7 +45,7 @@ export const TabsSettingsParticipants: FC = () => {
   const activeParticipant: Participant[] = participants.map((user) => ({
     id: user.sid,
     name: user.name ?? '-',
-    role: user.attributes?.[ParticipantAttribute.RoleName],
+    role: user.attributes?.[ParticipantAttribute.RoleName.toLowerCase()],
   }))
   const bannedWaitingParticipant = roomMember.filter((user) =>
     ['banned', 'waiting'].includes(user.status ?? '')

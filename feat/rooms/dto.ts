@@ -17,14 +17,14 @@ type FileResponse = {
 
 interface RoomPayload {
   name: string
-  description?: string
+  description: string
   max_participants: number
-  assigned_to?: string[]
-  group_id?: number
-  start_date?: string
-  end_date?: string
-  password?: string
-  is_mute_on_start?: boolean
+  assigned_to: string[]
+  group_id: number
+  start_date: string
+  end_date: string
+  password: string
+  is_mute_on_start: boolean
   metadata?: string
 }
 
@@ -69,7 +69,7 @@ const getRoomPayload = (data: RoomSchemaValue): RoomPayload => {
     end_date: data.endDate?.toISOString() ?? '',
     password: data.password,
     is_mute_on_start: data.isMuteOnStart,
-    metadata: JSON.stringify({ polling: [], banned: [] }),
+    metadata: JSON.stringify({ polling: [], banned: [] }), // TODO: pastikan apakah sesuai
   }
 }
 
