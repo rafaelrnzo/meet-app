@@ -23,6 +23,15 @@ export interface ConnectionDetails {
   participantToken: string
 }
 
+export interface ParticipantStatus {
+  isSpeaking: boolean
+  isRecording: boolean
+  isWhiteboard: boolean
+  isPresentation: boolean
+  isWatchYoutube: boolean
+  isHandRaised: boolean
+}
+
 export interface TabProps {
   id: number
   content: () => FC

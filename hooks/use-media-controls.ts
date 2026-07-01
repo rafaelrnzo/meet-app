@@ -6,7 +6,7 @@ import type {
 } from 'livekit-client'
 import type { LocalUserChoices, ToggleSource } from '@livekit/components-core'
 import { useState, useEffect, useRef, useEffectEvent, useMemo } from 'react'
-import { Track, facingModeFromLocalTrack } from 'livekit-client'
+import { RoomEvent, Track, facingModeFromLocalTrack } from 'livekit-client'
 import { usePersistentUserChoices } from '@livekit/components-react'
 import { setupMediaToggle } from '@livekit/components-core'
 import { useProgressiveTrack } from '@/hooks'
@@ -114,6 +114,25 @@ export function useMediaControls(options?: MediaControlsOption) {
     }
   }
 
+  const handleManualToggleAudio = (enabled: boolean) => {
+    setAudioEnabled(enabled)
+
+    if (enabled) {
+      setMedia((prev) => ({
+        ...prev,
+        audio: { deviceId: audioDeviceId },
+      }))
+    } else {
+      setMedia((prev) => ({ ...prev, audio: false }))
+    }
+
+    if (room?.localParticipant) {
+      room.localParticipant
+        .setMicrophoneEnabled(enabled)
+        .catch((err) => console.error('Failed to respond to the admin voice command', err))
+    }
+  }
+
   const handleToggleVideo = () => {
     setVideoEnabled((prev) => !prev)
 
@@ -194,6 +213,29 @@ export function useMediaControls(options?: MediaControlsOption) {
   useEffect(() => handlePublishTrack(Track.Source.Microphone, audioEnabled), [audioEnabled])
   useEffect(() => handlePublishTrack(Track.Source.Camera, videoEnabled), [videoEnabled])
 
+  // Listener
+  useEffect(() => {
+    if (!room) return
+
+    const handleTrackMutedOrUnmuted = () => {
+      const isMicEnabled = !!room.localParticipant?.isMicrophoneEnabled
+      setAudioEnabled(isMicEnabled)
+
+      setMedia((prev) => ({
+        ...prev,
+        audio: isMicEnabled ? { deviceId: audioDeviceId } : false,
+      }))
+    }
+
+    room.localParticipant?.on(RoomEvent.TrackMuted, handleTrackMutedOrUnmuted)
+    room.localParticipant?.on(RoomEvent.TrackUnmuted, handleTrackMutedOrUnmuted)
+
+    return () => {
+      room.localParticipant?.off(RoomEvent.TrackMuted, handleTrackMutedOrUnmuted)
+      room.localParticipant?.off(RoomEvent.TrackUnmuted, handleTrackMutedOrUnmuted)
+    }
+  }, [room, audioDeviceId])
+
   return {
     // Expose so usePreJoin can read initialUserChoices.username without a second hook call
     initialUserChoices,
@@ -227,6 +269,7 @@ export function useMediaControls(options?: MediaControlsOption) {
 
     // Handlers
     handleToggleAudio,
+    handleManualToggleAudio,
     handleToggleVideo,
     handleToggleShareScreen,
   }

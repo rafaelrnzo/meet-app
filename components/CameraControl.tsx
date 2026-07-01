@@ -77,7 +77,7 @@ export const CameraControl = ({
         </ToggleTrack>
 
         <Tooltip>
-          <TooltipTrigger asChild className='cursor-pointer'>
+          <TooltipTrigger className='cursor-pointer' asChild>
             <button
               disabled={!videoEnabled}
               onClick={() => {

@@ -78,6 +78,7 @@ export const RoomBoard: FC<ComponentProps<'div'>> = ({ className, ...props }) =>
 }
 
 export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ...props }) => {
+  const room = useRoomContext()
   const layoutContext = useCreateLayoutContext()
   const { localParticipant } = useLocalParticipant()
   const { tabsCode } = useParamsState()
@@ -99,6 +100,25 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
         position: 'top-center',
       })
     }
+  })
+
+  useDataChannel<{ enabled: boolean }>(LiveKitAction.AllMicrophoneUpdate, ({ payload }) => {
+    if (payload?.enabled) return null
+
+    room.localParticipant.setMicrophoneEnabled(false)
+  })
+
+  useDataChannel<{ enabled: boolean }>(LiveKitAction.MicrophoneUpdate, ({ payload }) => {
+    if (payload?.enabled) return null
+
+    room.localParticipant.setMicrophoneEnabled(false)
+  })
+
+  useDataChannel<{ disconnect: boolean }>(LiveKitAction.DisconnectRoom, async ({ payload }) => {
+    if (!payload?.disconnect) return
+    room.localParticipant.setMicrophoneEnabled(false)
+    room.localParticipant.setCameraEnabled(false)
+    room.disconnect()
   })
 
   return (

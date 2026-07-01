@@ -1,4 +1,3 @@
-import type { ToasterProps } from 'sonner'
 import type { RaisedHandUser } from '@/hooks/use-hand-raises'
 import { useEffect, useRef, useCallback } from 'react'
 import { HandFistIcon, HandIcon } from '@phosphor-icons/react'
@@ -40,7 +39,7 @@ export const HandRaiseToast = () => {
   useEffect(() => {
     const list = Array.from(raisedHands.values())
     const count = list.length
-    const prevList = Array.from(prevRaisedHandsRef.current.values())
+    const prevMap = prevRaisedHandsRef.current
     const isCurrentUserHost = ['admin', 'moderator'].includes(roleAttribute || '')
 
     const checkShowAsHost = (userRole: string) => {
@@ -48,20 +47,30 @@ export const HandRaiseToast = () => {
       return isTargetHost && !isCurrentUserHost
     }
 
-    if (prevRaisedHandsRef.current.size > count) {
-      const loweredUser = prevList.find((user) => !raisedHands.has(user.identity))
+    const currentIds = Array.from(raisedHands.keys())
+    const prevIds = Array.from(prevMap.keys())
+
+    const hasNewRaise = currentIds.some((id) => !prevMap.has(id))
+    const hasLowered = prevIds.some((id) => !raisedHands.has(id))
+
+    if (count === prevMap.size && !hasNewRaise && !hasLowered) {
+      return
+    }
+
+    if (hasLowered) {
+      const loweredUser = Array.from(prevMap.values()).find(
+        (user) => !raisedHands.has(user.identity)
+      )
 
       if (loweredUser) {
-        dismissToast()
-
         const lowerMessage = loweredUser.isMe
           ? 'Kamu menurunkan tangan'
           : `${checkShowAsHost(loweredUser.roleName) ? 'Host' : loweredUser.name} menurunkan tangan`
 
-        toast.raise(lowerMessage, {
-          duration: 2500,
+        toastIdRef.current = toast.raise(lowerMessage, {
+          duration: 1000,
           position: 'top-center',
-          id: toastIdRef.current ? String(toastIdRef.current.toString()) : undefined,
+          id: 'hand-toast-id',
         })
 
         prevRaisedHandsRef.current = new Map(raisedHands)
@@ -69,7 +78,7 @@ export const HandRaiseToast = () => {
       }
     }
 
-    if (count > prevRaisedHandsRef.current.size) {
+    if (hasNewRaise) {
       playSound()
     }
 
@@ -90,13 +99,11 @@ export const HandRaiseToast = () => {
       message = `${count} orang mengangkat tangan`
     }
 
-    const toastOptions: ToasterProps = {
+    toastIdRef.current = toast.raise(message, {
       duration: 2500,
       position: 'top-center',
-      id: toastIdRef.current ? String(toastIdRef.current.toString()) : undefined,
-    }
-
-    toastIdRef.current = toast.raise(message, toastOptions)
+      id: 'hand-toast-id',
+    })
   }, [raisedHands, roleAttribute, dismissToast, playSound])
 
   useEffect(() => {
@@ -115,7 +122,7 @@ export const HandRaisedIcon = () => {
 
   return (
     <ButtonIcon isActive={isRaised} onClick={toggleHand}>
-      {isRaised ? <HandFistIcon weight='fill' size={20} /> : <HandIcon weight='fill' size={20} />}
+      <HandIcon weight='fill' size={20} />
     </ButtonIcon>
   )
 }

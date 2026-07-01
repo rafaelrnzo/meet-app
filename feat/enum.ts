@@ -16,10 +16,13 @@ export enum LiveKitAction {
   PresentationUpdate = 'PRESENTATION_UPDATE',
   HandRaisedUpper = 'HANDRAISED_UPPER',
   HandRaisedLower = 'HANDRAISED_LOWER',
+  AllMicrophoneUpdate = 'ALL_MICROPHONE_UPDATE',
   MicrophoneUpdate = 'MICROPHONE_UPDATE',
   PollingVoteNow = 'POLLING_VOTE_NOW',
   Reaction = 'REACTION',
   PickUser = 'RANDOM_USER_SELECTED',
+  WaitingUpdate = 'WAITING_ROOM',
+  DisconnectRoom = 'ROOM_DISCONNECT',
 }
 
 export enum ParticipantAttribute {
@@ -30,6 +33,10 @@ export enum ParticipantAttribute {
   ScreenActivePolling = 'SCREEN_ACTIVE_POLLING',
   HandRaised = 'HAND_RAISED',
   RoleName = 'ROLE_NAME',
+}
+
+export enum EventBus {
+  ManualToggleAudio = 'MANUAL_TOGGLE_AUDIO',
 }
 
 export enum ConnectionInterceptor {

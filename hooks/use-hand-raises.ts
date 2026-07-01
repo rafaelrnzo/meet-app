@@ -47,6 +47,7 @@ export function useHandRaises() {
   }
 
   const toggleHand = () => setHandStatus(!isRaised)
+  const lowerHandLocal = () => setHandStatus(false)
   const lowerHand = (identity: string) => {
     if (localParticipant) {
       sendLower(identity, { reliable: false, destinationIdentities: [identity] })
@@ -56,6 +57,7 @@ export function useHandRaises() {
   return {
     isRaised,
     raisedHands: raisedHands(),
+    lowerHandLocal,
     lowerHand,
     toggleHand,
   }
