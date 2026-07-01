@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef } from 'react'
+import { useRef } from 'react'
 import { Check } from '@phosphor-icons/react'
 import { CameraIcon, CameraDisabledIcon, useRoomContext } from '@livekit/components-react'
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip'
@@ -10,13 +10,20 @@ import { CameraResolutionOptions } from '@/feat/const'
 import { ToggleTrack } from '@/components/ToggleTrack'
 import { HugeIcon, ChevronUp } from '@/components/HugeIcon'
 
-export const CameraControl = () => {
+export const CameraControl = ({
+  isOpen,
+  setOpen,
+  onToggle,
+}: {
+  isOpen: boolean
+  setOpen: (e: boolean) => void
+  onToggle: () => void
+}) => {
   const room = useRoomContext()
   const popoverRef = useRef<HTMLDivElement>(null)
-  const [isOpen, setIsOpen] = useState(false)
   const { videoEnabled, handleToggleVideo: onToggleVideo } = useMediaControls({ room })
   const { selectedQuality, handleToggleMenuResolution, changeResolution, isOptionDisabled } =
-    useCameraQuality({ videoEnabled, isOpen, setIsOpen })
+    useCameraQuality({ videoEnabled, isOpen, setIsOpen: setOpen })
 
   return (
     <div className='relative inline-block' ref={popoverRef}>
@@ -70,10 +77,13 @@ export const CameraControl = () => {
         </ToggleTrack>
 
         <Tooltip>
-          <TooltipTrigger className='cursor-pointer'>
+          <TooltipTrigger asChild className='cursor-pointer'>
             <button
               disabled={!videoEnabled}
-              onClick={handleToggleMenuResolution}
+              onClick={() => {
+                handleToggleMenuResolution()
+                onToggle()
+              }}
               className={`dark:hover:bg-primary/50 relative inline-flex size-8 items-center justify-center rounded-full transition-transform duration-200 hover:bg-red-300 md:size-10 ${
                 isOpen ? 'rotate-180' : ''
               } ${!videoEnabled ? 'cursor-not-allowed opacity-40' : ''}`}
