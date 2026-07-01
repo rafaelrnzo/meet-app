@@ -68,11 +68,15 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
         failure === MediaDeviceFailure.PermissionDenied ||
         failure === MediaDeviceFailure.NotFound
       ) {
-        toast.error(
-          'Error: Tidak dapat menemukan mikrofon dan kamera, atau pengguna menolak atas izin akses mikrofon dan kamera. Silahkan muat ulang halaman ini, atau tutup dan kembali ke halaman ini untuk mengaktifkan mikrofon dan kamera.'
+        toast.device(
+          'Error: Tidak dapat menemukan mikrofon dan kamera, atau pengguna menolak atas izin akses mikrofon dan kamera. Silahkan muat ulang halaman ini, atau tutup dan kembali ke halaman ini untuk mengaktifkan mikrofon dan kamera.',
+          {
+            position: 'top-center',
+          }
         )
       } else {
-        toast.error('Error: Terjadi kesalahan media yang tidak diketahui.', {
+        toast.device('Error: Terjadi kesalahan media yang tidak diketahui.', {
+          position: 'top-center',
           description: e instanceof Error ? e.message : String(e),
         })
       }
