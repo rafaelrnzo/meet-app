@@ -20,10 +20,7 @@ export const useCameraQuality = ({ videoEnabled, isOpen, setIsOpen }: UseCameraQ
   )
 
   const handleToggleMenuResolution = () => {
-    const nextState = !isOpen
-    setIsOpen(nextState)
-
-    if (nextState && videoEnabled) {
+    if (!isOpen && videoEnabled) {
       const cameraPublication = localParticipant.getTrackPublication(Track.Source.Camera)
       const videoTrack = cameraPublication?.videoTrack
 
@@ -55,7 +52,7 @@ export const useCameraQuality = ({ videoEnabled, isOpen, setIsOpen }: UseCameraQ
           })
         }
       }
-    } else if (!nextState) {
+    } else if (!isOpen) {
       setMaxCapabilities(null)
     }
   }

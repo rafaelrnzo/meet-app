@@ -1,6 +1,7 @@
 'use client'
 
 import type { FC, ReactNode } from 'react'
+import { useState } from 'react'
 import { ConnectionState } from 'livekit-client'
 import { MonitorPlayIcon, PhoneSlashIcon } from '@phosphor-icons/react'
 import {
@@ -11,7 +12,7 @@ import {
 } from '@livekit/components-react'
 import { useParamsState, useMediaControls } from '@/hooks'
 import { ToggleTrack } from '@/components/ToggleTrack'
-import { default as ReactionIcon } from '@/components/ReactionIcon'
+import { ReactionIcon } from '@/components/ReactionIcon'
 import { HandRaisedIcon } from '@/components/HandRaised'
 import { default as CameraControl } from '@/components/CameraControl'
 import { ButtonIcon } from '@/components/Button'
@@ -22,9 +23,21 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
   const { audioEnabled, shareScreenEnabled, handleToggleAudio, handleToggleShareScreen } =
     useMediaControls({ room })
   const state = useConnectionState(room)
+  const [isReactionUp, setReactionUp] = useState(false)
+  const [isCameraUp, setCameraUp] = useState(false)
 
   if (state === ConnectionState.Connecting) {
     return null
+  }
+
+  const handleReactionUp = () => {
+    setReactionUp((prev) => !prev)
+    setCameraUp(false)
+  }
+
+  const handleCameraUp = () => {
+    setCameraUp((prev) => !prev)
+    setReactionUp(false)
   }
 
   return (
@@ -38,12 +51,12 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
         {audioEnabled ? <MicIcon /> : <MicDisabledIcon />}
       </ToggleTrack>
       <div className='dark:bg-primary/50 flex items-center gap-1 rounded-full bg-red-200 p-1'>
-        <CameraControl />
+        <CameraControl isOpen={isCameraUp} onToggle={handleCameraUp} setOpen={setCameraUp} />
       </div>
-      <ButtonIcon isActive={shareScreenEnabled} onClick={handleToggleShareScreen}>
+      <ButtonIcon isActive={!shareScreenEnabled} onClick={handleToggleShareScreen}>
         <MonitorPlayIcon weight='fill' size={22} />
       </ButtonIcon>
-      <ReactionIcon />
+      <ReactionIcon isOpen={isReactionUp} onToggle={handleReactionUp} />
       <HandRaisedIcon />
       {children}
       <ButtonIcon onClick={() => router.replace('/')}>

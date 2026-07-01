@@ -10,7 +10,7 @@ interface Reaction {
   x: number
 }
 
-export default function useReaction() {
+export const useReaction = () => {
   const { localParticipant } = useLocalParticipant()
   const [reactions, setReactions] = useState<Reaction[]>([])
 
