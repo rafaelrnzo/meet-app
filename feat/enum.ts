@@ -69,6 +69,9 @@ export enum TabsCode {
   TabsChats = 3,
   TabsPersonalize = 4,
   TabsSettings = 5,
+  TabsSettingsRecordings = 51,
+  TabsSettingsRooms = 52,
+  TabsSettingsParticipants = 53,
 }
 
 export enum GroupsCode {
@@ -86,4 +89,13 @@ export enum GroupCode {
   WatchYoutube = 5,
   Recording = 6,
   PickRandom = 7,
+}
+
+export enum CameraResolution {
+  UHD = '4k',
+  QHD = '2k',
+  FULLHD = '1080p',
+  HIGH = '720p',
+  STANDART = '540p',
+  LOW = '360p',
 }

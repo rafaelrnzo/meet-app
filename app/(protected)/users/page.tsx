@@ -1,12 +1,15 @@
 'use client'
 
-import type { UserParams, UserPrensence } from '@/feat/users/dto'
+import type { UserParams, UserPrensence, UserSSE } from '@/feat/users/dto'
 import { useEffect, useMemo, useState } from 'react'
+import { useEventSource } from '@/hooks/use-event-source'
 import { useAuth } from '@/hooks/use-auth'
-import { useParticipants } from '@/feat/users/useParticipants'
+import { useParticipants } from '@/feat/users/use-participants'
+import { UserSSEType } from '@/feat/users/dto'
 import { TableViewHeader } from '@/compounds/table-view/header'
 import { TableView } from '@/compounds/table-view'
 import { default as PageContainer } from '@/compounds/page-container'
+import { toast } from '@/components/ui/sonner'
 import { usersColumn } from '@/column/users'
 
 export default function UsersPage() {
@@ -17,11 +20,19 @@ export default function UsersPage() {
     presence: 'all' as UserParams['presence'],
   })
 
+  const { loading: authLoading, publicUrl, token } = useAuth({ requirePermission: 'user:read' })
+
   // Hooks
   const { users, isLoading, refetchUsers, refetchRoles } = useParticipants()
 
-  // Permissions
-  const { loading: authLoading } = useAuth({ requirePermission: 'user:read' })
+  useEventSource<UserSSE>({
+    eventUrl: `${publicUrl}/admin/users/events?token=${token}`,
+    onMessage: (event) => {
+      if ([UserSSEType.UPDATE, UserSSEType.DELETE].includes(event.type) && event.data) {
+        refetchUsers({ searchParams: queryParams, withLoading: false })
+      }
+    },
+  })
 
   // Handler & Computed
   const filteredUsers = useMemo(() => {
@@ -33,7 +44,13 @@ export default function UsersPage() {
   }, [users.data, queryParams.search])
 
   useEffect(() => {
-    refetchUsers(queryParams)
+    if (!users.data.length && queryParams.search) {
+      toast.error(`${queryParams.search} tidak ditemukan`)
+    }
+  }, [users.data, queryParams.search])
+
+  useEffect(() => {
+    refetchUsers({ searchParams: queryParams, withLoading: false })
   }, [queryParams, refetchUsers])
 
   useEffect(() => {
@@ -44,18 +61,13 @@ export default function UsersPage() {
   const columns = useMemo(() => usersColumn(), [])
 
   return (
-    <PageContainer
-      icon='users'
-      title='Daftar Peserta'
-      subTitle='Kelola setiap peserta badiklat'
-      backToTopButton
-    >
+    <PageContainer icon='users' title='Daftar Peserta' subTitle='Kelola setiap peserta badiklat'>
       <TableViewHeader
         headerAddon={<p className='font-semibold text-red-800'> {users.total} Daftar Peserta</p>}
         search={{
           placeholder: 'Cari peserta ...',
           onSearch: (search) => setQueryParams((prev) => ({ ...prev, page: 1, search })),
-          'aria-invalid': false,
+          'aria-invalid': !users.data.length,
         }}
         filter={{
           placeholder: 'Status',

@@ -1,4 +1,7 @@
 import type { TabProps } from '@/feat/types'
+import { TabsSettingsRooms } from '@/feat/Tabs/SettingsRooms'
+import { TabsSettingsRecordings } from '@/feat/Tabs/SettingsRecordings'
+import { TabsSettingsParticipants } from '@/feat/Tabs/SettingsParticipants'
 import {
   TabsPolling,
   TabsMeeting,
@@ -6,7 +9,7 @@ import {
   TabsPersonalize,
   TabsSettings,
 } from '@/feat/Tabs'
-import { GroupCode, GroupsCode, TabsCode } from '@/feat/enum'
+import { CameraResolution, GroupCode, GroupsCode, TabsCode } from '@/feat/enum'
 import { WatchYoutube } from '@/feat/Activity/WatchYoutube'
 
 export const ChunkSize = 60_000
@@ -76,6 +79,27 @@ export const RoomTabs = [
     hide: false,
     description: 'Gunakan pengaturan ini untuk mengatur rapat Anda.',
   },
+  {
+    id: TabsCode.TabsSettingsRecordings,
+    parentId: 5,
+    content: () => TabsSettingsRecordings,
+    hide: false,
+    description: 'Daftar rekaman rapat',
+  },
+  {
+    id: TabsCode.TabsSettingsRooms,
+    parentId: 5,
+    content: () => TabsSettingsRooms,
+    hide: false,
+    description: 'Daftar ruang rapat yang tersedia',
+  },
+  {
+    id: TabsCode.TabsSettingsParticipants,
+    parentId: 5,
+    content: () => TabsSettingsParticipants,
+    hide: false,
+    description: 'Daftar peserta',
+  },
 ] satisfies TabProps[]
 
 export const RoomTabsTools = [
@@ -107,7 +131,7 @@ export const RoomTabsTools = [
     id: 5,
     title: 'Alat pengaturan',
     icon: 'settings' as const,
-    tabIds: [5],
+    tabIds: [5, 51, 52, 53],
   },
 ]
 
@@ -189,6 +213,15 @@ export const TabsContents = (role: string) => [
       },
     ],
   },
+]
+
+export const CameraResolutionOptions = [
+  { label: 'UHD (4K)', value: CameraResolution.UHD },
+  { label: 'QHD (2K)', value: CameraResolution.QHD },
+  { label: 'Full HD (1080p)', value: CameraResolution.FULLHD },
+  { label: 'High Definition (720p)', value: CameraResolution.HIGH },
+  { label: 'Standard (540p)', value: CameraResolution.STANDART },
+  { label: 'Data Saver (360p)', value: CameraResolution.LOW },
 ]
 
 export type TabsRoomToolsIconKey = (typeof RoomTabsTools)[number]['icon']

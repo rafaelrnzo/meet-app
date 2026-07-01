@@ -13,29 +13,39 @@ export const useParticipants = () => {
   const [roles, setRoles] = useState<Role[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
 
-  const getUsers = useCallback(async (searchParams?: UserParams) => {
-    try {
-      setIsLoading(true)
+  const getUsers = useCallback(
+    async (
+      { searchParams, withLoading }: { searchParams?: UserParams; withLoading?: boolean } = {
+        withLoading: true,
+        searchParams: {},
+      }
+    ) => {
+      try {
+        if (withLoading) setIsLoading(true)
 
-      const response = await fetchUsers({
-        params: {
-          ...searchParams,
-          limit: 99999, // Note: fetch all
-        },
-      })
+        const response = await fetchUsers({
+          params: {
+            ...searchParams,
+            limit: 99999, // Note: fetch all
+            sort: 'created_at',
+            order: 'DESC',
+          },
+        })
 
-      setUsers({
-        data: response.data,
-        page: response.page ?? 1,
-        total: response.total ?? 0,
-        totalPages: response.total_pages ?? 0,
-      })
-    } catch (error) {
-      console.error('Error fetching users:', error)
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+        setUsers({
+          data: response.data,
+          page: response.page ?? 1,
+          total: response.total ?? 0,
+          totalPages: response.total_pages ?? 0,
+        })
+      } catch (error) {
+        console.error('Error fetching users:', error)
+      } finally {
+        if (withLoading) setIsLoading(false)
+      }
+    },
+    []
+  )
 
   const getRoles = useCallback(async () => {
     try {

@@ -35,3 +35,5 @@ export interface ResponseNext<P = object, S = object> {
   params: Promise<P>
   searchParams: Promise<S>
 }
+
+export type RoleName = 'admin' | 'moderator' | 'user'

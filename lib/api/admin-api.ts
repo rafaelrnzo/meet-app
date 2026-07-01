@@ -146,6 +146,12 @@ export async function updateDbRoom(id: number, payload: RoomPayload): Promise<Db
   })
 }
 
+export async function generatePassword(id: number): Promise<{ password: string }> {
+  return apiRequest<{ password: string }>(`/admin/rooms/${id}/regenerate-password?length=10`, {
+    method: 'POST',
+  })
+}
+
 export async function deleteDbRoom(id: number): Promise<void> {
   await apiRequest(`/admin/rooms/${id}`, {
     method: 'DELETE',
@@ -366,6 +372,13 @@ export async function fetchUsers(props?: { params?: UserParams }): Promise<UserR
   )
 }
 
+export async function fetchUsersEvent() {
+  return apiRequest('/admin/users/events', {
+    method: 'GET',
+    cache: 'no-store',
+  })
+}
+
 export async function fetchUsersAssignment(params?: ParamsUserAssignment): Promise<User[]> {
   return apiRequest<User[]>(
     '/admin/users/assignment',
@@ -417,14 +430,10 @@ export interface RecordingParams {
   search?: string
 }
 
-export async function fetchRecordings(
-  params?: RecordingParams,
-  signal?: AbortSignal
-): Promise<Recording[]> {
+export async function fetchRecordings(params?: RecordingParams): Promise<Recording[]> {
   return apiRequest<Recording[]>(
     qstring('/admin/recordings', { ...params }, { skipEmpty: true, skipNulls: true }),
     {
-      signal,
       method: 'GET',
       cache: 'no-store',
     }

@@ -5,30 +5,22 @@ import { ConnectionState } from 'livekit-client'
 import { MonitorPlayIcon, PhoneSlashIcon } from '@phosphor-icons/react'
 import {
   MicDisabledIcon,
-  CameraDisabledIcon,
   MicIcon,
-  CameraIcon,
   useRoomContext,
   useConnectionState,
 } from '@livekit/components-react'
 import { useParamsState, useMediaControls } from '@/hooks'
 import { ToggleTrack } from '@/components/ToggleTrack'
 import { default as ReactionIcon } from '@/components/ReactionIcon'
-import { HugeIcon, ChevronUp } from '@/components/HugeIcon'
 import { HandRaisedIcon } from '@/components/HandRaised'
+import { default as CameraControl } from '@/components/CameraControl'
 import { ButtonIcon } from '@/components/Button'
 
 export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
   const room = useRoomContext()
   const { router } = useParamsState()
-  const {
-    audioEnabled,
-    videoEnabled,
-    shareScreenEnabled,
-    handleToggleAudio,
-    handleToggleVideo,
-    handleToggleShareScreen,
-  } = useMediaControls({ room })
+  const { audioEnabled, shareScreenEnabled, handleToggleAudio, handleToggleShareScreen } =
+    useMediaControls({ room })
   const state = useConnectionState(room)
 
   if (state === ConnectionState.Connecting) {
@@ -46,17 +38,7 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
         {audioEnabled ? <MicIcon /> : <MicDisabledIcon />}
       </ToggleTrack>
       <div className='dark:bg-primary/50 flex items-center gap-1 rounded-full bg-red-200 p-1'>
-        <ToggleTrack
-          title={videoEnabled ? 'Tutup kamera' : 'Aktifkan kamera'}
-          isActive={videoEnabled}
-          onClick={handleToggleVideo}
-          className='size-8 md:size-10'
-        >
-          {videoEnabled ? <CameraIcon /> : <CameraDisabledIcon />}
-        </ToggleTrack>
-        <button className='dark:hover:bg-primary/50 relative inline-flex size-8 items-center justify-center rounded-full hover:bg-red-300 md:size-10'>
-          <HugeIcon icon={ChevronUp} strokeWidth={2} />
-        </button>
+        <CameraControl />
       </div>
       <ButtonIcon isActive={shareScreenEnabled} onClick={handleToggleShareScreen}>
         <MonitorPlayIcon weight='fill' size={22} />

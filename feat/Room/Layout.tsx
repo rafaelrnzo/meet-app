@@ -23,7 +23,7 @@ import { RoomToast, RoomPanel, RoomControl, RoomCanvas } from '@/feat/Room'
 import { LiveKitAction } from '@/feat/enum'
 import { RoomTabs } from '@/feat/const'
 import { toast } from '@/components/ui/sonner'
-import { HandRaiseDialog } from '@/components/HandRaised'
+import { HandRaiseToast } from '@/components/HandRaised'
 
 export const PickUserContext = createContext<{
   sendPickUser: (payload: string, options?: any) => void
@@ -104,7 +104,7 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
           sendPickUser: send,
         }}
       >
-        <HandRaiseDialog />
+        <HandRaiseToast />
         <RoomAudioRenderer />
         <main {...props} className={cn('bg-secondary/40 fixed inset-0 p-3', className)}>
           <div className='flex h-full flex-col gap-3'>
