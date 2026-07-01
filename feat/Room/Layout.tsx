@@ -91,9 +91,13 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
     if (!payload) return
     const parsed: { name: string; identity: string } = JSON.parse(payload)
     if (parsed.identity === localParticipant.identity) {
-      toast.success('Anda telah dipilih!')
+      toast.pick('Anda telah ditunjuk', {
+        position: 'top-center',
+      })
     } else {
-      toast.success(`${truncateName(parsed.name, 20)} telah dipilih`)
+      toast.pick(`${truncateName(parsed.name, 20)} telah ditunjuk`, {
+        position: 'top-center',
+      })
     }
   })
 

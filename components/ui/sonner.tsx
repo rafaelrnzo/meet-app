@@ -53,7 +53,7 @@ const CustomToast = ({
   description,
 }: {
   id: number | string
-  severity: 'success' | 'info' | 'error' | 'warning' | 'raise'
+  severity: 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick'
   title?: string
   description: React.ReactNode
 }) => {
@@ -83,9 +83,13 @@ const CustomToast = ({
       bg: 'bg-rose-50 border border-neutral-300',
       text: 'text-neutral-800 font-medium text-sm',
     },
+    pick: {
+      bg: 'bg-red-200 border border-red-800',
+      text: 'text-red-800 font-medium text-base',
+    },
   }
 
-  const config = config_template[severity]
+  const config: { icon?: React.ReactNode; bg: string; text: string } = config_template[severity]
 
   if (severity === 'raise') {
     return (
@@ -96,7 +100,18 @@ const CustomToast = ({
         )}
       >
         <div className='flex min-w-0 items-center gap-2'>
-          <div className='shrink-0'>{config.icon}</div>
+          {config.icon && <div className='shrink-0'>{config.icon}</div>}
+          <p className={cn('truncate', config.text)}>{title}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (severity === 'pick') {
+    return (
+      <div className={cn('h-[50px] min-w-[185px] rounded-md p-3 shadow-sm', config.bg)}>
+        <div className='flex min-w-0 items-center gap-2'>
+          {config.icon && <div className='shrink-0'>{config.icon}</div>}
           <p className={cn('truncate', config.text)}>{title}</p>
         </div>
       </div>
@@ -111,7 +126,7 @@ const CustomToast = ({
       )}
     >
       <div className='flex items-start gap-2'>
-        <div className='mt-1'>{config.icon}</div>
+        {config.icon && <div className='mt-1'>{config.icon}</div>}
         <div className='flex-1'>
           <p className={`text-base font-semibold ${config.text}`}>{title}</p>
           <p className='mt-0.5 text-sm text-neutral-600' style={{ lineHeight: '1.2' }}>
@@ -132,7 +147,7 @@ const CustomToast = ({
 }
 
 const createToast =
-  (severity: 'success' | 'info' | 'error' | 'warning' | 'raise') =>
+  (severity: 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick') =>
   (title: string, props?: ToastProps) =>
     toastDefault.custom(
       (id) => (
@@ -156,6 +171,7 @@ const toast = {
   info: createToast('info'),
   warning: createToast('warning'),
   raise: createToast('raise'),
+  pick: createToast('pick'),
 }
 
 export { Toaster, toast }

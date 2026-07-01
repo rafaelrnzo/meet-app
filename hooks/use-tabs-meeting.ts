@@ -38,7 +38,10 @@ export function useTabsMeeting() {
       const attributesRole = attributes[ParticipantAttribute.RoleName.toLowerCase()]
       return attributesRole === 'user'
     })
-    if (participants.length === 0) return toast.error('Tidak ada peserta')
+    if (participants.length === 0)
+      return toast.pick('Tidak ada peserta', {
+        position: 'top-center',
+      })
 
     const randomIndex = Math.floor(Math.random() * participants.length)
     const choosenUser = participants[randomIndex]
@@ -51,7 +54,9 @@ export function useTabsMeeting() {
         reliable: true,
       }
     )
-    toast.success(`${truncateName(choosenUser.name ?? 'unknown', 20)} telah dipilih`)
+    toast.pick(`${truncateName(choosenUser.name ?? 'unknown', 20)} telah dipilih`, {
+      position: 'top-center',
+    })
   }
 
   function handleToggleActiveScreen(id: ScreenID) {
