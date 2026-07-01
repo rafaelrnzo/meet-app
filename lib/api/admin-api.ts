@@ -2,7 +2,7 @@
 
 import type { UserParams } from '@/feat/users/dto'
 import type { RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
-import { qstring } from '@/lib/utils'
+import { djs, qstring } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 
 const API_BASE = process.env.APP_API_VIDEO_CONFERENCE
@@ -66,6 +66,7 @@ export interface DbRoom {
   createdById?: number
   password?: string
   is_mute_on_start: boolean
+  participants?: number
 }
 
 export interface MemberRoom {
@@ -82,6 +83,52 @@ export interface MemberRoom {
 export interface RoomParams {
   search?: string
   sort?: SortRoomType
+}
+
+export async function getRoomListConfig(searchParams: object) {
+  const session = await auth()
+  const initialRooms = await fetchUserDbRooms(searchParams)
+  const isAdmin = session?.roles.name === 'admin'
+  const isModerator = session?.roles.name === 'moderator'
+
+  const hasPermission = (key: string) => {
+    return !!session?.roles?.permissions?.some((perm) => perm.key.endsWith(key))
+  }
+
+  // Only show if room end date is AFTER today's milisecond
+  const filterRoomByTime = initialRooms.filter((room) => djs(room.end_date).isAfter(djs()))
+  const roomsWithMembers = await Promise.all(
+    filterRoomByTime.map(async (room) => {
+      if (room.group) {
+        const members = await fetchMemberRoom({ roomId: room.id, searchParams })
+
+        return {
+          ...room,
+          assigned_to: Array.from(
+            new Set([...(room.assigned_to ?? []), ...members.map((member) => `${member.id}`)])
+          ),
+        }
+      }
+
+      return room
+    })
+  )
+
+  const rooms = roomsWithMembers.filter(
+    (room) =>
+      isAdmin ||
+      isModerator ||
+      !room.assigned_to?.length ||
+      room.assigned_to.map(Number).some((roleIds) => roleIds === session?.profile.id)
+  )
+
+  return {
+    isAdmin,
+    hasPermission,
+    initialRooms,
+    rooms,
+    isEmpty: !('search' in searchParams) && !rooms.length,
+  }
 }
 
 export async function fetchDbRooms(searchParams?: RoomParams): Promise<DbRoom[]> {

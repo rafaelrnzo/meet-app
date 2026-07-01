@@ -1,25 +1,15 @@
-import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
 import type { ResponseNext } from '@/feat/types'
-import { auth } from '@/lib/auth'
-import { fetchActiveRooms, fetchUserDbRooms } from '@/lib/api/admin-api'
+import { getRoomListConfig } from '@/lib/api/admin-api'
 import { default as PageContainer } from '@/compounds/page-container'
-import { RoomListHeader } from '@/components/RoomListHeader'
+import { default as NoData } from '@/components/ui/no-data'
 import { JoinRoom } from '@/components/JoinRoom'
+import { RoomListHeader } from '@/components/features/rooms/RoomListHeader'
 import { RoomList } from '@/components/features/rooms/RoomList'
 
 export default async function HomePage(props: ResponseNext) {
-  const session = await auth()
-  const searchParams = await props.searchParams
-  const isAdmin = session?.roles.name === 'admin'
-  const hasPermission = session?.roles?.permissions?.includes('room:share' as never) ?? false
-
-  let rooms: DbRoom[] = []
-  let activeRooms: ActiveRoom[] = []
-
-  try { rooms = await fetchUserDbRooms(searchParams) } catch {} // prettier-ignore
-  try { activeRooms = await fetchActiveRooms() } catch {} // prettier-ignore
-
-  // @TODO: SSE CLIENT
+  const { isAdmin, isEmpty, rooms, hasPermission } = await getRoomListConfig(
+    await props.searchParams
+  )
 
   return (
     <PageContainer
@@ -29,13 +19,16 @@ export default async function HomePage(props: ResponseNext) {
       backToTopButton
       insertAfterTitle={<JoinRoom rooms={rooms} />}
     >
-      <RoomListHeader />
-      <RoomList
-        staticRooms={rooms}
-        activeRooms={activeRooms}
-        isAdmin={isAdmin}
-        canShareLink={hasPermission}
-      />
+      {isEmpty ? (
+        <NoData
+          title='Tidak Ada Ruangan yang Tersedia'
+          desc='Ruangan yang sedang berlangsung akan muncul disini.'
+          className='mt-[min(20vh,200px)]'
+        />
+      ) : (
+        <RoomListHeader />
+      )}
+      <RoomList rooms={rooms} isAdmin={isAdmin} canShareLink={hasPermission('room:share')} />
     </PageContainer>
   )
 }

@@ -80,7 +80,6 @@ const AuthOptions: NextAuthConfig = {
 
       // Otherwise refresh access token
       return await refreshAccessToken(token)
-      // return token
     },
 
     session({ session, token }) {

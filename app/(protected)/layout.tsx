@@ -1,6 +1,5 @@
 import { default as React } from 'react'
 import { redirect } from 'next/navigation'
-import { SessionProvider } from 'next-auth/react'
 import { auth } from '@/lib/auth'
 import { fetcher } from '@/feat/Auth/helpers'
 import { SidebarProvider } from '@/components/ui/sidebar'
@@ -21,10 +20,8 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   }
 
   return (
-    <SessionProvider>
-      <SidebarProvider>
-        <ProtectedContent>{children}</ProtectedContent>
-      </SidebarProvider>
-    </SessionProvider>
+    <SidebarProvider>
+      <ProtectedContent>{children}</ProtectedContent>
+    </SidebarProvider>
   )
 }
