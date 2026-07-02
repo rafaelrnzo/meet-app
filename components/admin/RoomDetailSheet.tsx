@@ -148,7 +148,7 @@ export function RoomDetailSheet({
       onEditSuccess()
     } catch (error) {
       toast.dismiss()
-      displayedError(error, 'Gagal menguopload file')
+      displayedError(error, 'Gagal mengupload file')
     }
   }
 
