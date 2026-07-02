@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Alert01Icon, HugeIcon } from '@/components/HugeIcon'
 
 interface ToastProps extends ToasterProps {
   description?: string
@@ -53,7 +54,7 @@ const CustomToast = ({
   description,
 }: {
   id: number | string
-  severity: 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick'
+  severity: 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick' | 'device'
   title?: string
   description: React.ReactNode
 }) => {
@@ -87,6 +88,11 @@ const CustomToast = ({
       bg: 'bg-red-200 border border-red-800',
       text: 'text-red-800 font-medium text-base',
     },
+    device: {
+      icon: <HugeIcon icon={Alert01Icon} size={18} />,
+      bg: 'bg-red-200',
+      text: 'text-error font-medium text-base',
+    },
   }
 
   const config: { icon?: React.ReactNode; bg: string; text: string } = config_template[severity]
@@ -110,9 +116,20 @@ const CustomToast = ({
   if (severity === 'pick') {
     return (
       <div className={cn('h-[50px] min-w-[185px] rounded-md p-3 shadow-sm', config.bg)}>
-        <div className='flex min-w-0 items-center gap-2'>
+        <div className='flex min-w-0 items-start justify-start gap-2'>
           {config.icon && <div className='shrink-0'>{config.icon}</div>}
           <p className={cn('truncate', config.text)}>{title}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (severity === 'device') {
+    return (
+      <div className={cn('h-full w-[436px] rounded-md p-3 shadow-sm', config.bg)}>
+        <div className='flex min-w-0 gap-2'>
+          {config.icon && <div className='text-error'>{config.icon}</div>}
+          <p className={cn(config.text)}>{title}</p>
         </div>
       </div>
     )
@@ -147,7 +164,7 @@ const CustomToast = ({
 }
 
 const createToast =
-  (severity: 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick') =>
+  (severity: 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick' | 'device') =>
   (title: string, props?: ToastProps) =>
     toastDefault.custom(
       (id) => (
@@ -172,6 +189,7 @@ const toast = {
   warning: createToast('warning'),
   raise: createToast('raise'),
   pick: createToast('pick'),
+  device: createToast('device'),
 }
 
 export { Toaster, toast }
