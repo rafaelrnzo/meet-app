@@ -58,7 +58,10 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
       <ReactionIcon isOpen={isReactionUp} onToggle={handleReactionUp} />
       <HandRaisedIcon />
       {children}
-      <ButtonIcon onClick={() => room.disconnect()}>
+      <ButtonIcon
+        onClick={() => room.disconnect()}
+        className='text-error bg-red-200 hover:bg-red-200!'
+      >
         <PhoneSlashIcon weight='fill' size={20} />
       </ButtonIcon>
     </div>
