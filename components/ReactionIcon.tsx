@@ -1,10 +1,16 @@
 'use client'
 
+import type { FC } from 'react'
 import { SmileyIcon } from '@phosphor-icons/react'
 import { useReaction } from '@/hooks/use-reaction'
 import { ButtonIcon } from '@/components/Button'
 
-export const ReactionIcon = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) => {
+export interface ReactionIconProps {
+  isOpen: boolean
+  onClick?: () => void
+}
+
+export const ReactionIcon: FC<ReactionIconProps> = ({ isOpen, onClick }) => {
   const { sendReaction, reactions } = useReaction()
   const truncateName = (name: string, length: number) => {
     return name.length > length ? name.slice(0, length) + '...' : name
@@ -12,11 +18,12 @@ export const ReactionIcon = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
 
   return (
     <>
-      <ButtonIcon isActive={!isOpen} className='relative' onClick={onToggle}>
+      <ButtonIcon isActive={!isOpen} className='relative' onClick={onClick}>
         <SmileyIcon weight='fill' size={24} />
       </ButtonIcon>
+
       {isOpen && (
-        <div className='absolute bottom-32 left-1/2 z-50 mb-4 flex -translate-x-1/2 gap-4 rounded-full border border-neutral-400 bg-white p-2 shadow-xl'>
+        <div className='absolute bottom-32 left-1/2 mb-4 flex -translate-x-1/2 gap-4 rounded-full border border-neutral-400 bg-white p-2 shadow-xl'>
           {['💖', '👍', '🎉', '👏', '😂', '😮'].map((emoji) => (
             <button
               key={emoji}
@@ -28,6 +35,7 @@ export const ReactionIcon = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
           ))}
         </div>
       )}
+
       <div className='pointer-events-none absolute inset-0 z-50 overflow-hidden'>
         {reactions.map(({ id, emoji, senderName, x }) => (
           <div
@@ -44,6 +52,7 @@ export const ReactionIcon = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
           </div>
         ))}
       </div>
+
       <style jsx>{`
         @keyframes floatUpAndFade {
           0% {
