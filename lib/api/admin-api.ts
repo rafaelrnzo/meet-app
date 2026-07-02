@@ -89,7 +89,6 @@ export async function getRoomListConfig(searchParams: object) {
   const session = await auth()
   const initialRooms = await fetchUserDbRooms(searchParams)
   const isAdmin = session?.roles.name === 'admin'
-  const isModerator = session?.roles.name === 'moderator'
 
   const hasPermission = (key: string) => {
     return !!session?.roles?.permissions?.some((perm) => perm.key.endsWith(key))
@@ -106,6 +105,17 @@ export async function getRoomListConfig(searchParams: object) {
     isEmpty: !('search' in searchParams) && !rooms.length,
     isInvalid: 'search' in searchParams && !rooms.length,
   }
+}
+
+export async function leaveRoom(roomName: string) {
+  return apiRequest<DbRoom[]>(
+    '/api/livekit/leave',
+    {
+      method: 'POST',
+      keepalive: true,
+    },
+    { room_code: roomName }
+  )
 }
 
 export async function fetchDbRooms(searchParams?: RoomParams): Promise<DbRoom[]> {

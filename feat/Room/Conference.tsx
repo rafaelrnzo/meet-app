@@ -12,6 +12,7 @@ import type { ConnectionDetails } from '@/feat/types'
 import { useEffect, useMemo, useRef } from 'react'
 import { ConnectionState, MediaDeviceFailure, Room, RoomEvent, VideoPresets } from 'livekit-client'
 import { RoomContext } from '@livekit/components-react'
+import { leaveRoom } from '@/lib/api/admin-api'
 import { useParamsState } from '@/hooks'
 import { RoomState, RoomLayout } from '@/feat/Room'
 
@@ -73,7 +74,14 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
     const { serverUrl, participantToken } = propsRef.current.connectionDetails
     const { leave, error } = roomEvent.current
 
+    function handleLeave() {
+      leaveRoom(room.name)
+        .finally(() => room.disconnect())
+        .catch((e) => console.log(e))
+    }
+
     room.on(RoomEvent.Disconnected, leave)
+    room.on(RoomEvent.Disconnected, handleLeave)
     room.on(RoomEvent.MediaDevicesError, error)
     room.on(RoomEvent.MediaDevicesError, (error) => {
       const failure = MediaDeviceFailure.getFailure(error)
@@ -113,6 +121,7 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
       mounted = false
 
       room.off(RoomEvent.Disconnected, leave)
+      room.off(RoomEvent.Disconnected, handleLeave)
       room.off(RoomEvent.MediaDevicesError, error)
 
       if (
@@ -120,7 +129,7 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
         room.state === ConnectionState.Connecting ||
         room.state === ConnectionState.Reconnecting
       ) {
-        room.disconnect()
+        handleLeave()
       }
     }
   }, [room])

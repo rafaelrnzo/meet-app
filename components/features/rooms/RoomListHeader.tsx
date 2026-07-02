@@ -30,14 +30,14 @@ export const RoomListHeader: FC<
         defaultValue: searchParams.search,
         autoComplete: 'off',
         'aria-invalid': isInvalid,
+        onChange: (e) => {
+          if (!e.target.value) {
+            router.push(qstring(pathname, omit(searchParams, ['search'])))
+          }
+        },
         onSearch: (search) => {
           isTouchedRef.current = true
-          router.push(
-            qstring(
-              pathname,
-              !search ? omit(searchParams, ['search']) : { ...searchParams, search }
-            )
-          )
+          router.push(qstring(pathname, { ...searchParams, search }))
         },
       }}
       {...props}

@@ -11,7 +11,7 @@ import {
   useRoomContext,
   useConnectionState,
 } from '@livekit/components-react'
-import { useParamsState, useMediaControls } from '@/hooks'
+import { useMediaControls } from '@/hooks'
 import { ToggleTrack } from '@/components/ToggleTrack'
 import { HugeIcon, ChevronUp } from '@/components/HugeIcon'
 import { HandRaisedIcon } from '@/components/HandRaised'
@@ -19,7 +19,6 @@ import { ButtonIcon } from '@/components/Button'
 
 export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
   const room = useRoomContext()
-  const { router } = useParamsState()
   const {
     audioEnabled,
     videoEnabled,
