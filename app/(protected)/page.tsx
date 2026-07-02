@@ -7,7 +7,7 @@ import { RoomListHeader } from '@/components/features/rooms/RoomListHeader'
 import { RoomList } from '@/components/features/rooms/RoomList'
 
 export default async function HomePage(props: ResponseNext) {
-  const { isAdmin, isEmpty, rooms, hasPermission } = await getRoomListConfig(
+  const { isAdmin, isEmpty, isInvalid, rooms, hasPermission } = await getRoomListConfig(
     await props.searchParams
   )
 
@@ -26,7 +26,14 @@ export default async function HomePage(props: ResponseNext) {
           className='mt-[min(20vh,200px)]'
         />
       ) : (
-        <RoomListHeader />
+        <RoomListHeader
+          isInvalid={isInvalid}
+          headerAddon={
+            <span className='text-base font-semibold text-red-800'>
+              {rooms.length} Daftar Ruangan
+            </span>
+          }
+        />
       )}
       <RoomList rooms={rooms} isAdmin={isAdmin} canShareLink={hasPermission('room:share')} />
     </PageContainer>

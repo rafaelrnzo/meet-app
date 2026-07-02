@@ -65,7 +65,7 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
       </ButtonIcon>
       <HandRaisedIcon />
       {children}
-      <ButtonIcon onClick={() => router.replace('/')}>
+      <ButtonIcon onClick={() => room.disconnect()}>
         <PhoneSlashIcon weight='fill' size={20} />
       </ButtonIcon>
     </div>

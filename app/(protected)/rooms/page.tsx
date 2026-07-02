@@ -4,7 +4,7 @@ import { default as PageContainer } from '@/compounds/page-container'
 import { RoomListClient } from '@/app/(protected)/rooms/client'
 
 export default async function HomePage(props: ResponseNext) {
-  const { isAdmin, isEmpty, rooms, hasPermission } = await getRoomListConfig(
+  const { isAdmin, isEmpty, isInvalid, rooms, hasPermission } = await getRoomListConfig(
     await props.searchParams
   )
 
@@ -22,6 +22,7 @@ export default async function HomePage(props: ResponseNext) {
         groups={groups}
         isAdmin={isAdmin}
         isEmpty={isEmpty}
+        isInvalid={isInvalid}
         canShareLink={hasPermission('room:share')}
         canCreate={hasPermission('room:manage')}
       />

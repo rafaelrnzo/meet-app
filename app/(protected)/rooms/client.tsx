@@ -21,6 +21,7 @@ export interface RoomListClientProps {
   groups: Group[]
   isAdmin: boolean
   isEmpty: boolean
+  isInvalid: boolean
   canCreate: boolean
   canShareLink: boolean
 }
@@ -30,6 +31,7 @@ export const RoomListClient: FC<RoomListClientProps> = ({
   groups,
   isAdmin,
   isEmpty,
+  isInvalid,
   canCreate,
   canShareLink,
 }) => {
@@ -82,6 +84,7 @@ export const RoomListClient: FC<RoomListClientProps> = ({
 
       <div className={cn(isEmpty ? 'hidden' : '') || void 0} inert={isEmpty}>
         <RoomListHeader
+          isInvalid={isInvalid}
           {...(canCreate && {
             addCustom: (
               <RoomForm
@@ -141,7 +144,7 @@ export const RoomListClient: FC<RoomListClientProps> = ({
             },
           }}
           headerAddon={
-            searchParams.search ? (
+            isInvalid ? (
               <span className='text-base font-semibold text-red-800'>
                 {rooms.length} Daftar Ruangan
               </span>

@@ -96,31 +96,7 @@ export async function getRoomListConfig(searchParams: object) {
   }
 
   // Only show if room end date is AFTER today's milisecond
-  const filterRoomByTime = initialRooms.filter((room) => djs(room.end_date).isAfter(djs()))
-  const roomsWithMembers = await Promise.all(
-    filterRoomByTime.map(async (room) => {
-      if (room.group) {
-        const members = await fetchMemberRoom({ roomId: room.id, searchParams })
-
-        return {
-          ...room,
-          assigned_to: Array.from(
-            new Set([...(room.assigned_to ?? []), ...members.map((member) => `${member.id}`)])
-          ),
-        }
-      }
-
-      return room
-    })
-  )
-
-  const rooms = roomsWithMembers.filter(
-    (room) =>
-      isAdmin ||
-      isModerator ||
-      !room.assigned_to?.length ||
-      room.assigned_to.map(Number).some((roleIds) => roleIds === session?.profile.id)
-  )
+  const rooms = initialRooms.filter((room) => djs(room.end_date).isAfter(djs()))
 
   return {
     isAdmin,
@@ -128,6 +104,7 @@ export async function getRoomListConfig(searchParams: object) {
     initialRooms,
     rooms,
     isEmpty: !('search' in searchParams) && !rooms.length,
+    isInvalid: 'search' in searchParams && !rooms.length,
   }
 }
 
