@@ -16,6 +16,11 @@ interface PrejoinPayload {
   region?: string
 }
 
+interface BannedParticipantPayload {
+  room_code: string
+  identity: string
+}
+
 export async function prejoinVerify(payload: PrejoinPayload) {
   try {
     const session = await auth()
@@ -75,5 +80,36 @@ export async function getRemoteUrl(
     return { data: { url: identifier[screenId] } }
   } catch (error) {
     return { data: null, error }
+  }
+}
+
+export async function moderateParticipant(
+  action: 'ban' | 'unban',
+  payload: BannedParticipantPayload
+) {
+  try {
+    const session = await auth()
+
+    if (!session) {
+      return {
+        data: null,
+        interceptor: ConnectionInterceptor.Unauthorized,
+      }
+    }
+
+    const url = `${process.env.APP_API_VIDEO_CONFERENCE ?? ''}/api/livekit/${action}`
+
+    const { data } = await fetcher(url, {
+      method: 'POST',
+      headers: createAuthHeaders(session.access_token),
+      body: JSON.stringify(payload),
+    })
+
+    return data as { message: string }
+  } catch {
+    return {
+      data: null,
+      interceptor: ConnectionInterceptor.Unknown,
+    }
   }
 }

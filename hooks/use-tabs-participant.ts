@@ -2,26 +2,34 @@
 
 import type { ScreenCode } from '@/feat/enum'
 import { useState } from 'react'
-import { useParticipants, useLocalParticipant, useRoomContext } from '@livekit/components-react'
+import {
+  useParticipants,
+  useLocalParticipant,
+  useRoomContext,
+  useRoomInfo,
+} from '@livekit/components-react'
 import { useDataChannel } from '@/hooks'
 import { LiveKitAction, ParticipantAttribute } from '@/feat/enum'
+import { moderateParticipant } from '@/feat/api'
 
 export interface ParticipantAttributes {
   SCREEN_ACTIVE_URL: string
   SCREEN_ACTIVE: string
   SCREEN_ACTIVE_HOST: ScreenCode
   HAND_RAISED: boolean
+  ROLE_NAME: string
 }
 
 export interface ParticipantList {
   id: string
   name: string
-  isMuted: boolean
-  isLocal: boolean
-  isRaised: boolean
+  isMuted?: boolean
+  isLocal?: boolean
+  isRaised?: boolean
   isModerator?: boolean
   attributes?: ParticipantAttributes
-  hide: boolean
+  isBanned?: boolean
+  hide?: boolean
 }
 
 export interface ParticipantListPending extends Omit<
@@ -47,12 +55,15 @@ export interface ParticipantGroup {
 
 export function useTabsParticipant() {
   const room = useRoomContext()
+  const roomInfo = useRoomInfo()
   const remoteParticipants = useParticipants()
   const { localParticipant } = useLocalParticipant()
-  const userRole = localParticipant.attributes[ParticipantAttribute.RoleName.toLowerCase()]
+
+  const userRole = localParticipant?.attributes?.[ParticipantAttribute.RoleName.toLowerCase()] ?? ''
   const isModerator = ['moderator', 'admin'].includes(userRole)
+
   const [modalConfirm, setModalConfirm] = useState<{
-    id: 'mute-all' | 'dismiss-participant'
+    id: 'mute-all' | 'dismiss-participant' | 'banned-participant'
     open: boolean
     title?: string
     description?: string
@@ -64,44 +75,78 @@ export function useTabsParticipant() {
     return p.isMicrophoneEnabled
   })
 
+  const bannedUserIdentity = () => {
+    if (!roomInfo.metadata) {
+      return { banned_users: [] as string[] }
+    }
+
+    try {
+      return JSON.parse(roomInfo.metadata) as {
+        banned_users: string[]
+      }
+    } catch {
+      return { banned_users: [] }
+    }
+  }
+  const bannedIds = bannedUserIdentity()?.banned_users ?? []
+
   const participantGroups: ParticipantGroup[] = [
     {
       id: 'Participants',
       headline: 'Peserta',
       hide: false,
-      lists: remoteParticipants
-        .sort((a, b) => {
-          const isRaised = (v: unknown) => v === true || v === 'true' || v === '1'
-          const aRaised = isRaised(a.attributes?.[ParticipantAttribute.HandRaised])
-          const bRaised = isRaised(b.attributes?.[ParticipantAttribute.HandRaised])
-          const aIsLocal = a.isLocal
-          const bIsLocal = b.isLocal
+      lists: [
+        // 1. List Participant Active
+        ...remoteParticipants
+          .filter((participant) => !bannedIds.includes(participant.identity))
+          .sort((a, b) => {
+            const isRaised = (v: unknown) => v === true || v === 'true' || v === '1'
+            const aRaised = isRaised(a.attributes?.[ParticipantAttribute.HandRaised])
+            const bRaised = isRaised(b.attributes?.[ParticipantAttribute.HandRaised])
+            const aIsLocal = a.isLocal
+            const bIsLocal = b.isLocal
 
-          if (aIsLocal !== bIsLocal) return Number(bIsLocal) - Number(aIsLocal)
+            if (aIsLocal !== bIsLocal) return Number(bIsLocal) - Number(aIsLocal)
+            if (aRaised !== bRaised) return Number(bRaised) - Number(aRaised)
 
-          if (aRaised !== bRaised) return Number(bRaised) - Number(aRaised)
+            return (a.name ?? '').localeCompare(b.name ?? '')
+          })
+          .map((participant) => {
+            const isMuted = !participant.isMicrophoneEnabled
+            const isModerator = ['moderator', 'admin'].includes(
+              participant.attributes[ParticipantAttribute.RoleName.toLowerCase()] ?? ''
+            )
 
-          return (a.name ?? '').localeCompare(b.name ?? '')
-        })
-        .map((participant) => {
-          const isMuted = !participant.isMicrophoneEnabled
-          const isModerator = ['moderator', 'admin'].includes(
-            participant.attributes[ParticipantAttribute.RoleName.toLowerCase()]
-          )
+            return {
+              id: participant.identity,
+              name: participant.name ?? '',
+              attributes: participant.attributes as any,
+              isRaised: participant.attributes?.[ParticipantAttribute.HandRaised] === 'true',
+              isModerator,
+              isLocal: participant.isLocal,
+              isMuted,
+              hide: false,
+              isBanned: false,
+            }
+          }),
 
-          return {
-            id: participant.identity,
-            name: participant.name ?? '',
-            attributes: participant.attributes as unknown as ParticipantAttributes,
-            isRaised: participant.attributes?.[ParticipantAttribute.HandRaised] === 'true',
-            isModerator: isModerator,
-            isLocal: participant.isLocal,
-            isMuted,
-            hide: false,
-          }
-        }),
+        // 2. List Participant Banned
+        ...bannedIds.map((identity) => ({
+          id: identity,
+          name: identity,
+          attributes: {} as any,
+          isRaised: false,
+          isModerator: false,
+          isLocal: false,
+          isMuted: true,
+          hide: false,
+          isBanned: true,
+        })),
+      ],
     },
   ]
+
+  const bannedParticipantLength = participantGroups[0].lists.filter((p) => p.isBanned).length
 
   // SEND DATA CHANNEL
   const { send: sendbroadcastMicrophoneMuteAll } = useDataChannel<{ enabled: boolean }>(
@@ -119,7 +164,7 @@ export function useTabsParticipant() {
     async () => null
   )
 
-  // HANDLER
+  // HANDLER ACTION
   const handleBroadcastMuteAll = async () => {
     const nextState = !shouldMuteAll
     try {
@@ -156,12 +201,30 @@ export function useTabsParticipant() {
     setModalConfirm((prev) => ({ ...prev, open: false }))
   }
 
+  const handleModerateParticipant = async (identity: string, action: 'ban' | 'unban') => {
+    const roomCode = roomInfo.name
+    if (!roomCode) {
+      console.warn('Room name belum siap atau tidak ditemukan.')
+      return
+    }
+
+    try {
+      await moderateParticipant(action, { identity, room_code: roomCode })
+    } catch (error) {
+      console.error(`Gagal melakukan aksi ${action} pada peserta:`, error)
+    } finally {
+      setModalConfirm((prev) => ({ ...prev, open: false }))
+    }
+  }
+
   return {
     participantGroups,
     shouldMuteAll,
     isModerator,
     modalConfirm,
+    bannedParticipantLength,
     setModalConfirm,
+    handleModerateParticipant,
     handleBroadcastMuteAll,
     handleParticipantMute,
     handleDismissParticipant,

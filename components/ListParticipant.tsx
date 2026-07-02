@@ -13,12 +13,12 @@ import {
   Logout,
   Mic,
   MicOff,
+  Unlocked,
 } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
 import { useTabsParticipant } from '@/hooks/use-tabs-participant'
 import { useHandRaises } from '@/hooks'
 import {
-  TabsList,
   TabsListItemContent,
   TabsListGroup,
   TabsListItem,
@@ -107,7 +107,9 @@ export function ListParticipant() {
     shouldMuteAll,
     isModerator,
     modalConfirm,
+    bannedParticipantLength,
     handleBroadcastMuteAll,
+    handleModerateParticipant,
     handleParticipantMute,
     handleDismissParticipant,
     setModalConfirm,
@@ -119,31 +121,43 @@ export function ListParticipant() {
   > = {
     ['mute-all']: {
       title: 'Bisukan Semua Peserta',
+      confirm: 'Ya, Bisukan Semua',
       description: 'Tindakan ini akan membisukan semua peserta rapat. Apa Anda ingin lanjut?',
-      confirm: 'Bisukan Semua',
       onConfirm: handleBroadcastMuteAll,
     },
     ['dismiss-participant']: {
       title: 'Keluarkan Peserta',
+      confirm: 'Ya, Keluarkan Peserta',
       description: 'Tindakan ini akan mengeluarkan peserta dari rapat. Apa Anda ingin lanjut?',
-      confirm: 'Keluarkan Peserta',
       onConfirm: () => handleDismissParticipant(modalConfirm.identity ?? ''),
+    },
+    ['banned-participant']: {
+      title: 'Blokir Peserta',
+      confirm: 'Ya, Blokir Peserta',
+      description: 'Tindakan ini akan memblokir peserta dari rapat. Apa Anda ingin lanjut?',
+      onConfirm: () => handleModerateParticipant(modalConfirm.identity ?? '', 'ban'),
     },
   }
 
   return (
     <div className='flex w-full flex-col bg-white'>
       <TabsListGroups className='flex h-full flex-col'>
+        <p
+          className='text-error sticky top-0 py-2 text-right text-sm'
+          style={{ display: bannedParticipantLength > 0 ? 'block' : 'none' }}
+        >
+          {bannedParticipantLength} peserta diblokir
+        </p>
         <div className='flex-1 overflow-x-hidden overflow-y-auto'>
           {participantGroups.map(({ id, lists }) => (
             <TabsListGroup key={id} className='flex flex-col'>
-              <TabsList className={cn('max-h-[calc(100vh - 180px] space-y-2 overflow-y-auto px-2')}>
-                {lists.map(({ id: identity, name, isMuted, isLocal, isModerator, isRaised }) => {
+              {lists.map(
+                ({ id: identity, name, isMuted, isLocal, isModerator, isRaised, isBanned }) => {
                   const currentUser = lists.find((p) => p.isLocal)
                   const amIModerator = currentUser?.isModerator ?? false
-                  const showDropdown = amIModerator && !isLocal
-                  const canClickHand = isRaised && (isLocal || amIModerator)
-                  const canClickMic = !isMuted && (isLocal || amIModerator)
+                  const showDropdown = amIModerator && !isLocal && !isBanned
+                  const canClickHand = isRaised && (isLocal || amIModerator) && !isBanned
+                  const canClickMic = !isMuted && (isLocal || amIModerator) && !isBanned
 
                   return (
                     <TabsListItem
@@ -157,126 +171,156 @@ export function ListParticipant() {
                       </div>
 
                       <TabsListItemContent className='flex flex-col justify-center'>
-                        <TabsListItemTitle className='max-w-45.5 truncate'>
+                        <TabsListItemTitle
+                          className={cn('max-w-45.5 truncate', isBanned && 'text-red-900')}
+                        >
                           {name}
                         </TabsListItemTitle>
 
-                        {isModerator && (
-                          <TabsListItemText
-                            className='max-w-50 truncate text-xs text-neutral-500'
-                            title={isModerator ? 'Moderator' : ''}
-                          >
-                            {isModerator ? 'Moderator' : ''}
-                          </TabsListItemText>
+                        {isBanned ? (
+                          <span className='text-error text-xs'>Diblokir</span>
+                        ) : (
+                          isModerator && (
+                            <TabsListItemText
+                              className='max-w-50 truncate text-xs text-neutral-500'
+                              title='Moderator'
+                            >
+                              Moderator
+                            </TabsListItemText>
+                          )
                         )}
                       </TabsListItemContent>
 
-                      <menu className='flex items-center'>
-                        <button
-                          onClick={() => (isLocal ? lowerHandLocal() : lowerHand(identity))}
-                          disabled={!canClickHand}
-                          className={cn('rounded-full p-2 transition-colors', {
-                            'cursor-pointer hover:bg-neutral-100': canClickHand,
-                            'cursor-default hover:bg-transparent': !canClickHand,
-                            'opacity-70': !isLocal && !isRaised,
-                          })}
-                        >
-                          {isRaised ? (
-                            <HugeIcon icon={HandIcon} size={20} color='#991B1B' />
-                          ) : (
-                            <HugeIcon icon={DoNotTouch01Icon} size={20} color='#A3A3A3' />
-                          )}
-                        </button>
-                        <button
-                          onClick={async () =>
-                            handleParticipantMute({
-                              isLocal: isLocal,
-                              identity,
-                            })
-                          }
-                          disabled={!canClickMic}
-                          className={cn('rounded-full p-2 transition-colors', {
-                            'cursor-pointer hover:bg-neutral-100': canClickMic,
-                            'cursor-default hover:bg-transparent': !canClickMic,
-                            'opacity-70': !amIModerator && !isLocal,
-                          })}
-                        >
-                          {isMuted ? (
-                            <HugeIcon icon={MicOff} size={20} color='#A3A3A3' />
-                          ) : (
-                            <HugeIcon icon={Mic} size={20} color='#991B1B' />
-                          )}
-                        </button>
-
-                        {showDropdown && (
-                          <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
-                              <button className='cursor-pointer rounded-full p-2 hover:bg-neutral-100'>
-                                <HugeIcon icon={EllipsisVertical} size={20} />
-                              </button>
-                            </DropdownMenuTrigger>
-
-                            <DropdownMenuContent
-                              align='end'
-                              className='w-56 rounded-xl border border-neutral-200 bg-white p-1 px-2 text-sm shadow-lg'
+                      <menu className='flex items-center gap-2'>
+                        {isBanned ? (
+                          amIModerator && (
+                            <button
+                              onClick={() => handleModerateParticipant(identity, 'unban')}
+                              className='flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-neutral-700 transition-colors hover:bg-neutral-100'
                             >
-                              {[
-                                {
-                                  label: 'Keluarkan peserta',
-                                  icon: Logout,
-                                  iconColor: '#dc2626',
-                                  className: 'text-red-600 focus:bg-red-50 focus:text-red-700',
-                                  onClick: () =>
-                                    setModalConfirm({
-                                      open: true,
-                                      title: 'Keluarkan Peserta',
-                                      description:
-                                        'Tindakan ini akan mengeluarkan peserta dari rapat. Apa Anda ingin lanjut?',
-                                      id: 'dismiss-participant',
-                                      identity: identity,
-                                    }),
-                                },
-                                {
-                                  label: 'Blokir peserta',
-                                  icon: BlockGameIcon,
-                                  iconColor: '#A3A3A3',
-                                  className: 'text-neutral-700 focus:bg-neutral-100',
-                                  onClick: () => console.log(identity),
-                                },
-                              ].map((item, index) => (
-                                <DropdownMenuItem
-                                  key={index}
-                                  onClick={item.onClick}
-                                  className={cn(
-                                    'text-md my-1 flex cursor-pointer items-center gap-2 rounded-lg p-3 transition-colors',
-                                    item.className
-                                  )}
-                                >
-                                  <HugeIcon icon={item.icon} size={20} color={item.iconColor} />
-                                  <span>{item.label}</span>
-                                </DropdownMenuItem>
-                              ))}
-                            </DropdownMenuContent>
-                          </DropdownMenu>
+                              <HugeIcon icon={Unlocked} size={18} className='text-neutral-600' />
+                              <span>Buka blokir</span>
+                            </button>
+                          )
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => (isLocal ? lowerHandLocal() : lowerHand(identity))}
+                              disabled={!canClickHand}
+                              className={cn('rounded-full p-2 transition-colors', {
+                                'cursor-pointer hover:bg-neutral-100': canClickHand,
+                                'cursor-default hover:bg-transparent': !canClickHand,
+                                'opacity-70': !isLocal && !isRaised,
+                              })}
+                            >
+                              {isRaised ? (
+                                <HugeIcon icon={HandIcon} size={20} color='#991B1B' />
+                              ) : (
+                                <HugeIcon icon={DoNotTouch01Icon} size={20} color='#A3A3A3' />
+                              )}
+                            </button>
+
+                            <button
+                              onClick={async () =>
+                                handleParticipantMute({
+                                  isLocal: isLocal,
+                                  identity,
+                                })
+                              }
+                              disabled={!canClickMic}
+                              className={cn('rounded-full p-2 transition-colors', {
+                                'cursor-pointer hover:bg-neutral-100': canClickMic,
+                                'cursor-default hover:bg-transparent': !canClickMic,
+                                'opacity-70': !amIModerator && !isLocal,
+                              })}
+                            >
+                              {isMuted ? (
+                                <HugeIcon icon={MicOff} size={20} color='#A3A3A3' />
+                              ) : (
+                                <HugeIcon icon={Mic} size={20} color='#991B1B' />
+                              )}
+                            </button>
+
+                            {showDropdown && (
+                              <DropdownMenu>
+                                {showDropdown && (
+                                  <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                      <button className='cursor-pointer rounded-full p-2 hover:bg-neutral-100'>
+                                        <HugeIcon icon={EllipsisVertical} size={20} />
+                                      </button>
+                                    </DropdownMenuTrigger>
+
+                                    <DropdownMenuContent
+                                      align='end'
+                                      className='w-56 rounded-xl border border-neutral-200 bg-white p-1 px-2 text-sm shadow-lg'
+                                    >
+                                      {[
+                                        {
+                                          label: 'Keluarkan peserta',
+                                          icon: Logout,
+                                          iconColor: '#dc2626',
+                                          className:
+                                            'text-red-600 focus:bg-red-50 focus:text-red-700',
+                                          onClick: () =>
+                                            setModalConfirm({
+                                              open: true,
+                                              id: 'dismiss-participant',
+                                              identity: identity,
+                                            }),
+                                        },
+                                        {
+                                          label: 'Blokir peserta',
+                                          icon: BlockGameIcon,
+                                          iconColor: '#A3A3A3',
+                                          className: 'text-neutral-700 focus:bg-neutral-100',
+                                          onClick: () =>
+                                            setModalConfirm({
+                                              open: true,
+                                              id: 'banned-participant',
+                                              identity: identity,
+                                            }),
+                                        },
+                                      ].map((item, index) => (
+                                        <DropdownMenuItem
+                                          key={index}
+                                          onClick={item.onClick}
+                                          className={cn(
+                                            'text-md my-1 flex cursor-pointer items-center gap-2 rounded-lg p-3 transition-colors',
+                                            item.className
+                                          )}
+                                        >
+                                          <HugeIcon
+                                            icon={item.icon}
+                                            size={20}
+                                            color={item.iconColor}
+                                          />
+                                          <span>{item.label}</span>
+                                        </DropdownMenuItem>
+                                      ))}
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                )}
+                              </DropdownMenu>
+                            )}
+                          </>
                         )}
                       </menu>
                     </TabsListItem>
                   )
-                })}
-              </TabsList>
+                }
+              )}
             </TabsListGroup>
           ))}
         </div>
         {shouldMuteAll && isModerator && (
           <div className='mt-auto bg-white pt-4'>
-            {/* mt-auto memastikan ia terdorong ke bawah, pt-4 memberi jarak */}
             <Button
               onClick={() =>
                 setModalConfirm({
                   id: 'mute-all',
                   open: true,
                   title: 'Bisukan Semua Peserta',
-                  description: 'Apakah anda yakin ingin membisukan semua peserta?',
                 })
               }
               className={cn(
@@ -317,7 +361,7 @@ export function ListParticipant() {
           onClick: () => setModalConfirm((prev) => ({ ...prev, open: false })),
         }}
       >
-        <p>{modalConfirm.description}</p>
+        <p>{modalOptions[modalConfirm.id].description}</p>
       </ModalDelete>
     </div>
   )

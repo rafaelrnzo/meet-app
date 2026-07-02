@@ -121,7 +121,7 @@ export const HandRaisedIcon = () => {
   const { isRaised, toggleHand } = useHandRaises()
 
   return (
-    <ButtonIcon isActive={isRaised} onClick={toggleHand}>
+    <ButtonIcon isActive={!isRaised} onClick={toggleHand}>
       <HandIcon weight='fill' size={20} />
     </ButtonIcon>
   )
