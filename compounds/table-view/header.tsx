@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import type { SortingState, Table } from '@tanstack/react-table'
 import type { TableViewSearchProps } from '@/compounds/table-view/search'
 import type { TableViewFilterProps } from '@/compounds/table-view/filter'
@@ -18,6 +19,7 @@ interface TableViewHeaderProps<TData> {
   search?: TableViewSearchProps
   filter?: TableViewFilterProps
   add?: TableViewButtonProps
+  addCustom?: ReactNode
   refresh?: TableViewButtonProps
   table?: Table<TData>
   pageSizeOptions?: number[]
@@ -44,7 +46,7 @@ function ButtonRefresh({
 }
 
 function TableViewHeader<TData>(props: TableViewHeaderProps<TData>) {
-  const { search, filter, add, refresh, table, pageSizeOptions, headerAddon } = props
+  const { search, filter, add, addCustom, refresh, table, pageSizeOptions, headerAddon } = props
   const filterMobile = {
     ...(filter && {
       filter: {
@@ -82,12 +84,12 @@ function TableViewHeader<TData>(props: TableViewHeaderProps<TData>) {
   }
 
   return (
-    <div className='flex w-full flex-col gap-4 md:px-6'>
-      {(!!search || !!filter || !!add || !!refresh || !!headerAddon) && (
+    <div className='mb-4 flex w-full flex-col gap-4 md:mb-8'>
+      {(!!search || !!filter || !!add || !addCustom || !!refresh || !!headerAddon) && (
         <div className='flex items-center gap-4 max-md:flex-col-reverse md:gap-2'>
           {!!search && <TableViewSearch {...search} {...filterMobile} />}
 
-          {(!!filter || !!add || !!refresh || !!headerAddon) && (
+          {(!!filter || !!add || !addCustom || !!refresh || !!headerAddon) && (
             <div className='flex w-full grow justify-end gap-2 max-md:flex-col-reverse md:items-center'>
               {headerAddon}
 
@@ -107,6 +109,10 @@ function TableViewHeader<TData>(props: TableViewHeaderProps<TData>) {
                     )}
                   </Button>
                 </div>
+              )}
+
+              {!!addCustom && (
+                <div className='max-md:rounded-md max-md:bg-red-100 max-md:p-4'>{addCustom}</div>
               )}
 
               {!!refresh && <ButtonRefresh className='max-md:hidden' refresh={refresh} />}

@@ -19,7 +19,7 @@ interface RoomPayload {
   name: string
   description: string
   max_participants: number
-  assigned_to: string[]
+  assigned_to: string[] | null
   group_id: number
   start_date: string
   end_date: string

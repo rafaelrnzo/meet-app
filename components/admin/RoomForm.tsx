@@ -1,9 +1,10 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import type { AnyFormApi } from '@tanstack/react-form'
-import type { ActiveRoom, DbRoom, Group, ParamsUserAssignment, User } from '@/lib/api/admin-api'
+import type { DbRoom, Group, ParamsUserAssignment, User } from '@/lib/api/admin-api'
 import type { RoomSchemaValue } from '@/feat/rooms/dto'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useForm, useStore } from '@tanstack/react-form'
 import { cn, djs, omit } from '@/lib/utils'
 import { createDbRoom, fetchUsersAssignment, updateDbRoom } from '@/lib/api/admin-api'
@@ -36,10 +37,11 @@ import { CalendarWithTime } from '@/components/ui/calendar-with-time'
 interface RoomFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess: () => void
+  onSuccess?: () => void
   initialData?: DbRoom | null
   groups: Group[]
-  activeRooms: ActiveRoom[]
+  activeParticipant?: number
+  children?: ReactNode
 }
 
 interface FormFieldProps {
@@ -79,15 +81,12 @@ export function RoomForm({
   onSuccess,
   initialData,
   groups,
-  activeRooms,
+  children,
+  activeParticipant = 0,
 }: RoomFormProps) {
   const [users, setUsers] = useState<User[]>([])
   const [showPassword, setShowPassword] = useState(false)
   const [queryParams, setQueryParams] = useState<ParamsUserAssignment>({})
-  const activeParticipant = useMemo(
-    () => activeRooms.find((ar) => ar.name === initialData?.room_code)?.num_participants,
-    [activeRooms, initialData?.room_code]
-  )
   const defaultValues: RoomSchemaValue = initialData
     ? getRoomDefaultValue(initialData)
     : roomSchema().getDefault()
@@ -112,7 +111,7 @@ export function RoomForm({
           description: `Ruang rapat ${payload.name} berhasil ${initialData ? 'diperbarui' : 'dibuat'}`,
         })
         onOpenChange(false)
-        onSuccess()
+        onSuccess?.()
         formApi.reset()
       } catch (error) {
         let message =
@@ -165,6 +164,7 @@ export function RoomForm({
 
   return (
     <Modal
+      trigger={{ asChild: true, children }}
       title={{ children: initialData ? 'Perbarui Ruangan' : 'Buat Ruangan Baru' }}
       root={{
         open,

@@ -7,11 +7,15 @@ import { useRouter } from 'next/navigation'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
-export const JoinRoom: FC<{ rooms: DbRoom[] }> = ({ rooms }) => {
+export interface JoinRoomProps {
+  rooms: DbRoom[]
+}
+
+export const JoinRoom: FC<JoinRoomProps> = ({ rooms }) => {
   const [queryRoom, setQueryRoom] = useState('')
   const router = useRouter()
-  const encodedQuery = encodeURIComponent(queryRoom.trim().toLowerCase())
-  const room = rooms.find((room) => `${room.room_code}`.toLowerCase() === encodedQuery)
+  const encodedQuery = encodeURIComponent(queryRoom.trim())
+  const room = rooms.find((room) => `${room.room_code}` === encodedQuery)
   const disabled = !room || !queryRoom.trim().length
 
   return (

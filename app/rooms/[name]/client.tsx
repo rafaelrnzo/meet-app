@@ -1,9 +1,12 @@
 'use client'
 
 import { default as dynamic } from 'next/dynamic'
-import { Loading } from '@/components/Loading'
 
 export const RoomsDetail = dynamic(async () => (await import('@/feat/Room')).RoomDetail, {
   ssr: false,
-  loading: () => <Loading className='fixed' />,
+  loading: () => (
+    <div className='bg-background text-foreground fixed inset-0 flex items-center justify-center'>
+      <div className='border-primary h-6 w-6 animate-spin rounded-full border-2 border-t-transparent' />
+    </div>
+  ),
 })

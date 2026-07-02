@@ -10,7 +10,7 @@ import {
   useRoomContext,
   useConnectionState,
 } from '@livekit/components-react'
-import { useParamsState, useMediaControls } from '@/hooks'
+import { useMediaControls } from '@/hooks'
 import { ToggleTrack } from '@/components/ToggleTrack'
 import { ReactionIcon } from '@/components/ReactionIcon'
 import { HandRaisedIcon } from '@/components/HandRaised'
@@ -19,7 +19,6 @@ import { ButtonIcon } from '@/components/Button'
 
 export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
   const room = useRoomContext()
-  const { router } = useParamsState()
   const { audioEnabled, shareScreenEnabled, handleToggleAudio, handleToggleShareScreen } =
     useMediaControls({ room })
   const state = useConnectionState(room)
@@ -59,7 +58,7 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
       <ReactionIcon isOpen={isReactionUp} onToggle={handleReactionUp} />
       <HandRaisedIcon />
       {children}
-      <ButtonIcon onClick={() => router.replace('/')}>
+      <ButtonIcon onClick={() => room.disconnect()}>
         <PhoneSlashIcon weight='fill' size={20} />
       </ButtonIcon>
     </div>

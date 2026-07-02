@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import type { VariantProps } from 'class-variance-authority'
 import type { Row, RowData, SortingState, TableOptions } from '@tanstack/react-table'
 import type { TableViewSearchProps } from '@/compounds/table-view/search'
@@ -37,6 +38,7 @@ interface TableViewProps {
   wrapper?: React.ComponentProps<'div'>
   search?: TableViewSearchProps
   add?: TableViewButtonProps
+  addCustom?: ReactNode
   refresh?: TableViewButtonProps
   filter?: TableViewFilterProps
   headerAddon?: React.ReactNode
@@ -121,6 +123,7 @@ function TableView<TData>({
   wrapper,
   search,
   add,
+  addCustom,
   refresh,
   filter,
   headerAddon,
@@ -180,7 +183,9 @@ function TableView<TData>({
 
   return (
     <div className='@container/table-container flex flex-col gap-4 md:gap-8'>
-      <TableViewHeader {...{ search, add, filter, refresh, table, pageSizeOptions, headerAddon }} />
+      <TableViewHeader
+        {...{ search, add, addCustom, filter, refresh, table, pageSizeOptions, headerAddon }}
+      />
       {!!tableRowsData.length && (
         <>
           <div

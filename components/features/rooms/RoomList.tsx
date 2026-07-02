@@ -1,15 +1,12 @@
 'use client'
 
-import type { ActiveRoom, DbRoom } from '@/lib/api/admin-api'
-import type { GenerateRoomCodeExp, NewRoomCode } from '@/feat/rooms/dto'
-import { useEffect, useMemo, useRef, useState, useTransition } from 'react'
+import type { FC } from 'react'
+import type { DbRoom } from '@/lib/api/admin-api'
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Loader } from 'lucide-react'
-import { default as Cookies } from 'js-cookie'
-import { GenerateRoomCode } from './GenerateRoomCode'
 import { cn, djs, copyHandler } from '@/lib/utils'
 import { generateCode } from '@/lib/api/admin-api'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useSourceEventRooms } from '@/hooks'
 import { shareLinkHandler } from '@/feat/rooms/helper'
 import { defaultErrorMessage } from '@/config'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -28,66 +25,70 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 
-interface SummaryCardProps {
-  loading?: boolean
-  staticRooms: DbRoom[]
-  activeRooms: ActiveRoom[]
+interface RoomListProps {
+  isLoading?: boolean
+  rooms: DbRoom[]
   isAdmin: boolean
+  canShareLink: boolean
   handleDetail?: (room: DbRoom) => void
   handleCloseModal?: () => void
-  canShareLink: boolean
 }
 
-const CARD_PERPAGE = 6
-const COOKIE_GENERATE_EXP = 'remaining_generate'
-
-const ButtonJoin = ({
-  isFull,
-  isAdmin,
-  room,
-  handleCloseModal,
-}: {
+interface ButtonJoinProps {
   isFull: boolean
   isAdmin: boolean
-  room: DbRoom
+  roomCode: string
+  dateStart: string
+  dateEnd: string
   handleCloseModal?: () => void
+}
+
+const CARD_PERPAGE = 12
+
+const CARD_COPY_SECOND = 1_000
+
+const ButtonJoin: FC<ButtonJoinProps> = ({
+  isFull,
+  isAdmin,
+  roomCode,
+  dateStart,
+  dateEnd,
+  handleCloseModal,
 }) => {
-  const router = useRouter()
-  const startDate = djs(room.start_date)
-  const endDate = djs(room.end_date)
   const [now, setNow] = useState(djs())
-  const [isPendingJoin] = useTransition()
+  const router = useRouter()
+  const startDate = djs(dateStart)
   const status = useMemo(() => (now.isBefore(startDate) ? 'upcoming' : 'open'), [now, startDate])
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(void 0)
+
+  const handleCloseModalEvent = useEffectEvent(() => {
+    const now = djs()
+    setNow(now)
+
+    if (djs(dateStart).isAfter(now) && now.isAfter(djs(dateEnd))) {
+      clearInterval(intervalRef.current)
+      handleCloseModal?.()
+    }
+  })
 
   useEffect(() => {
-    const timer = setInterval(() => {
-      const current = djs()
-      setNow(current)
+    intervalRef.current = setInterval(handleCloseModalEvent, 1000)
 
-      const secondsLeft = endDate.diff(current, 'second')
-      if (secondsLeft <= 0) {
-        clearInterval(timer)
-        router.refresh()
-        handleCloseModal?.()
-      }
-    }, 1000)
-
-    return () => clearInterval(timer)
-  }, [endDate, handleCloseModal, router])
+    return () => clearInterval(intervalRef.current)
+  }, [])
 
   return (
     <Button
-      className={cn('w-full p-0', !isPendingJoin && 'disabled:opacity-100')}
+      className='w-full p-0'
       variant={!isAdmin && (status !== 'open' || isFull) ? 'secondary' : 'primary'}
-      disabled={(!isAdmin && (status !== 'open' || isFull)) || isPendingJoin}
-      onClick={(event) => {
-        event.stopPropagation()
-        router.push(`/rooms/${encodeURIComponent(room.room_code)}`)
+      disabled={!isAdmin && (status !== 'open' || isFull)}
+      onClick={(e) => {
+        e.stopPropagation()
+        router.push(`/rooms/${encodeURIComponent(roomCode)}`)
       }}
     >
-      {isPendingJoin && <Loader className='animate-spin' />}
       {!isAdmin && status === 'upcoming'
-        ? `Mulai di ${djs(room.start_date).format('DD MMMM YYYY, HH.mm')} WIB`
+        ? `Mulai di ${djs(dateStart).format('DD MMMM YYYY, HH.mm')} WIB`
         : !isAdmin && isFull
           ? 'Anggota sudah mencukupi'
           : 'Masuk ke Ruangan'}
@@ -95,249 +96,208 @@ const ButtonJoin = ({
   )
 }
 
-function RoomList(props: SummaryCardProps) {
-  const {
-    loading = false,
-    staticRooms,
-    activeRooms,
-    isAdmin,
-    handleDetail,
-    handleCloseModal,
-    canShareLink,
-  } = props
-  const displayedRooms = staticRooms.map((room) => ({
-    ...room,
-    isLive: !!activeRooms.find((ar) => ar.name === room.room_code),
-    currentParticipants:
-      activeRooms.find((ar) => ar.name === room.room_code)?.num_participants || 0,
-  }))
-  const [newRoomCode, setNewRoomCode] = useState<NewRoomCode[]>([])
-  const [visibleCards, setVisibleCards] = useState(CARD_PERPAGE)
-  const [isTooltipVisible, setIsTooltipVisible] = useState<{
-    action: 'copy' | 'share'
-    roomId: number
-  } | null>(null)
-  const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const isMobile = useIsMobile()
+const RoomList: FC<RoomListProps> = ({
+  isLoading = false,
+  rooms,
+  canShareLink,
+  isAdmin,
+  handleDetail,
+  handleCloseModal,
+}) => {
+  const [stack, setStack] = useState(1 * CARD_PERPAGE)
+  const [copiedRoomName, setCopiedRoomName] = useState('')
+  const visibleRooms = rooms.slice(0, stack)
+  const router = useRouter()
+  const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout>>(void 0)
 
-  const getGenerateCodeExp = () => {
-    const cookieData = Cookies.get(COOKIE_GENERATE_EXP)
-    if (!cookieData) return []
-
-    const parsedCookieData: GenerateRoomCodeExp[] = JSON.parse(cookieData)
-    return parsedCookieData
+  function participantLength(roomCode: string) {
+    return visibleRooms.find((room) => room.room_code === roomCode)?.participants ?? 0
   }
 
-  const [arrGenerateExp, setArrGenerateExp] = useState<GenerateRoomCodeExp[]>(getGenerateCodeExp())
-
-  const updateExpiryData = ({ type, roomId }: { type: 'set' | 'remove'; roomId: number }) => {
-    let payload: GenerateRoomCodeExp[] = []
-
-    if (type === 'set') {
-      const roomIndex = arrGenerateExp.findIndex((item) => item.roomId === roomId)
-      const exp = djs().add(5, 'minute').valueOf()
-      payload =
-        roomIndex < 0
-          ? [...arrGenerateExp, { roomId, exp }] // if not found, add to array
-          : arrGenerateExp.map((item, index) => (index === roomIndex ? { ...item, exp } : item))
-    } else {
-      payload = arrGenerateExp.filter((item) => item.roomId !== roomId)
-    }
-
-    Cookies.set(COOKIE_GENERATE_EXP, JSON.stringify(payload))
-    setArrGenerateExp(payload)
+  function isFirstParticipantJoined(roomCode: string) {
+    return participantLength(roomCode) > 0
   }
 
-  const handleGenerateRoomCode = async (roomId: number) => {
-    try {
-      const { code } = await generateCode(roomId)
-      updateExpiryData({ type: 'set', roomId })
-      setNewRoomCode((prev) => {
-        const isExist = prev.find((item) => item.roomId === roomId)
-        if (!isExist) return [...prev, { roomId, code }]
-        return prev.map((item) => (item.roomId === roomId ? { ...item, code } : item))
-      })
-    } catch {
-      toast.error('Gagal membuat kode ruangan baru')
-    }
+  function handleLoadMore() {
+    setStack((prev) => Math.min((prev / CARD_PERPAGE + 1) * CARD_PERPAGE, rooms.length))
   }
 
-  const handleLoadMore = () => {
-    setVisibleCards((prevValue) => prevValue + CARD_PERPAGE)
+  function handleCopyLink(roomName: string) {
+    setCopiedRoomName('')
+    copyHandler(roomName)
+      .then(() => handleShowTooltip(`copy:${roomName}`))
+      .catch(() => toast.error('Gagal salin kode', { description: defaultErrorMessage }))
   }
 
-  const handleShowTooltip = (showing: typeof isTooltipVisible) => {
-    if (tooltipTimeoutRef.current) {
-      clearTimeout(tooltipTimeoutRef.current)
-    }
-    setIsTooltipVisible(showing)
-    tooltipTimeoutRef.current = setTimeout(() => {
-      setIsTooltipVisible(null)
-    }, 1000)
+  function handleShowTooltip(roomName: string) {
+    clearTimeout(tooltipTimeoutRef.current)
+    setCopiedRoomName(roomName)
+
+    tooltipTimeoutRef.current = setTimeout(() => setCopiedRoomName(''), CARD_COPY_SECOND)
   }
 
-  const handleCopyLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
-    const { success } = await copyHandler(roomCode)
-    if (!success) {
-      return toast.error('Gagal salin kode', { description: defaultErrorMessage })
-    }
-    handleShowTooltip({ action: 'copy', roomId })
+  function handleGenerateRoomCode(roomId: number) {
+    generateCode(roomId)
+      .then(() => router.refresh())
+      .catch((e) => toast.error(e instanceof Error ? e.message : 'Gagal membuat kode ruangan baru'))
   }
 
-  const handleShareLink = async ({ roomId, roomCode }: { roomId: number; roomCode: string }) => {
+  function handleShareLink(roomName: string) {
     const data = {
       title: 'Join Meeting',
-      url: new URL(`/rooms/${encodeURIComponent(roomCode)}`, window.location.origin).toString(),
+      url: new URL(`/rooms/${encodeURIComponent(roomName)}`, window.location.origin).toString(),
     }
-    const { success } = await shareLinkHandler(data)
-    if (!success) {
-      return toast.error('Gagal bagikan kode', { description: defaultErrorMessage })
-    }
-    handleShowTooltip({ action: 'share', roomId })
+
+    shareLinkHandler(data)
+      .then(() => handleShowTooltip(`share:${roomName}`))
+      .catch(() => toast.error('Gagal bagikan kode', { description: defaultErrorMessage }))
+  }
+
+  useSourceEventRooms(
+    () => router.refresh(),
+    ['room_updated', 'participant_joined', 'participant_left']
+  )
+
+  if (isLoading) {
+    return (
+      <div className='grid-cols grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
+        {Array.from({ length: 6 }, (_, i) => i + 1).map((item) => (
+          <Skeleton key={item} className='h-73.5' />
+        ))}
+      </div>
+    )
   }
 
   return (
-    <div>
-      {loading ? (
-        <div className='grid-cols grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
-          {Array.from({ length: 6 }, (_, i) => i + 1).map((item) => (
-            <Skeleton key={item} className='h-73.5' />
-          ))}
-        </div>
-      ) : (
-        <div className='space-y-8'>
-          <div className='grid-cols grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
-            {displayedRooms.slice(0, visibleCards).map((room) => {
-              const startDate = djs(room.start_date)
-              const isFull = (room.currentParticipants ?? 0) >= room.max_participants
-              const ownRoomCode =
-                newRoomCode.find((item) => item.roomId === room.id)?.code ?? room.room_code
+    <div className='space-y-8'>
+      <div className='grid-cols grid gap-4 md:grid-cols-2 xl:grid-cols-3'>
+        {visibleRooms.map(({ room_code, ...room }) => (
+          <Card
+            key={room.id}
+            onClick={() => handleDetail?.({ ...room, room_code })}
+            className={cn(
+              'relative flex min-h-73.5 flex-col space-y-4 rounded-md border-neutral-200 p-5 *:not-first:z-1',
+              !!handleDetail && 'cursor-pointer hover:border-neutral-300 hover:shadow-lg'
+            )}
+          >
+            <CardHeader className='relative grow gap-4 space-y-0 p-0'>
+              {isFirstParticipantJoined(room_code) && (
+                <span
+                  className='absolute -top-2 -right-2 size-2 animate-pulse rounded-full bg-red-500'
+                  title='Live'
+                />
+              )}
 
-              return (
-                <Card
-                  key={room.id}
-                  className={cn(
-                    'flex min-h-73.5 flex-col space-y-4 rounded-md border-neutral-200 p-5',
-                    !!handleDetail && 'cursor-pointer hover:border-neutral-300 hover:shadow-lg'
-                  )}
-                  onClick={() => handleDetail?.(room)}
-                >
-                  <CardHeader className='relative grow gap-4 space-y-0 p-0'>
-                    {room.isLive && (
-                      <span
-                        className='absolute -top-2 -right-2 size-2 animate-pulse rounded-full bg-red-500'
-                        title='Live'
-                      />
-                    )}
-
-                    <div className='flex flex-wrap items-center justify-between'>
-                      <CardTitle className='mb-0 min-w-1/2 flex-1 truncate text-base font-semibold text-red-800'>
-                        {room.name}
-                      </CardTitle>
-                      <div className='flex items-center gap-2'>
-                        {room.group?.name && (
-                          <Badge
-                            variant='outline'
-                            className='bg-green-50 wrap-anywhere text-neutral-950 not-italic'
-                          >
-                            {room.group.name}
-                          </Badge>
-                        )}
-
-                        {canShareLink && (
-                          <Tooltip
-                            open={
-                              isTooltipVisible?.action === 'share' &&
-                              isTooltipVisible.roomId === room.id
-                            }
-                          >
-                            <TooltipTrigger asChild>
-                              <Button
-                                className='size-6.5 px-0'
-                                variant='secondary'
-                                onClick={(event) => {
-                                  event.stopPropagation()
-                                  handleShareLink({ roomId: room.id, roomCode: ownRoomCode })
-                                }}
-                              >
-                                <Icon type='share' />
-                              </Button>
-                            </TooltipTrigger>
-                            <TooltipContent side={isMobile ? 'top' : 'right'}>
-                              Tautan disalin
-                            </TooltipContent>
-                          </Tooltip>
-                        )}
-                      </div>
-                    </div>
-
-                    <div className='flex items-center justify-between gap-2 text-sm'>
-                      <div className='flex items-center gap-2'>
-                        <Icon type='calendar' className='text-neutral-400' />
-                        {`${startDate.format('DD MMMM YYYY, HH.mm')} WIB`}
-                      </div>
-                      <div className='flex items-center gap-2'>
-                        <Icon type='users' className='text-neutral-400' />
-                        <span>
-                          {room.currentParticipants ?? 0}/{room.max_participants ?? 0}
-                        </span>
-                      </div>
-                    </div>
-
-                    <CardDescription className='line-clamp-3 wrap-anywhere'>
-                      {room.description || 'Tidak ada deskripsi'}
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className='p-0'>
-                    <div
-                      className='flex items-center gap-2'
-                      onClick={(event) => event.stopPropagation()}
+              <div className='flex flex-wrap items-center justify-between'>
+                <CardTitle className='mb-0 min-w-1/2 flex-1 truncate text-base font-semibold text-red-800'>
+                  {room.name}
+                </CardTitle>
+                <div className='flex items-center gap-2'>
+                  {room.group?.name && (
+                    <Badge
+                      variant='outline'
+                      className='bg-green-50 wrap-anywhere text-neutral-950 not-italic'
                     >
-                      <Input
-                        value={ownRoomCode}
-                        className='pointer-events-none has-[+button+button:active]:bg-neutral-200 has-[+button:active]:bg-neutral-200'
-                        onChange={() => void 0}
-                      />
-                      <Tooltip
-                        open={
-                          isTooltipVisible?.action === 'copy' && isTooltipVisible.roomId === room.id
-                        }
-                      >
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant='secondary'
-                            onClick={() =>
-                              handleCopyLink({ roomId: room.id, roomCode: ownRoomCode })
-                            }
-                            size='icon'
-                          >
-                            <Icon type='copy' />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent>Kode disalin</TooltipContent>
-                      </Tooltip>
+                      {room.group.name}
+                    </Badge>
+                  )}
 
-                      {isAdmin && (
-                        <GenerateRoomCode
-                          {...{ room, arrGenerateExp, handleGenerateRoomCode, updateExpiryData }}
-                        />
-                      )}
-                    </div>
-                  </CardContent>
-                  <CardFooter className='p-0'>
-                    <ButtonJoin {...{ isFull, isAdmin, room, handleCloseModal }} />
-                  </CardFooter>
-                </Card>
-              )
-            })}
-          </div>
-          {visibleCards < displayedRooms.length && (
-            <div className='flex items-center justify-center'>
-              <Button variant='primary-outline' onClick={handleLoadMore}>
-                Tampilkan lebih banyak
-              </Button>
-            </div>
-          )}
+                  {canShareLink && (
+                    <Tooltip
+                      open={
+                        copiedRoomName.startsWith('share') && copiedRoomName.includes(room_code)
+                      }
+                    >
+                      <TooltipTrigger asChild>
+                        <Button
+                          className='size-6.5 px-0'
+                          variant='secondary'
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            handleShareLink(room_code)
+                          }}
+                          hidden={!isAdmin}
+                        >
+                          <Icon type='share' />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent side={'top'}>Tautan disalin</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
+              </div>
+
+              <div className='flex items-center justify-between gap-2 text-sm'>
+                <div className='flex items-center gap-2'>
+                  <Icon type='calendar' className='text-neutral-400' />
+                  {`${djs(room.start_date).format('DD MMMM YYYY, HH.mm')} WIB`}
+                </div>
+                <div className='flex items-center gap-2'>
+                  <Icon type='users' className='text-neutral-400' />
+                  <span>
+                    {room.participants ?? 0}/{room.max_participants ?? 0}
+                  </span>
+                </div>
+              </div>
+
+              <CardDescription className='line-clamp-3 wrap-anywhere'>
+                {room.description || 'Tidak ada deskripsi'}
+              </CardDescription>
+            </CardHeader>
+            <CardContent className='p-0'>
+              <div className='flex items-center gap-2' onClick={(e) => e.stopPropagation()}>
+                <Input
+                  value={room_code}
+                  readOnly
+                  aria-disabled
+                  className='pointer-events-none opacity-100 has-[+button+button:active]:bg-neutral-200 has-[+button:active]:bg-neutral-200'
+                  onChange={() => void 0}
+                />
+                <Tooltip
+                  open={copiedRoomName.startsWith('copy') && copiedRoomName.includes(room_code)}
+                >
+                  <TooltipTrigger asChild>
+                    <Button
+                      variant='secondary'
+                      onClick={() => handleCopyLink(room_code)}
+                      size='icon'
+                    >
+                      <Icon type='copy' />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Kode disalin</TooltipContent>
+                </Tooltip>
+
+                {isAdmin && (
+                  <Button
+                    variant='secondary'
+                    onClick={() => handleGenerateRoomCode(room.id)}
+                    size='icon'
+                    disabled={!!participantLength(room_code)}
+                  >
+                    <Icon type='arrow-clockwise' />
+                  </Button>
+                )}
+              </div>
+            </CardContent>
+            <CardFooter className='p-0'>
+              <ButtonJoin
+                isFull={participantLength(room_code) >= room.max_participants}
+                isAdmin={isAdmin}
+                roomCode={room_code}
+                dateStart={room.start_date}
+                handleCloseModal={handleCloseModal}
+                dateEnd={room.end_date}
+              />
+            </CardFooter>
+          </Card>
+        ))}
+      </div>
+      {visibleRooms.length < rooms.length && (
+        <div className='flex items-center justify-center'>
+          <Button variant='primary-outline' onClick={handleLoadMore}>
+            Tampilkan lebih banyak
+          </Button>
         </div>
       )}
     </div>

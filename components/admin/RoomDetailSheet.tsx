@@ -32,10 +32,10 @@ interface RoomDetailSheetProps {
   onClose: () => void
   canDelete: boolean
   onDelete: (id: number) => void
-  onEditSuccess: () => void // Callback to refresh data
+  onEditSuccess?: () => void // Callback to refresh data
   handleEdit: (room: DbRoom | null) => void
-  isModalDetail: boolean
-  setModalDetail: (val: boolean) => void
+  isModalDetail?: boolean
+  setModalDetail?: (val: boolean) => void
 }
 export function RoomDetailSheet({
   room,
@@ -145,7 +145,7 @@ export function RoomDetailSheet({
         }
       }
       toast.dismiss()
-      onEditSuccess()
+      onEditSuccess?.()
     } catch (error) {
       toast.dismiss()
       displayedError(error, 'Gagal menguopload file')
@@ -398,7 +398,7 @@ export function RoomDetailSheet({
                     variant='primary'
                     className='w-full'
                     onClick={() => {
-                      setModalDetail(false)
+                      setModalDetail?.(false)
                       handleEdit(room)
                     }}
                   >
@@ -416,7 +416,7 @@ export function RoomDetailSheet({
               </div>
               <Button
                 className='absolute top-2 right-3 size-9 bg-red-200 p-1 hover:bg-red-300/70'
-                onClick={() => setModalDetail(false)}
+                onClick={() => setModalDetail?.(false)}
               >
                 <Icon type='close' className='text-red-500' />
                 <span className='sr-only'>Close</span>
@@ -453,19 +453,19 @@ export function RoomDetailSheet({
                 },
               },
               filterParticipants: { value: status, onValueChange: (val) => setStatus(val) },
-              onClose: () => setModalDetail(false),
+              onClose: () => setModalDetail?.(false),
               setIsOpenBlock,
               setUserIdentity,
             },
             settings: {
               setIsOpenDelete,
-              onClose: () => setModalDetail(false),
+              onClose: () => setModalDetail?.(false),
             },
           }}
         />
         <div className='mt-2 space-y-6'>
           <Button
-            onClick={() => setModalDetail(false)}
+            onClick={() => setModalDetail?.(false)}
             variant='ghost'
             className='w-full text-red-800'
           >

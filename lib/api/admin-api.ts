@@ -2,7 +2,7 @@
 
 import type { UserParams } from '@/feat/users/dto'
 import type { RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
-import { qstring } from '@/lib/utils'
+import { djs, qstring } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 
 const API_BASE = process.env.APP_API_VIDEO_CONFERENCE
@@ -66,6 +66,7 @@ export interface DbRoom {
   createdById?: number
   password?: string
   is_mute_on_start: boolean
+  participants?: number
 }
 
 export interface MemberRoom {
@@ -82,6 +83,39 @@ export interface MemberRoom {
 export interface RoomParams {
   search?: string
   sort?: SortRoomType
+}
+
+export async function getRoomListConfig(searchParams: object) {
+  const session = await auth()
+  const initialRooms = await fetchUserDbRooms(searchParams)
+  const isAdmin = session?.roles.name === 'admin'
+
+  const hasPermission = (key: string) => {
+    return !!session?.roles?.permissions?.some((perm) => perm.key.endsWith(key))
+  }
+
+  // Only show if room end date is AFTER today's milisecond
+  const rooms = initialRooms.filter((room) => djs(room.end_date).isAfter(djs()))
+
+  return {
+    isAdmin,
+    hasPermission,
+    initialRooms,
+    rooms,
+    isEmpty: !('search' in searchParams) && !rooms.length,
+    isInvalid: 'search' in searchParams && !rooms.length,
+  }
+}
+
+export async function leaveRoom(roomName: string) {
+  return apiRequest<DbRoom[]>(
+    '/api/livekit/leave',
+    {
+      method: 'POST',
+      keepalive: true,
+    },
+    { room_code: roomName }
+  )
 }
 
 export async function fetchDbRooms(searchParams?: RoomParams): Promise<DbRoom[]> {
