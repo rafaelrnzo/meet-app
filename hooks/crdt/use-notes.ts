@@ -22,7 +22,7 @@ export const schema = new Schema({
 
 export const useNotes = ({ onReady }: { onReady?: () => void }) => {
   const room = useRoomContext()
-  const editorRef = useRef<HTMLDivElement>(null)
+  const [editor, setEditor] = useState<HTMLDivElement | null>(null)
   const viewRef = useRef<EditorView | null>(null)
   const onReadyRef = useRef(onReady)
   const providerRef = useRef<LiveKitYjsProvider | null>(null)
@@ -58,7 +58,7 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
   })
 
   useEffect(() => {
-    if (!editorRef.current || !room) return
+    if (!editor || !room) return
 
     const ydoc = new Y.Doc()
     const yXmlFragment = ydoc.getXmlFragment('prosemirror')
@@ -76,7 +76,7 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
       ],
     })
 
-    const view = new EditorView(editorRef.current, { state })
+    const view = new EditorView(editor, { state })
     viewRef.current = view
     onReadyRef.current?.()
 
@@ -84,9 +84,9 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
       view.destroy()
       provider.destroy()
     }
-  }, [room])
+  }, [room, editor])
 
-  return { viewRef, editorRef }
+  return { viewRef, editor, setEditor }
 }
 
 export const useNotesToolbar = (getView: () => EditorView | null, editorEl: HTMLElement | null) => {
@@ -167,6 +167,7 @@ export const useNotesToolbar = (getView: () => EditorView | null, editorEl: HTML
   const handleDownload = async (e: MouseEvent<Element>) => {
     e.preventDefault()
 
+    console.log(editorEl)
     if (!editorEl) return
 
     const style = document.createElement('style')
