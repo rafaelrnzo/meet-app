@@ -1,0 +1,149 @@
+'use client'
+
+import type { FC, ReactNode } from 'react'
+import type {
+  RoomOptions,
+  TrackPublishDefaults,
+  VideoCaptureOptions,
+  VideoCodec,
+} from 'livekit-client'
+import type { LocalUserChoices } from '@livekit/components-react'
+import type { ConnectionDetails } from '@/feat/types'
+import { useEffect, useMemo, useRef } from 'react'
+import { ConnectionState, MediaDeviceFailure, Room, RoomEvent, VideoPresets } from 'livekit-client'
+import { RoomContext } from '@livekit/components-react'
+import { leaveRoom } from '@/lib/api/admin-api'
+import { useParamsState } from '@/hooks'
+import { RoomState, RoomLayout } from '@/feat/Room'
+import { toast } from '@/components/ui/sonner'
+
+export interface RoomConferenceProps {
+  children?: ReactNode
+  userChoices: LocalUserChoices
+  connectionDetails: ConnectionDetails
+  options: {
+    hq: boolean
+    codec: VideoCodec
+    singlePeerConnection: boolean
+  }
+}
+
+export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) => {
+  const propsRef = useRef(props)
+  const roomOptions = useRef((): RoomOptions => {
+    const { current } = propsRef
+    const videoCodec: VideoCodec | undefined = current.options.codec ?? 'vp9'
+    const videoCaptureDefaults: VideoCaptureOptions = {
+      deviceId: current.userChoices.videoDeviceId ?? undefined,
+      resolution: current.options.hq ? VideoPresets.h2160 : VideoPresets.h720,
+    }
+    const publishDefaults: TrackPublishDefaults = {
+      dtx: false,
+      videoSimulcastLayers: current.options.hq
+        ? [VideoPresets.h1080, VideoPresets.h720]
+        : [VideoPresets.h540, VideoPresets.h216],
+      red: true,
+      videoCodec,
+    }
+
+    return {
+      videoCaptureDefaults: videoCaptureDefaults,
+      publishDefaults: publishDefaults,
+      audioCaptureDefaults: {
+        deviceId: current.userChoices.audioDeviceId ?? undefined,
+      },
+      adaptiveStream: true,
+      dynacast: true,
+      singlePeerConnection: current.options.singlePeerConnection,
+    }
+  })
+
+  const { router } = useParamsState<{ name: string }>()
+  const room = useMemo(() => new Room(roomOptions.current()), []) // Maybe changed
+  const roomEvent = useRef({
+    leave: () => router.replace('/'),
+    error: (e: Error) => {
+      const failure = MediaDeviceFailure.getFailure(e)
+
+      if (
+        failure === MediaDeviceFailure.PermissionDenied ||
+        failure === MediaDeviceFailure.NotFound
+      ) {
+        toast.device(
+          'Error: Tidak dapat menemukan mikrofon dan kamera, atau pengguna menolak atas izin akses mikrofon dan kamera. Silahkan muat ulang halaman ini, atau tutup dan kembali ke halaman ini untuk mengaktifkan mikrofon dan kamera.',
+          {
+            position: 'top-center',
+          }
+        )
+      } else {
+        toast.device('Error: Terjadi kesalahan media yang tidak diketahui.', {
+          position: 'top-center',
+          description: e instanceof Error ? e.message : String(e),
+        })
+      }
+    },
+  })
+
+  useEffect(() => {
+    const { serverUrl, participantToken } = propsRef.current.connectionDetails
+    const { leave, error } = roomEvent.current
+
+    function handleLeave() {
+      leaveRoom(room.name)
+        .finally(() => room.disconnect())
+        .catch((e) => console.log(e))
+    }
+
+    room.on(RoomEvent.Disconnected, leave)
+    room.on(RoomEvent.Disconnected, handleLeave)
+    room.on(RoomEvent.MediaDevicesError, error)
+
+    let mounted = true
+
+    async function connect() {
+      try {
+        await room.connect(serverUrl, participantToken, {
+          autoSubscribe: true,
+        })
+
+        if (!mounted) return
+
+        if (propsRef.current.userChoices.videoEnabled) {
+          await room.localParticipant.setCameraEnabled(true)
+        }
+
+        if (propsRef.current.userChoices.audioEnabled) {
+          await room.localParticipant.setMicrophoneEnabled(true)
+        }
+      } catch (e) {
+        console.log('Failed to connect to the room:', e)
+      }
+    }
+
+    connect()
+
+    return () => {
+      mounted = false
+
+      room.off(RoomEvent.Disconnected, leave)
+      room.off(RoomEvent.Disconnected, handleLeave)
+      room.off(RoomEvent.MediaDevicesError, error)
+
+      if (
+        room.state === ConnectionState.Connected ||
+        room.state === ConnectionState.Connecting ||
+        room.state === ConnectionState.Reconnecting
+      ) {
+        handleLeave()
+      }
+    }
+  }, [room])
+
+  return (
+    <RoomContext.Provider value={room}>
+      <RoomState>
+        <RoomLayout>{children}</RoomLayout>
+      </RoomState>
+    </RoomContext.Provider>
+  )
+}

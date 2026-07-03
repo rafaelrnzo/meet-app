@@ -1,12 +1,11 @@
-import * as React from 'react'
-import { Slot } from '@radix-ui/react-slot'
-import { cva } from 'class-variance-authority'
 import type { VariantProps } from 'class-variance-authority'
-
+import * as React from 'react'
+import { Slot } from 'radix-ui'
+import { cva } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
 const buttonVariants = cva(
-  "inline-flex items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive",
+  "inline-flex items-center cursor-pointer justify-center gap-2 whitespace-nowrap rounded-md text-sm font-semibold transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive px-4 py-2",
   {
     variants: {
       variant: {
@@ -21,7 +20,7 @@ const buttonVariants = cva(
         'destructive-light':
           'bg-red-50 text-error hover:bg-red-200 active:bg-error active:text-neutral-50',
         secondary:
-          'bg-neutral-50 border border-neutral-400 text-neutral-400 hover:border-red-800 hover:text-red-800 active:bg-red-800 active:text-neutral-50',
+          'bg-neutral-50 border border-neutral-400 text-neutral-400 hover:border-red-800 hover:text-red-800 active:bg-red-800 active:text-neutral-50 disabled:border-neutral-400 disabled:bg-neutral-400 disabled:text-neutral-50 disabled:opacity-100',
         'secondary-ghost':
           'text-neutral-400 hover:bg-red-50 hover:text-red-800 active:bg-red-800 active:text-neutral-50',
         'secondary-light':
@@ -32,12 +31,12 @@ const buttonVariants = cva(
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
-        default: 'h-9 px-4 py-[7.5px]',
-        sm: 'h-8 rounded-md gap-1.5 px-3',
-        lg: 'h-10 rounded-md px-6 py-[9.5px]',
-        icon: 'size-9',
+        default: 'h-11',
+        sm: 'h-9',
+        lg: 'h-10 px-6 py-[9.5px]',
+        icon: 'size-11',
         'icon-xs': 'size-6',
-        'icon-sm': 'size-8',
+        'icon-sm': 'size-9',
         'icon-lg': 'size-10',
       },
     },
@@ -58,7 +57,7 @@ function Button({
   VariantProps<typeof buttonVariants> & {
     asChild?: boolean
   }) {
-  const Comp = asChild ? Slot : 'button'
+  const Comp = asChild ? (Slot as never) : 'button'
 
   return (
     <Comp

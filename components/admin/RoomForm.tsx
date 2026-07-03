@@ -1,12 +1,26 @@
 'use client'
 
-import React, { useEffect, useRef, useState } from 'react'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
+import type { ReactNode } from 'react'
+import type { AnyFormApi } from '@tanstack/react-form'
 import type { DbRoom, Group, ParamsUserAssignment, User } from '@/lib/api/admin-api'
+import type { RoomSchemaValue } from '@/feat/rooms/dto'
+import { useCallback, useEffect, useState } from 'react'
+import { useForm, useStore } from '@tanstack/react-form'
+import { cn, djs, omit } from '@/lib/utils'
 import { createDbRoom, fetchUsersAssignment, updateDbRoom } from '@/lib/api/admin-api'
+import { roomSchema } from '@/feat/rooms/schema'
+import { getRoomDefaultValue, getRoomPayload } from '@/feat/rooms/dto'
+import { defaultErrorMessage } from '@/config'
 import { TableViewSearch } from '@/compounds/table-view/search'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from '@/components/ui/sonner'
+import { Separator } from '@/components/ui/separator'
+import { default as NoData } from '@/components/ui/no-data'
+import { Modal } from '@/components/ui/modal'
+import { Label } from '@/components/ui/label'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import { Input } from '@/components/ui/input'
+import { Icon } from '@/components/ui/icon'
 import {
   Field,
   FieldContent,
@@ -14,34 +28,20 @@ import {
   FieldError,
   FieldLabel,
   FieldTitle,
-} from '../ui/field'
-import { Textarea } from '../ui/textarea'
-import { cn, djs, omit } from '@/lib/utils'
-import { CalendarWithTime } from '../ui/calendar-with-time'
-import {
-  Combobox,
-  ComboboxContent,
-  ComboboxEmpty,
-  ComboboxInput,
-  ComboboxItem,
-  ComboboxList,
-} from '@/components/ui/combobox'
-import { Card, CardContent } from '../ui/card'
-import { Separator } from '../ui/separator'
-import { getRoomDefaultValue, getRoomPayload } from '@/feat/rooms/dto'
-import type { RoomSchemaValue, SelectOptions } from '@/feat/rooms/dto'
-import { roomSchema } from '@/feat/rooms/schema'
-import { useForm } from '@tanstack/react-form'
-import { Modal } from '../ui/modal'
-import { Eye, EyeClosed, Plus } from 'lucide-react'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '../ui/input-group'
+} from '@/components/ui/field'
+import { Combobox } from '@/components/ui/combobox'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent } from '@/components/ui/card'
+import { CalendarWithTime } from '@/components/ui/calendar-with-time'
 
 interface RoomFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess: () => void
+  onSuccess?: () => void
   initialData?: DbRoom | null
   groups: Group[]
+  activeParticipant?: number
+  children?: ReactNode
 }
 
 interface FormFieldProps {
@@ -75,17 +75,31 @@ const FormField = (props: FormFieldProps) => {
   )
 }
 
-export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }: RoomFormProps) {
+export function RoomForm({
+  open,
+  onOpenChange,
+  onSuccess,
+  initialData,
+  groups,
+  children,
+  activeParticipant = 0,
+}: RoomFormProps) {
+  const [users, setUsers] = useState<User[]>([])
+  const [showPassword, setShowPassword] = useState(false)
+  const [queryParams, setQueryParams] = useState<ParamsUserAssignment>({})
   const defaultValues: RoomSchemaValue = initialData
     ? getRoomDefaultValue(initialData)
-    : roomSchema.getDefault()
+    : roomSchema().getDefault()
 
   const form = useForm({
     defaultValues,
     validators: {
-      onChangeAsync: roomSchema,
+      onChangeAsync: roomSchema({
+        activeParticipant,
+        isEdit: !!initialData,
+      }),
     },
-    onSubmit: async ({ value }: { value: RoomSchemaValue }) => {
+    onSubmit: async ({ value, formApi }: { value: RoomSchemaValue; formApi: AnyFormApi }) => {
       const payload = getRoomPayload(value)
       try {
         if (initialData) {
@@ -93,19 +107,38 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
         } else {
           await createDbRoom(payload)
         }
-        onSuccess()
-      } catch (error) {
-        console.error('Failed to save room:', error)
-        alert('Failed to save room')
-      } finally {
+        toast.success(`Ruang rapat berhasil ${initialData ? 'diperbarui' : 'dibuat'}`, {
+          description: `Ruang rapat ${payload.name} berhasil ${initialData ? 'diperbarui' : 'dibuat'}`,
+        })
         onOpenChange(false)
+        onSuccess?.()
+        formApi.reset()
+      } catch (error) {
+        let message =
+          error instanceof Error
+            ? error.message
+            : typeof error === 'string'
+              ? error
+              : defaultErrorMessage
+
+        if (message.toLowerCase() === 'room name is already used by an active room') {
+          message = 'Nama ruangan sudah digunakan. Gunakan nama lain.'
+        }
+
+        toast.error(initialData ? 'Gagal memperbarui ruang rapat' : 'Gagal membuat ruang rapat', {
+          description: message,
+        })
       }
     },
   })
 
-  const [users, setUsers] = useState<User[]>([])
-  const params = useRef<ParamsUserAssignment>({})
-  const [showPassword, setShowPassword] = useState(false)
+  const isSubmittingForm = useStore(form.store, (state) => state.isSubmitting)
+  const maxParticipants = useStore(form.store, (state) => state.values.maxParticipants)
+  const remainingParticipant = useStore(form.store, (state) => {
+    const { assignedTo, maxParticipants, totalGroupMember } = state.values
+    const remainingParticipant = (maxParticipants ?? 0) - (assignedTo.length + totalGroupMember)
+    return remainingParticipant > 0 ? remainingParticipant : 0
+  })
 
   const fetchUsers = async (params?: ParamsUserAssignment) => {
     try {
@@ -117,17 +150,29 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
   }
 
   useEffect(() => {
-    fetchUsers()
-  }, [])
+    fetchUsers(queryParams)
+  }, [queryParams])
+
+  useEffect(() => {
+    setQueryParams(initialData ? { exclude_group_id: initialData.group_id } : {})
+  }, [initialData])
+
+  const handleGetTotalGroupMember = useCallback(
+    (id: number) => groups.find((item) => item.id === id)?.members?.length ?? 0,
+    [groups]
+  )
 
   return (
     <Modal
+      trigger={{ asChild: true, children }}
       title={{ children: initialData ? 'Perbarui Ruangan' : 'Buat Ruangan Baru' }}
       root={{
         open,
         onOpenChange: (val) => {
           onOpenChange(val)
           form.reset()
+          setShowPassword(false)
+          setQueryParams({})
         },
         modal: false,
       }}
@@ -137,17 +182,20 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
       }}
       content={{
         className: 'max-w-[700px]!',
+        onInteractOutside: (event) => event.preventDefault(),
+        onCloseAutoFocus: (event) => event.preventDefault(),
       }}
       submit={{
         children: initialData ? (
           'Perbarui Ruangan'
         ) : (
           <>
-            <Plus />
+            <Icon type='plus' />
             Tambah Ruangan
           </>
         ),
         onClick: async () => await form.handleSubmit(),
+        disabled: isSubmittingForm,
       }}
     >
       <div className='space-y-4'>
@@ -168,6 +216,8 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                   autoFocus
                   placeholder='Contoh: Ruangan pimpinan'
                   aria-invalid={isInvalid}
+                  autoComplete='off'
+                  aria-autocomplete='none'
                 />
               </FormField>
             )
@@ -199,7 +249,7 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
           }}
         </form.Field>
 
-        <Field orientation='horizontal' className='items-start max-[519px]:flex-col'>
+        <Field orientation='horizontal' className='grid max-md:gap-4 md:grid-cols-2'>
           <form.Field name='startDate'>
             {(field) => {
               const { name, state, handleChange } = field
@@ -213,23 +263,22 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                     id={name}
                     {...{ name }}
                     selected={{
-                      startTime: value ?? undefined,
-                      endTime: field.form.state.values.endDate ?? undefined,
+                      startDate: value ?? undefined,
+                      endDate: field.form.state.values.endDate ?? undefined,
                     }}
-                    onSelect={({ startTime, endTime }) => {
-                      handleChange(startTime ? startTime : null)
-                      field.form.setFieldValue('endDate', endTime ?? null)
+                    onSelect={({ startDate, endDate }) => {
+                      handleChange(startDate ?? null)
+                      field.form.setFieldValue('endDate', endDate ?? null)
                     }}
                     aria-invalid={isInvalid}
                     calendar={{
                       disabled: {
                         before: new Date(),
                       },
+                      startMonth: new Date(),
+                      endMonth: djs().add(10, 'years').toDate(),
                     }}
-                    disabled={{
-                      startTime:
-                        !!initialData?.start_date && djs(initialData?.start_date).isBefore(),
-                    }}
+                    disabled={!!activeParticipant}
                   />
                 </FormField>
               )
@@ -253,14 +302,18 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                       onChange={(event) => handleChange(event.target.value)}
                       placeholder='Contoh: @ruanganpimpinan1'
                       aria-invalid={isInvalid}
-                      className='appearance-none'
+                      autoComplete='new-password'
+                      aria-autocomplete='none'
                     />
                     <InputGroupAddon
                       align='inline-end'
                       onClick={() => setShowPassword((prev) => !prev)}
                       className='cursor-pointer'
                     >
-                      {showPassword ? <EyeClosed /> : <Eye />}
+                      <Icon
+                        type={showPassword ? 'eye-off' : 'eye'}
+                        className='active:text-neutral-950'
+                      />
                     </InputGroupAddon>
                   </InputGroup>
                 </FormField>
@@ -269,48 +322,54 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
           </form.Field>
         </Field>
 
-        <Field orientation='horizontal' className='items-start max-[519px]:flex-col'>
-          <form.Field name='groupId'>
+        <Field orientation='horizontal' className='grid max-md:gap-4 md:grid-cols-2'>
+          <form.Field
+            name='groupId'
+            listeners={{
+              onChange: ({ value, fieldApi }) => {
+                const totalGroupMember = handleGetTotalGroupMember(+value)
+                fieldApi.form.setFieldValue('totalGroupMember', totalGroupMember)
+                if (value) {
+                  fieldApi.form.setFieldValue('assignedTo', [])
+                }
+              },
+              onMount: ({ fieldApi, value }) => {
+                const totalGroupMember = handleGetTotalGroupMember(+value)
+                fieldApi.form.setFieldValue('totalGroupMember', totalGroupMember)
+              },
+            }}
+            validators={{ onChangeListenTo: ['maxParticipants', 'assignedTo'] }}
+          >
             {(field) => {
               const { name, state, handleChange } = field
-              const { value: defaultValue, meta } = state
+              const { value, meta } = state
               const { errors, isTouched } = meta
               const isInvalid = isTouched && errors.length > 0
-              const options = groups.map((item) => ({ value: `${item.id}`, label: item.name }))
-              const value = options.find((item) => item.value === defaultValue) ?? {
-                value: '',
-                label: '',
-              }
+              const options = groups
+                .filter((item) => item.members && item.members?.length > 0)
+                .map((item) => ({
+                  value: `${item.id}`,
+                  label: item.name,
+                  count: `${item.members?.length ?? 0}`,
+                }))
 
               return (
                 <FormField label='Kelompok' {...{ name, isInvalid, errors }}>
                   <Combobox
                     items={options}
-                    itemToStringValue={(group: SelectOptions) => group.label}
-                    {...{ value }}
-                    onValueChange={(val) => {
-                      handleChange(val?.value ?? '')
-                      const updateParams = {
-                        ...omit(params.current, ['exclude_group_id']),
-                        ...(val ? { exclude_group_id: +val.value } : {}),
-                      }
-                      params.current = updateParams
-                      fetchUsers(updateParams)
-                      field.form.setFieldValue('assignedTo', [])
+                    commandEmpty={{ children: 'Tidak ada data.' }}
+                    commandInput={{ placeholder: 'Cari kelompok' }}
+                    popoverTrigger={{ children: 'Pilih kelompok ...' }}
+                    selected={value}
+                    onSelect={(value) => {
+                      handleChange(value ?? '')
+                      setQueryParams((prev) =>
+                        value
+                          ? { ...prev, exclude_group_id: +value }
+                          : omit(prev, ['exclude_group_id'])
+                      )
                     }}
-                  >
-                    <ComboboxInput placeholder='Pilih kelompok ...' showClear={!!value.value} />
-                    <ComboboxContent>
-                      <ComboboxEmpty>Tidak ada data.</ComboboxEmpty>
-                      <ComboboxList>
-                        {(group) => (
-                          <ComboboxItem key={group.value} value={group}>
-                            {group.label}
-                          </ComboboxItem>
-                        )}
-                      </ComboboxList>
-                    </ComboboxContent>
-                  </Combobox>
+                  />
                 </FormField>
               )
             }}
@@ -329,8 +388,18 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                     id={name}
                     type='number'
                     {...{ name }}
-                    value={`${value}`}
-                    onChange={(event) => handleChange(+event.target.value)}
+                    value={`${value ?? ''}`}
+                    onChange={(event) => {
+                      handleChange(+event.target.value)
+                      form.setFieldMeta('groupId', (meta) => ({
+                        ...meta,
+                        isTouched: true,
+                      }))
+                      form.setFieldMeta('assignedTo', (meta) => ({
+                        ...meta,
+                        isTouched: true,
+                      }))
+                    }}
                     placeholder='Contoh: 20'
                     aria-invalid={isInvalid}
                   />
@@ -340,72 +409,94 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
           </form.Field>
         </Field>
 
-        <form.Field name='assignedTo'>
+        <form.Field
+          name='assignedTo'
+          validators={{ onChangeListenTo: ['maxParticipants', 'groupId'] }}
+        >
           {(field) => {
             const { name, state, handleChange } = field
             const { value, meta } = state
             const { errors, isTouched } = meta
             const isInvalid = isTouched && errors.length > 0
-            const assignTo = field.form.state.values.assignedTo
+            const isCheckedAll = users.every((user) => value.includes(`${user.id}`))
+            const uncheckedUser = users.filter((user) => !value.includes(`${user.id}`)).length
 
             return (
               <FormField
                 label='Pilih anggota untuk dimasukkan ke ruang rapat'
                 {...{ name, isInvalid, errors }}
+                className='gap-4'
               >
                 <TableViewSearch
                   placeholder='Cari anggota ...'
-                  onSearch={({ value: search }) => {
-                    const updateParams = { ...params.current, search }
-                    params.current = updateParams
-                    fetchUsers(updateParams)
-                  }}
+                  onSearch={(search) => setQueryParams((prev) => ({ ...prev, search }))}
                 />
-                <Card className='rounded-md'>
-                  <CardContent className='px-2 pt-1 pb-3.5'>
-                    <Field orientation='horizontal'>
-                      <Checkbox
-                        id='all'
-                        name='all'
-                        onCheckedChange={(val) => {
-                          if (val) {
-                            handleChange(users.map((user) => `${user.id}`))
-                            return
-                          }
-                          handleChange([])
-                        }}
-                        disabled={!users.length}
-                        checked={
-                          users.length === assignTo.length &&
-                          users.every((user) => assignTo.includes(`${user.id}`))
-                        }
-                      />
-                      <Label htmlFor='all' className='w-full'>
-                        All
-                      </Label>
-                    </Field>
-                    <Separator className='my-2' />
-                    <div className='grid max-h-[113px] grid-cols-2 gap-2 overflow-y-auto'>
-                      {users.map((user) => (
-                        <Field key={user.id} orientation='horizontal'>
+                <Card className='rounded-md border-neutral-400'>
+                  <CardContent className='flex min-h-[113px] flex-col px-2 pt-1 pb-3.5'>
+                    {!users.length ? (
+                      <NoData title='Tidak Ada Anggota' className='mt-2.5' />
+                    ) : (
+                      <>
+                        <Field orientation='horizontal'>
                           <Checkbox
-                            id={`${user.id}`}
-                            name={name}
-                            checked={value.includes(`${user.id}`)}
-                            onCheckedChange={() => {
-                              if (!value.includes(`${user.id}`)) {
-                                handleChange((prev) => [...prev, `${user.id}`])
+                            id='all'
+                            name='all'
+                            onCheckedChange={(val) => {
+                              const allUser = users.map((user) => `${user.id}`)
+                              if (val) {
+                                handleChange((prev) => [...new Set([...prev, ...allUser])])
                                 return
                               }
-                              handleChange((prev) => prev.filter((item) => item !== `${user.id}`))
+                              handleChange((prev) =>
+                                prev.filter((userId) => !allUser.includes(userId))
+                              )
                             }}
+                            disabled={
+                              !users.length ||
+                              (!!maxParticipants &&
+                                uncheckedUser > remainingParticipant &&
+                                !isCheckedAll)
+                            }
+                            checked={isCheckedAll}
                           />
-                          <Label htmlFor={`${user.id}`} className='w-full'>
-                            {user.username}
+                          <Label htmlFor='all' className='w-full font-normal opacity-100!'>
+                            All
                           </Label>
                         </Field>
-                      ))}
-                    </div>
+                        <Separator className='my-2 bg-neutral-400' />
+                        <div className='grid max-h-[113px] grid-cols-2 gap-2 overflow-y-auto'>
+                          {users.map((user) => (
+                            <Field key={user.id} orientation='horizontal'>
+                              <Checkbox
+                                id={`${user.id}`}
+                                name={name}
+                                checked={value.includes(`${user.id}`)}
+                                onCheckedChange={() => {
+                                  if (!value.includes(`${user.id}`)) {
+                                    handleChange((prev) => [...prev, `${user.id}`])
+                                    return
+                                  }
+                                  handleChange((prev) =>
+                                    prev.filter((item) => item !== `${user.id}`)
+                                  )
+                                }}
+                                disabled={
+                                  !!maxParticipants &&
+                                  !remainingParticipant &&
+                                  !value.includes(`${user.id}`)
+                                }
+                              />
+                              <Label
+                                htmlFor={`${user.id}`}
+                                className='w-full font-normal wrap-anywhere opacity-100!'
+                              >
+                                {user.username}
+                              </Label>
+                            </Field>
+                          ))}
+                        </div>
+                      </>
+                    )}
                   </CardContent>
                 </Card>
               </FormField>
@@ -426,8 +517,8 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                 {...{ name, isInvalid, errors }}
                 className='sm:w-[calc(50%-4px)]'
               >
-                <FieldLabel className='border-neutral-400 has-data-[state=checked]:border-neutral-400 has-data-[state=checked]:bg-transparent'>
-                  <Field orientation='horizontal' className='items-center! px-3! py-2!'>
+                <FieldLabel className='h-11 border-neutral-400 hover:bg-neutral-50 has-data-[state=checked]:border-neutral-400 has-data-[state=checked]:bg-transparent'>
+                  <Field orientation='horizontal' className='h-full items-center! py-0!'>
                     <Checkbox
                       id={name}
                       {...{ name }}
@@ -437,7 +528,9 @@ export function RoomForm({ open, onOpenChange, onSuccess, initialData, groups }:
                       }
                     />
                     <FieldContent>
-                      <FieldTitle>Bisukan mikrofon semua anggota</FieldTitle>
+                      <FieldTitle className='font-normal'>
+                        Bisukan mikrofon semua anggota
+                      </FieldTitle>
                     </FieldContent>
                   </Field>
                 </FieldLabel>

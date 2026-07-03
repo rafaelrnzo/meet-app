@@ -1,6 +1,7 @@
+'use no memo'
 import type { Table } from '@tanstack/react-table'
 import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react'
-
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectContent,
@@ -9,14 +10,13 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 
 interface TableViewPaginationProps<TData> {
   table: Table<TData>
   pageSizeOptions: number[]
 }
 
-export const ARR_PAGE_SIZE = [10, 20, 25, 30, 40, 50]
+export const ARR_PAGE_SIZE = [10, 25, 50, 75, 100]
 
 function SelectPageSize<TData>({
   table,
@@ -32,7 +32,13 @@ function SelectPageSize<TData>({
         table.setPageSize(Number(value))
       }}
     >
-      <SelectTrigger className={cn('h-9 w-20', className)}>
+      <SelectTrigger
+        className={cn(
+          'h-11 w-18 cursor-pointer',
+          'md:border md:border-red-800 md:bg-red-50 md:font-semibold md:text-red-800 md:hover:bg-red-200 md:data-[state=open]:bg-red-800 md:data-[state=open]:text-white [&>svg]:opacity-100',
+          className
+        )}
+      >
         <SelectValue placeholder={table.getState().pagination.pageSize} />
       </SelectTrigger>
       <SelectContent side='top'>
@@ -70,7 +76,7 @@ function TableViewPagination<TData>({ table, pageSizeOptions }: TableViewPaginat
         <div className='flex items-center space-x-2 max-md:w-full'>
           <Button
             variant='primary-outline'
-            size='icon-sm'
+            className='size-11'
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
           >
@@ -79,7 +85,7 @@ function TableViewPagination<TData>({ table, pageSizeOptions }: TableViewPaginat
           </Button>
           <Button
             variant='primary-outline'
-            size='icon-sm'
+            className='size-11'
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
@@ -89,7 +95,7 @@ function TableViewPagination<TData>({ table, pageSizeOptions }: TableViewPaginat
           <TotalPageInfo {...{ table }} className='flex-1 md:hidden' />
           <Button
             variant='primary-outline'
-            size='icon-sm'
+            className='size-11'
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
@@ -98,7 +104,7 @@ function TableViewPagination<TData>({ table, pageSizeOptions }: TableViewPaginat
           </Button>
           <Button
             variant='primary-outline'
-            size='icon-sm'
+            className='size-11'
             onClick={() => table.setPageIndex(table.getPageCount() - 1)}
             disabled={!table.getCanNextPage()}
           >

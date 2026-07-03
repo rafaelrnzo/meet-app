@@ -1,24 +1,30 @@
-import type { buttonVariants } from '@/components/ui/button'
-import { Button } from '@/components/ui/button'
-import type { ModalDialogProps } from '@/components/ui/modal'
-import { Modal, ModalDelete } from '@/components/ui/modal'
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
-import type { ActiveSwitchProps } from '@/components/ui/switch'
-import { ActiveSwitch } from '@/components/ui/switch'
 import type { VariantProps } from 'class-variance-authority'
-import { Ellipsis, Trash2 } from 'lucide-react'
+import type { ActiveSwitchProps } from '@/components/ui/switch'
+import type { ModalDialogProps } from '@/components/ui/modal'
+import type { buttonVariants } from '@/components/ui/button'
 import { useState } from 'react'
+import { Ellipsis } from 'lucide-react'
+import { omit } from '@/lib/utils'
+import { ActiveSwitch } from '@/components/ui/switch'
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
+import { Modal, ModalDelete } from '@/components/ui/modal'
+import { Icon } from '@/components/ui/icon'
+import { Button } from '@/components/ui/button'
 
 interface ButtonChildrenProps {
-  text: string
+  text?: string
   variant: VariantProps<typeof buttonVariants>['variant']
   icon?: React.ReactNode
   onClick?: () => void
+  disabled?: boolean
+  children?: React.ReactNode
 }
 
-interface ActionButtonProps {
+export interface ActionButtonProps {
   buttonComp?: ButtonChildrenProps[]
-  deleteComp?: ModalDialogProps
+  deleteComp?: Omit<ModalDialogProps, 'trigger'> & {
+    trigger?: ModalDialogProps['trigger'] & { text?: string }
+  }
   switchComp?: Pick<ActiveSwitchProps, 'checked'> & {
     text?: {
       active: string
@@ -34,26 +40,30 @@ const CategoryActionButton = ({ buttonComp, deleteComp, switchComp }: ActionButt
 
   return (
     <div className='md:flex md:gap-2'>
-      <div>
-        {buttonComp?.map((item, index) => {
-          return (
-            <Button
-              key={index}
-              variant={item.variant}
-              size='icon-xs'
-              className='my-1 h-11 w-full justify-start px-2 py-1 md:my-0 md:size-6 md:justify-center md:p-0'
-              onClick={item.onClick}
-            >
-              {item.icon} <span className='block md:hidden'>{item.text}</span>
-            </Button>
-          )
-        })}
-      </div>
-      <div>
-        {deleteComp && (
-          <ModalDelete
-            {...deleteComp}
-            trigger={{
+      {buttonComp?.map((item, index) => {
+        return (
+          <Button
+            key={index}
+            variant={item.variant}
+            size='icon-xs'
+            className='my-1 h-11 w-full justify-start px-2 py-1 md:my-0 md:size-6 md:justify-center md:p-0'
+            onClick={item.onClick}
+            disabled={item.disabled}
+          >
+            {item.children ?? (
+              <>
+                {item.icon} <span className='block md:hidden'>{item.text}</span>
+              </>
+            )}
+          </Button>
+        )
+      })}
+      {deleteComp && (
+        <ModalDelete
+          {...omit(deleteComp, ['description'])}
+          trigger={{
+            ...deleteComp?.trigger,
+            ...((!deleteComp.trigger?.asChild || !deleteComp.trigger?.children) && {
               asChild: true,
               children: (
                 <Button
@@ -62,59 +72,60 @@ const CategoryActionButton = ({ buttonComp, deleteComp, switchComp }: ActionButt
                   size='icon-xs'
                   className='my-1 h-11 w-full justify-start px-2 py-1 md:my-0 md:size-6 md:justify-center md:p-0'
                 >
-                  <Trash2 size={16} />
-                  <span className='block md:hidden'>{deleteComp.title?.children}</span>
+                  <Icon type='trash' />
+                  <span className='md:hidden'>{deleteComp.trigger?.text}</span>
                 </Button>
               ),
-            }}
-            submit={{
-              ...deleteComp.submit,
-              children: (
-                <>
-                  <Trash2 />
-                  {deleteComp.submit?.children}
-                </>
-              ),
-            }}
-            cancel={{
-              ...deleteComp.cancel,
-              children: 'Batal',
-            }}
-          >
-            {deleteComp.description?.children}
-          </ModalDelete>
-        )}
-      </div>
-      <div>
-        {switchComp && (
-          <Modal
-            {...switchComp.modal}
-            title={{
-              className: 'text-red-500!',
-              ...switchComp.modal?.title,
-            }}
-            root={{ open, onOpenChange }}
-            cancel={{
-              className: 'w-full!',
-              ...switchComp.modal?.cancel,
-              ...(!switchComp.modal?.cancel?.onClick && {
-                onClick: () => switchComp.setChecked(true),
-              }),
-            }}
-            submit={{
-              className: 'w-full! bg-red-200 text-red-500 hover:bg-red-300/70 cursor-pointer',
-              ...switchComp.modal?.submit,
-            }}
-            close={{
+            }),
+          }}
+          submit={{
+            ...deleteComp.submit,
+            children: (
+              <>
+                <Icon type='trash' />
+                {deleteComp.submit?.children}
+              </>
+            ),
+          }}
+          cancel={{
+            ...deleteComp.cancel,
+            children: 'Batal',
+          }}
+        >
+          {deleteComp.description?.children}
+        </ModalDelete>
+      )}
+      {switchComp && (
+        <Modal
+          {...switchComp.modal}
+          title={{
+            className: 'text-red-500!',
+            ...switchComp.modal?.title,
+          }}
+          root={{ open, onOpenChange }}
+          cancel={{
+            className: 'w-full!',
+            ...switchComp.modal?.cancel,
+            ...(!switchComp.modal?.cancel?.onClick && {
               onClick: () => switchComp.setChecked(true),
-            }}
-            footer={{
-              className: 'w-full items-center sm:flex-col sm:flex-col-reverse',
-            }}
-            content={{
-              className: 'w-80',
-            }}
-            trigger={{
+            }),
+          }}
+          submit={{
+            className: 'w-full! bg-red-200 text-red-500 hover:bg-red-300/70 cursor-pointer',
+            ...switchComp.modal?.submit,
+          }}
+          close={{
+            onClick: () => switchComp.setChecked(true),
+          }}
+          footer={{
+            className: 'w-full items-center sm:flex-col sm:flex-col-reverse',
+          }}
+          content={{
+            className: 'w-80',
+          }}
+          trigger={{
+            ...switchComp.modal?.trigger,
+            ...((!switchComp.modal?.trigger?.asChild || !switchComp.modal?.trigger?.children) && {
               asChild: true,
               children: (
                 <div
@@ -141,12 +152,12 @@ const CategoryActionButton = ({ buttonComp, deleteComp, switchComp }: ActionButt
                   />
                 </div>
               ),
-            }}
-          >
-            {switchComp.modal?.description?.children}
-          </Modal>
-        )}
-      </div>
+            }),
+          }}
+        >
+          {switchComp.modal?.description?.children}
+        </Modal>
+      )}
     </div>
   )
 }

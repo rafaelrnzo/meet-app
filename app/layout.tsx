@@ -1,20 +1,28 @@
-import '@/lib/polyfill'
-import '@livekit/components-styles'
+import { Inter } from 'next/font/google'
+import { SessionProvider } from 'next-auth/react'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
-import { Toaster } from 'sonner'
 
 export const metadata = {
   title: 'LiveKit Meeting',
   description: 'Minimal video conference UI',
 }
 
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+  variable: '--font-inter',
+})
+
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang='en' suppressHydrationWarning>
+    <html lang='en' className={`${inter.variable} antialiased`}>
       <body style={{ margin: 0 }}>
-        <TooltipProvider>{children}</TooltipProvider>
-        <Toaster position='top-center' richColors />
+        <SessionProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </SessionProvider>
+        <Toaster position='bottom-right' richColors />
       </body>
     </html>
   )

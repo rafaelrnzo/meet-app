@@ -97,7 +97,7 @@ export default [
       ...tsPlugin.configs['stylistic-type-checked'].rules,
 
       // Custom
-      'custom/prefer-default-as-named': 'off',
+      'custom/prefer-default-as-named': 'warn',
       'custom/prefer-named-export': 'off',
 
       // Next
@@ -107,12 +107,28 @@ export default [
       'import/no-unresolved': 'error',
       'import/no-duplicates': 'error',
       'import/consistent-type-specifier-style': ['warn', 'prefer-top-level'],
-      'import/order': 'off',
+      'import/order': [
+        'warn',
+        {
+          groups: ['type', ['builtin', 'external', 'internal', 'sibling']],
+          pathGroups: [
+            { pattern: 'react', group: 'external', position: 'before' },
+            { pattern: 'react-dom', group: 'external', position: 'before' },
+            { pattern: 'next/**', group: 'external', position: 'before' },
+            { pattern: '@radix-ui/**', group: 'external', position: 'before' },
+            { pattern: '@/**', group: 'internal', position: 'after' },
+          ],
+          alphabetize: { order: 'desc', caseInsensitive: true },
+          pathGroupsExcludedImportTypes: ['type'],
+          'newlines-between': 'never',
+        },
+      ],
 
       // TS Rules
       '@typescript-eslint/no-unsafe-enum-comparison': 'off',
       '@typescript-eslint/no-floating-promises': 'off',
       '@typescript-eslint/no-misused-promises': 'off',
+      '@typescript-eslint/require-await': 'off',
       '@typescript-eslint/consistent-type-imports': [
         'warn',
         { prefer: 'type-imports', fixStyle: 'separate-type-imports' },
@@ -139,7 +155,7 @@ export default [
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
 
-      'no-empty': 'warn',
+      'no-empty': 'off',
     },
   },
 ]

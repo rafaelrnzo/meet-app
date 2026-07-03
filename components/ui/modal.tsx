@@ -1,11 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import type { DialogCloseProps } from '@radix-ui/react-dialog'
-import { DialogPortal } from '@radix-ui/react-dialog'
-import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Spinner } from '@/components/ui/spinner'
+import { Separator } from '@/components/ui/separator'
+import { Icon } from '@/components/ui/icon'
 import {
   Dialog,
   DialogContent,
@@ -15,9 +14,9 @@ import {
   DialogTrigger,
   DialogClose,
   DialogFooter,
+  DialogPortal,
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
-import { Separator } from './separator'
 
 interface ModalDialogProps {
   root?: React.ComponentProps<typeof Dialog>
@@ -34,7 +33,7 @@ interface ModalDialogProps {
 }
 
 interface ModalProps extends ModalDialogProps {
-  close?: DialogCloseProps
+  close?: React.ComponentProps<typeof DialogClose>
 }
 
 function Modal({
@@ -59,11 +58,14 @@ function Modal({
     cbName: 'onEscapeKeyDown' | 'onInteractOutside' | 'onPointerDownOutside'
   ) => {
     return <T extends Event>(event: T) => {
-      if (!isPrevented() || event.defaultPrevented) {
+      if (isPrevented()) {
+        return event.preventDefault()
+      }
+
+      if (event.defaultPrevented) {
         return
       }
 
-      event.preventDefault()
       content?.[cbName]?.(event as never)
     }
   }
@@ -108,32 +110,36 @@ function Modal({
               scroller?.className
             )}
           >
-            <DialogHeader {...header} className={cn('p-5', header?.className)}>
+            <DialogHeader {...header} className={cn('space-y-0 p-5', header?.className)}>
               <div className='flex justify-between'>
                 <DialogTitle
                   {...title}
                   className={cn(
-                    'mb-0 flex items-center py-[5.5px] text-base leading-5.25 font-semibold text-red-800 capitalize',
+                    header?.children && 'sr-only',
+                    'mb-0 flex items-center py-[5.5px] text-base leading-5.25 font-semibold text-red-800',
                     title?.className
                   )}
                 />
-                <DialogClose
-                  {...close}
-                  className={cn(
-                    'h-fit cursor-pointer rounded-md bg-red-200 p-2 hover:bg-red-300/70',
-                    close?.hidden && 'hidden'
-                  )}
-                  onClick={(event) => {
-                    close?.onClick?.(event)
+                {header?.children}
+                {!header?.children && (
+                  <DialogClose
+                    {...close}
+                    className={cn(close?.hidden && 'hidden')}
+                    onClick={(event) => {
+                      close?.onClick?.(event)
 
-                    if (!event.defaultPrevented && isPrevented()) {
-                      event.preventDefault()
-                    }
-                  }}
-                >
-                  <X size={16} className='text-red-500' />
-                  <span className='sr-only'>Close</span>
-                </DialogClose>
+                      if (!event.defaultPrevented && isPrevented()) {
+                        event.preventDefault()
+                      }
+                    }}
+                    asChild
+                  >
+                    <Button className='bg-red-200 hover:bg-red-300/70'>
+                      <Icon type='close' className='text-red-500' />
+                      <span className='sr-only'>Close</span>
+                    </Button>
+                  </DialogClose>
+                )}
               </div>
               <DialogDescription
                 {...description}
@@ -147,7 +153,10 @@ function Modal({
             <Separator className='bg-neutral-400' />
             <div className='my-2 p-5'>{children}</div>
             <Separator
-              className={cn('bg-neutral-400', submit?.hidden && cancel?.hidden && 'hidden')}
+              className={cn(
+                'bg-neutral-400',
+                ((submit?.hidden && cancel?.hidden) || footer?.hidden) && 'hidden'
+              )}
             />
             <DialogFooter
               {...footer}
@@ -196,7 +205,7 @@ function Modal({
           </div>
         </DialogContent>
         {root?.modal === false && (
-          <div className='data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/80' />
+          <div className='data-[state=open]:animate-in data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 fixed inset-0 z-50 bg-black/50' />
         )}
       </DialogPortal>
     </Dialog>
@@ -230,6 +239,8 @@ function ModalDelete({ submit, title, children, cancel, footer, content, ...rest
       content={{
         ...content,
         className: cn('w-80', content?.className),
+        onPointerDownOutside: (e) => e.preventDefault(),
+        onInteractOutside: (e) => e.preventDefault(),
       }}
     />
   )

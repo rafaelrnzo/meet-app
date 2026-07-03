@@ -1,3 +1,5 @@
+import { default as React } from 'react'
+import { cn } from '@/lib/utils'
 import {
   Select,
   SelectTrigger,
@@ -5,8 +7,6 @@ import {
   SelectGroup,
   SelectItem,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
-import React, { useState } from 'react'
 
 interface TableViewFilterProps {
   options: { value: string; label: string }[]
@@ -22,21 +22,13 @@ interface TableViewFilterProps {
 
 function TableViewFilter(props: TableViewFilterProps) {
   const { options = [], placeholder = 'Filter', selectProps } = props
-  const [filterValue, setFilterValue] = useState('')
 
   return (
-    <Select
-      {...selectProps?.select}
-      value={selectProps?.select?.value ?? filterValue}
-      onValueChange={(currentValue) =>
-        selectProps?.select?.onValueChange?.(currentValue) ??
-        setFilterValue(currentValue === 'all' ? '' : currentValue)
-      }
-    >
+    <Select {...selectProps?.select}>
       <SelectTrigger
         {...selectProps?.selectTrigger}
         className={cn(
-          'h-9 cursor-pointer gap-2 font-semibold md:border md:border-red-800 md:bg-red-50 md:text-red-800 md:hover:bg-red-200 [&>svg]:opacity-100',
+          'cursor-pointer gap-2 font-semibold md:border md:border-red-800 md:bg-red-50 md:text-red-800 md:hover:bg-red-200 [&>svg]:opacity-100',
           'md:data-[state=open]:bg-red-800 md:data-[state=open]:text-white',
           selectProps?.selectTrigger?.className
         )}
@@ -47,12 +39,9 @@ function TableViewFilter(props: TableViewFilterProps) {
         {...selectProps?.selectContent}
         align='end'
         position='popper'
-        className='wrap-anywhere max-md:w-[calc(100vw-48px)]'
+        className='wrap-anywhere max-md:w-[calc(100vw-64px)]'
       >
         <SelectGroup>
-          <SelectItem value='all' key={`table-filter-all`}>
-            Semua
-          </SelectItem>
           {options.map((item, index) => (
             <SelectItem value={item.value} key={`table-filter-${index}`}>
               {item.label}

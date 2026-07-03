@@ -1,187 +1,30 @@
-'use client'
+import type { ResponseNext } from '@/feat/types'
+import { fetchGroups, getRoomListConfig } from '@/lib/api/admin-api'
+import { default as PageContainer } from '@/compounds/page-container'
+import { RoomListClient } from '@/app/(protected)/rooms/client'
 
-import { useCallback, useEffect, useRef, useState } from 'react'
-import {
-  fetchDbRooms,
-  deleteDbRoom,
-  fetchGroups,
-  fetchActiveRooms,
-  fetchUsers,
-} from '@/lib/api/admin-api'
-import type { DbRoom, Group as GroupDto, ActiveRoom, User, RoomParams } from '@/lib/api/admin-api'
-import { useAuth } from '../../../hooks/use-auth'
-import { RoomDetailSheet } from '@/components/admin/RoomDetailSheet'
-import { RoomList } from '@/components/features/rooms/RoomList'
-import { djs } from '@/lib/utils'
-import PageContainer from '@/compounds/page-container'
-import { TableViewHeader } from '@/compounds/table-view/header'
-import { RoomForm } from '@/components/admin/RoomForm'
-import { useRealTimeRooms } from '../../../hooks/use-real-time-rooms'
-
-export default function RoomsPage() {
-  const { hasPermission } = useAuth({ requirePermission: 'room:read' })
-  const [rooms, setRooms] = useState<DbRoom[]>([])
-  const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
-  const [groups, setGroups] = useState<GroupDto[]>([])
-  const [users, setUsers] = useState<User[]>([])
-  const { isAdmin, loading: authLoading } = useAuth()
-  const [loading, setLoading] = useState(false)
-  const params = useRef<RoomParams>({})
-
-  // Modal State
-  const [isFormOpen, setIsFormOpen] = useState(false)
-  const [editingRoom, setEditingRoom] = useState<DbRoom | null>(null)
-
-  // Detail Sheet State
-  const [selectedRoom, setSelectedRoom] = useState<DbRoom | null>(null)
-  const [isDetailOpen, setIsDetailOpen] = useState(false)
-
-  const canCreate = hasPermission('room:create')
-  const canUpdate = hasPermission('room:update')
-  const canDelete = hasPermission('room:delete')
-
-  const loadData = useCallback(
-    async (params?: RoomParams) => {
-      setLoading(true)
-      try {
-        const [r, g, ar, u] = await Promise.all([
-          fetchDbRooms({ ...params }),
-          isAdmin ? fetchGroups() : Promise.resolve([]),
-          fetchActiveRooms().catch(() => []),
-          isAdmin ? fetchUsers() : Promise.resolve([]),
-        ])
-        setRooms(r || [])
-        setGroups(g || [])
-        setActiveRooms(ar || [])
-        setUsers(u || [])
-      } catch (error) {
-        console.error('Failed to load data', error)
-      } finally {
-        setLoading(false)
-      }
-    },
-    [isAdmin]
+export default async function HomePage(props: ResponseNext) {
+  const { isAdmin, isEmpty, isInvalid, rooms, hasPermission } = await getRoomListConfig(
+    await props.searchParams
   )
 
-  useEffect(() => {
-    if (!authLoading) {
-      loadData()
-    }
-  }, [authLoading, loadData])
-
-  useRealTimeRooms(() => {
-    loadData()
-  })
-
-  const handleCreate = () => {
-    setEditingRoom(null)
-    setIsFormOpen(true)
-  }
-
-  const handleEdit = (room: DbRoom) => {
-    setEditingRoom(room)
-    setIsFormOpen(true)
-  }
-
-  const handleDelete = async (id: number) => {
-    if (confirm('Delete this room?')) {
-      await deleteDbRoom(id)
-      if (selectedRoom?.id === id) setIsDetailOpen(false)
-      loadData()
-    }
-  }
-
-  const handleViewDetails = (room: DbRoom) => {
-    setSelectedRoom(room)
-    setIsDetailOpen(true)
-  }
-
-  const getActiveRoomData = (roomName: string) => {
-    return activeRooms.find((ar) => ar.name === roomName)
-  }
-
-  const displayedRooms = rooms.filter(({ end_date }) => djs().isBefore(end_date))
+  const groups = isAdmin ? await fetchGroups() : []
 
   return (
     <PageContainer
       icon='room'
       title='Daftar Ruangan'
       subTitle='Kelola ruangan rapat untuk setiap kebutuhan rapat'
+      backToTopButton
     >
-      <div className='space-y-4 md:space-y-8'>
-        <TableViewHeader
-          search={{
-            placeholder: 'Cari nama atau kode ruangan ...',
-            onSearch: ({ value }) => {
-              const updateParams = { ...params.current, search: value }
-              params.current = updateParams
-              loadData(updateParams)
-            },
-          }}
-          {...(canCreate && { add: { onClick: handleCreate } })}
-          filter={{
-            options: [
-              {
-                value: 'newest',
-                label: 'Terbaru',
-              },
-              {
-                value: 'oldest',
-                label: 'Terlama',
-              },
-              {
-                value: 'name_asc',
-                label: 'Alfabet (A - Z)',
-              },
-              {
-                value: 'name_desc',
-                label: 'Alfabet (Z - A)',
-              },
-              {
-                value: 'group',
-                label: 'Kelompok',
-              },
-            ],
-            selectProps: {
-              select: {
-                onValueChange: (value) => {
-                  const updateParams = { ...params.current, sort: value }
-                  params.current = updateParams
-                  loadData(updateParams)
-                },
-              },
-            },
-          }}
-        />
-
-        <RoomList
-          loading={loading}
-          staticRooms={displayedRooms}
-          activeRooms={activeRooms}
-          isAdmin={isAdmin}
-          handleDetail={canUpdate ? handleViewDetails : void 0}
-        />
-      </div>
-
-      <RoomForm
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-        onSuccess={loadData}
-        initialData={editingRoom}
+      <RoomListClient
+        rooms={rooms}
         groups={groups}
-      />
-
-      <RoomDetailSheet
-        isOpen={isDetailOpen}
-        onClose={() => setIsDetailOpen(false)}
-        room={selectedRoom}
-        activeRoom={selectedRoom ? getActiveRoomData(selectedRoom.name) : undefined}
-        canDelete={canDelete}
-        onDelete={handleDelete}
-        onEditSuccess={loadData}
-        groups={groups}
-        users={users}
-        handleEdit={(room: DbRoom) => handleEdit(room)}
+        isAdmin={isAdmin}
+        isEmpty={isEmpty}
+        isInvalid={isInvalid}
+        canShareLink={hasPermission('room:share')}
+        canCreate={hasPermission('room:manage')}
       />
     </PageContainer>
   )

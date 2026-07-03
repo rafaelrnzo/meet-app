@@ -1,107 +1,53 @@
-'use client'
+import { notFound, useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { logoutSession } from '@/feat/Auth/api'
+import { toast } from '@/components/ui/sonner'
 
-import { useEffect, useState } from 'react'
-import { useRouter, usePathname } from 'next/navigation'
-import { getToken, getUser, clearAuth, fetchProfile } from '@/lib/api/auth-client'
-import { authService } from '@/src/services/auth'
+type UseAuthOptions = {
+  requireAdmin?: boolean
+  requirePermission?: string
+}
 
-export function useAuth(options?: { requireAdmin?: boolean; requirePermission?: string }) {
+export function useAuth(options?: UseAuthOptions) {
+  const { requireAdmin, requirePermission } = options || {}
+  const { data, status } = useSession()
   const router = useRouter()
-  const pathname = usePathname()
 
-  const [loading, setLoading] = useState(true)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [isAdmin, setIsAdmin] = useState(false)
-  const [permissions, setPermissions] = useState<string[]>([])
-  const [user, setUser] = useState<any>(null)
+  const role = data?.roles
+  const isAdmin = role?.name === 'admin'
+  const isAuthenticated = status === 'authenticated'
+  const isLoading = status === 'loading'
 
-  useEffect(() => {
-    const token = getToken()
-    const storedUser = getUser()
-    setUser(storedUser)
+  const hasPermission = (name: string) => {
+    return role?.permissions?.some(({ key }) => key === name) ?? false
+  }
+  const logoutHandler = async () => {
+    const { error } = await logoutSession()
 
-    const isAuthPage = pathname === '/login'
-
-    if (!token) {
-      setIsAuthenticated(false)
-      setIsAdmin(false)
-      setPermissions([])
-      setLoading(false)
-
-      if (!isAuthPage) {
-        router.replace('/login')
-      }
-      return
+    if (error) {
+      return toast.error('Gagal keluar dari sistem')
     }
 
-    setIsAuthenticated(true)
-
-    // Helper to process user object
-    const processUser = (u: any) => {
-      let roleName = 'user'
-      let userPerms: string[] = []
-
-      if (u?.role) {
-        if (typeof u.role === 'string') {
-          roleName = u.role
-        } else {
-          roleName = u?.role?.name || 'user'
-          if (u.role.permissions && Array.isArray(u.role.permissions)) {
-            userPerms = u.role.permissions.map((p: any) => p.key)
-          }
-        }
-      }
-
-      const admin = roleName === 'admin'
-      setIsAdmin(admin)
-      setPermissions(userPerms)
-
-      // Legacy admin check
-      if (options?.requireAdmin && !admin) {
-        router.replace('/')
-        return
-      }
-
-      // New Permission check
-      if (options?.requirePermission) {
-        const has = admin || userPerms.includes(options.requirePermission)
-        if (!has) {
-          router.replace('/')
-        }
-      }
-    }
-
-    // Initial load from storage to update UI fast
-    if (storedUser) {
-      processUser(storedUser)
-    }
-
-    // Hydrate from backend to ensure permissions are fresh
-    fetchProfile()
-      .then((freshUser) => {
-        setUser(freshUser)
-        processUser(freshUser)
-        // Optionally update localStorage here too
-        // localStorage.setItem("vc_user", JSON.stringify(freshUser))
-      })
-      .catch((err) => {
-        console.error('Hydration failed', err)
-      })
-      .finally(() => {
-        setLoading(false)
-      })
-  }, [router, pathname, options?.requireAdmin, options?.requirePermission])
-
-  const logout = async () => {
-    clearAuth()
-    await authService.logout()
-    router.replace('/login')
+    router.refresh()
   }
 
-  const hasPermission = (key: string) => {
-    if (isAdmin) return true // Admin has all permissions implicitly or explicitly
-    return permissions.includes(key)
+  const isUnauthorized =
+    isAuthenticated &&
+    ((!!requireAdmin && !isAdmin) || (!!requirePermission && !hasPermission(requirePermission)))
+
+  if (isUnauthorized) {
+    notFound()
   }
 
-  return { loading, isAuthenticated, isAdmin, permissions, hasPermission, user, logout }
+  return {
+    isAdmin,
+    isAuthenticated,
+    loading: isLoading,
+    role,
+    token: data?.access_token,
+    user: data?.profile,
+    publicUrl: data?.publicUrl,
+    hasPermission,
+    logout: logoutHandler,
+  }
 }
