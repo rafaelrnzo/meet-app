@@ -1,15 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { fetchRoles, fetchPermissions, addRolePermission } from '@/lib/api/admin-api'
 import type { Role, Permission } from '@/lib/api/admin-api'
-import { useAuth } from '../../../hooks/use-auth'
-import PageContainer from '@/compounds/page-container'
-import { TableView } from '@/compounds/table-view'
-import { rolesColumn } from '@/column/roles'
-import EditRoles from '@/app/(protected)/roles/_partials/edit'
-import { toast } from '@/components/ui/sonner'
+import { useEffect, useState } from 'react'
 import { displayedError } from '@/lib/utils'
+import { fetchRoles, fetchPermissions, addRolePermission } from '@/lib/api/admin-api'
+import { TableView } from '@/compounds/table-view'
+import { default as PageContainer } from '@/compounds/page-container'
+import { toast } from '@/components/ui/sonner'
+import { rolesColumn } from '@/column/roles'
+import { default as EditRoles } from '@/app/(protected)/roles/_partials/edit'
+import { useAuth } from '../../../hooks/use-auth'
 
 enum RolesEventSSE {
   RolesUpdated = 'role_update',

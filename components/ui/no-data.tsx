@@ -1,9 +1,9 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Icon } from '@/components/ui/icon'
-import { cn } from '@/lib/utils'
 import { useRouter } from 'next/navigation'
+import { cn } from '@/lib/utils'
+import { Icon } from '@/components/ui/icon'
+import { Button } from '@/components/ui/button'
 
 interface NoDataProps {
   title: string

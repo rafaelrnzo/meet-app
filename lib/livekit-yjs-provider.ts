@@ -143,7 +143,6 @@ export class LiveKitYjsProvider<T extends object = TLDrawCursor> {
     const { msgId, index, total, payload } = header
 
     if (!this._chunkBuffer.has(msgId)) {
-       
       this._chunkBuffer.set(msgId, new Array(total).fill(null))
     }
 

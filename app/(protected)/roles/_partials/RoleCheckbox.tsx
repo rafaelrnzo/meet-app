@@ -1,11 +1,11 @@
 'use client'
-import { Card, CardContent } from '@/components/ui/card'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Field, FieldGroup } from '@/components/ui/field'
-import { Label } from '@/components/ui/label'
+import type { AnyFieldApi } from '@tanstack/react-form'
 import type { Permission } from '@/lib/api/admin-api'
 import { cn } from '@/lib/utils'
-import type { AnyFieldApi } from '@tanstack/react-form'
+import { Label } from '@/components/ui/label'
+import { Field, FieldGroup } from '@/components/ui/field'
+import { Checkbox } from '@/components/ui/checkbox'
+import { Card, CardContent } from '@/components/ui/card'
 
 interface RoleCheckboxProps {
   data: {
@@ -44,9 +44,9 @@ export default function RoleCheckbox({ data, field }: RoleCheckboxProps) {
               key={idx}
               className={cn(
                 (idx === 1 || idx === 0) && grouping.permissions.length > 1
-                  ? 'h-[106px]'
+                  ? 'h-26.5'
                   : 'min-h-fit',
-                'max-h-[106px] min-h-fit'
+                'max-h-26.5 min-h-fit'
               )}
             >
               <CardContent className='p-5'>

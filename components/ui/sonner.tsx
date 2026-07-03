@@ -1,6 +1,7 @@
 'use client'
 
-import { cn } from '@/lib/utils'
+import type { ToasterProps } from 'sonner'
+import { Toaster as Sonner, toast as toastDefault } from 'sonner'
 import {
   Check,
   CircleCheckIcon,
@@ -9,12 +10,13 @@ import {
   OctagonXIcon,
   TriangleAlertIcon,
   X,
+  HandIcon,
 } from 'lucide-react'
-import { Toaster as Sonner, toast as toastDefault } from 'sonner'
-import type { ToasterProps } from 'sonner'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
+import { Alert01Icon, HugeIcon } from '@/components/HugeIcon'
 
-interface ToastProps {
+interface ToastProps extends ToasterProps {
   description?: string
   duration?: number
 }
@@ -52,7 +54,7 @@ const CustomToast = ({
   description,
 }: {
   id: number | string
-  severity: 'success' | 'info' | 'error' | 'warning'
+  severity: 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick' | 'device'
   title?: string
   description: React.ReactNode
 }) => {
@@ -77,9 +79,61 @@ const CustomToast = ({
       bg: 'bg-red-50',
       text: 'text-error',
     },
+    raise: {
+      icon: <HandIcon className='size-4 fill-amber-500 text-amber-500' />,
+      bg: 'bg-rose-50 border border-neutral-300',
+      text: 'text-neutral-800 font-medium text-sm',
+    },
+    pick: {
+      bg: 'bg-red-200 border border-red-800',
+      text: 'text-red-800 font-medium text-base',
+    },
+    device: {
+      icon: <HugeIcon icon={Alert01Icon} size={18} />,
+      bg: 'bg-red-200',
+      text: 'text-error font-medium text-base',
+    },
   }
 
-  const config = config_template[severity]
+  const config: { icon?: React.ReactNode; bg: string; text: string } = config_template[severity]
+
+  if (severity === 'raise') {
+    return (
+      <div
+        className={cn(
+          'relative flex w-[320px] items-center justify-between gap-3 rounded-xl p-3 shadow-sm md:w-[360px]',
+          config.bg
+        )}
+      >
+        <div className='flex min-w-0 items-center gap-2'>
+          {config.icon && <div className='shrink-0'>{config.icon}</div>}
+          <p className={cn('truncate', config.text)}>{title}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (severity === 'pick') {
+    return (
+      <div className={cn('h-[50px] min-w-[185px] rounded-md p-3 shadow-sm', config.bg)}>
+        <div className='flex min-w-0 items-start justify-start gap-2'>
+          {config.icon && <div className='shrink-0'>{config.icon}</div>}
+          <p className={cn('truncate', config.text)}>{title}</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (severity === 'device') {
+    return (
+      <div className={cn('h-full w-[436px] rounded-md p-3 shadow-sm', config.bg)}>
+        <div className='flex min-w-0 gap-2'>
+          {config.icon && <div className='text-error'>{config.icon}</div>}
+          <p className={cn(config.text)}>{title}</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div
@@ -89,7 +143,7 @@ const CustomToast = ({
       )}
     >
       <div className='flex items-start gap-2'>
-        <div className='mt-1'>{config.icon}</div>
+        {config.icon && <div className='mt-1'>{config.icon}</div>}
         <div className='flex-1'>
           <p className={`text-base font-semibold ${config.text}`}>{title}</p>
           <p className='mt-0.5 text-sm text-neutral-600' style={{ lineHeight: '1.2' }}>
@@ -110,7 +164,8 @@ const CustomToast = ({
 }
 
 const createToast =
-  (severity: 'success' | 'info' | 'error' | 'warning') => (title: string, props?: ToastProps) =>
+  (severity: 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick' | 'device') =>
+  (title: string, props?: ToastProps) =>
     toastDefault.custom(
       (id) => (
         <CustomToast
@@ -121,6 +176,7 @@ const createToast =
         />
       ),
       {
+        ...props,
         ...(props?.duration && { duration: props.duration }),
       }
     )
@@ -131,6 +187,9 @@ const toast = {
   error: createToast('error'),
   info: createToast('info'),
   warning: createToast('warning'),
+  raise: createToast('raise'),
+  pick: createToast('pick'),
+  device: createToast('device'),
 }
 
 export { Toaster, toast }

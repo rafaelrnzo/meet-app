@@ -1,11 +1,11 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { Icon } from '@/components/ui/icon'
-import { Input } from '@/components/ui/input'
-import { cn, formatFileSize } from '@/lib/utils'
-import { FileText, X } from 'lucide-react'
 import { useEffect, useState } from 'react'
+import { FileText, X } from 'lucide-react'
+import { cn, formatFileSize } from '@/lib/utils'
+import { Input } from '@/components/ui/input'
+import { Icon } from '@/components/ui/icon'
+import { Button } from '@/components/ui/button'
 
 export type FileOption = {
   url?: string
@@ -23,6 +23,7 @@ interface DropFileProps {
   onRemoveFile?: () => void
   multiple?: boolean
   files: FileOption[]
+  canUpload?: boolean
 }
 
 export default function DropFile({
@@ -31,6 +32,7 @@ export default function DropFile({
   maxFilesSizeInMB = 5,
   multiple = false,
   files: existingFile,
+  canUpload,
 }: DropFileProps) {
   const MAX_FILE = maxFilesSizeInMB * 1_000_000
 
@@ -84,68 +86,70 @@ export default function DropFile({
 
   return (
     <div>
-      <div
-        className={cn(
-          isUpload
-            ? 'h-[238px] max-h-[238px] bg-neutral-50'
-            : failedFile
-              ? 'h-[182px] max-h-[182px] bg-red-200'
-              : 'h-[238px] max-h-[238px] bg-red-50',
-          'relative mb-1.5 rounded-md'
-        )}
-      >
-        <div className='p-4 text-center'>
-          <div className='mb-4 flex justify-center text-center'>
-            <div
-              className={cn(
-                failedFile ? 'border-error' : 'border-slate-400',
-                'p- w-fit rounded-md border p-2'
-              )}
-            >
-              <Icon
-                type='upload'
-                className={cn(failedFile ? 'text-error' : 'text-slate-950', 'size-6')}
-              />
-            </div>
-          </div>
-          <div className='mb-4'>
-            {isLimitExceed ? (
-              <div className='mb-4'>
-                <p className='text-error font-medium'>
-                  Ukuran berkas lebih dari {maxFilesSizeInMB}MB
-                </p>
-              </div>
-            ) : isOnlyPdf ? (
-              <div className='mb-4'>
-                <p className='text-error font-medium'>Berkas harus dalam format PDF</p>
-              </div>
-            ) : (
-              <>
-                <p>
-                  Klik untuk memilih berkas, atau seret <br /> berkas ke sini
-                </p>
-                <p className='text-slate-500'>
-                  Berkas PDF (pdf), ukuran maksimal {maxFilesSizeInMB}MB per <br />
-                  berkas
-                </p>
-              </>
-            )}
-          </div>
-          <Button variant='secondary-outline'>
-            {isExistFileorFailed ? 'Unggah Berkas' : 'Ganti Berkas'}
-          </Button>
-        </div>
-        <Input
-          type='file'
-          multiple={multiple}
-          accept='application/pdf'
+      {canUpload && (
+        <div
           className={cn(
-            failedFile ? 'h-[182px] max-h-[182px]' : 'h-[238px] max-h-[238px]',
-            'absolute top-0 right-0 bottom-0 left-0 w-full cursor-pointer border-dashed p-0 text-transparent file:hidden hover:bg-transparent'
+            isUpload
+              ? 'h-[238px] max-h-[238px] bg-neutral-50'
+              : failedFile
+                ? 'h-[182px] max-h-[182px] bg-red-200'
+                : 'h-[238px] max-h-[238px] bg-red-50',
+            'relative mb-1.5 rounded-md'
           )}
-          onChange={(e) => handleFiles(e.target.files)}
-        />
-      </div>
+        >
+          <div className='p-4 text-center'>
+            <div className='mb-4 flex justify-center text-center'>
+              <div
+                className={cn(
+                  failedFile ? 'border-error' : 'border-slate-400',
+                  'p- w-fit rounded-md border p-2'
+                )}
+              >
+                <Icon
+                  type='upload'
+                  className={cn(failedFile ? 'text-error' : 'text-slate-950', 'size-6')}
+                />
+              </div>
+            </div>
+            <div className='mb-4'>
+              {isLimitExceed ? (
+                <div className='mb-4'>
+                  <p className='text-error font-medium'>
+                    Ukuran berkas lebih dari {maxFilesSizeInMB}MB
+                  </p>
+                </div>
+              ) : isOnlyPdf ? (
+                <div className='mb-4'>
+                  <p className='text-error font-medium'>Berkas harus dalam format PDF</p>
+                </div>
+              ) : (
+                <>
+                  <p>
+                    Klik untuk memilih berkas, atau seret <br /> berkas ke sini
+                  </p>
+                  <p className='text-slate-500'>
+                    Berkas PDF (pdf), ukuran maksimal {maxFilesSizeInMB}MB per <br />
+                    berkas
+                  </p>
+                </>
+              )}
+            </div>
+            <Button variant='secondary-outline'>
+              {isExistFileorFailed ? 'Unggah Berkas' : 'Ganti Berkas'}
+            </Button>
+          </div>
+          <Input
+            type='file'
+            multiple={multiple}
+            accept='application/pdf'
+            className={cn(
+              failedFile ? 'h-[182px] max-h-[182px]' : 'h-[238px] max-h-[238px]',
+              'absolute top-0 right-0 bottom-0 left-0 w-full cursor-pointer border-dashed p-0 text-transparent file:hidden hover:bg-transparent'
+            )}
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+        </div>
+      )}
       {!failedFile && displayedFiles.length > 0 && (
         <a
           href={displayedFiles[0].url}
@@ -164,20 +168,22 @@ export default function DropFile({
               </p>
             </div>
           </div>
-          <div
-            onClick={(e) => {
-              e.preventDefault()
-              e.stopPropagation()
-              handleRemoveFiles()
-            }}
-          >
-            <Button
-              variant='ghost'
-              className='text-error hover:text-error p-0 hover:bg-transparent'
+          {canUpload && (
+            <div
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                handleRemoveFiles()
+              }}
             >
-              <X className='size-5' />
-            </Button>
-          </div>
+              <Button
+                variant='ghost'
+                className='text-error hover:text-error p-0 hover:bg-transparent'
+              >
+                <X className='size-5' />
+              </Button>
+            </div>
+          )}
         </a>
       )}
     </div>

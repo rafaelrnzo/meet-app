@@ -1,14 +1,14 @@
 'use client'
 
+import type { TabsValue } from '@/feat/rooms/dto'
 import type { RoomContentsProps } from '@/components/features/rooms/RoomContents'
+import { useEffect } from 'react'
+import { getOnePresentation } from '@/lib/api/admin-api'
 import {
   OverviewContent,
   ParticipantsContent,
   SettingsContent,
 } from '@/components/features/rooms/RoomContents'
-import type { TabsValue } from '@/feat/rooms/dto'
-import { getOnePresentation } from '@/lib/api/admin-api'
-import { useEffect } from 'react'
 
 export default function RoomTabs({
   activeTab,

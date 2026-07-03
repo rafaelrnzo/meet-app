@@ -1,8 +1,8 @@
 'use server'
 
-import type { RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
-import { qstring } from '@/lib/utils'
 import type { UserParams } from '@/feat/users/dto'
+import type { RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
+import { djs, qstring } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 
 const API_BASE = process.env.APP_API_VIDEO_CONFERENCE
@@ -45,10 +45,10 @@ export async function apiRequest<T>(
   // Handle empty responses (like 204 No Content)
   const text = await res.text()
   const data = text ? JSON.parse(text) : null
-  return data
+  return data as T
 }
 
-export type DbRoom = {
+export interface DbRoom {
   id: number
   name: string
   room_code: string
@@ -66,9 +66,10 @@ export type DbRoom = {
   createdById?: number
   password?: string
   is_mute_on_start: boolean
+  participants?: number
 }
 
-export type MemberRoom = {
+export interface MemberRoom {
   id: string | number
   username: string
   role: {
@@ -79,9 +80,42 @@ export type MemberRoom = {
   room_presence: 'waiting' | 'banned'
 }
 
-export type RoomParams = {
+export interface RoomParams {
   search?: string
   sort?: SortRoomType
+}
+
+export async function getRoomListConfig(searchParams: object) {
+  const session = await auth()
+  const initialRooms = await fetchUserDbRooms(searchParams)
+  const isAdmin = session?.roles.name === 'admin'
+
+  const hasPermission = (key: string) => {
+    return !!session?.roles?.permissions?.some((perm) => perm.key.endsWith(key))
+  }
+
+  // Only show if room end date is AFTER today's milisecond
+  const rooms = initialRooms.filter((room) => djs(room.end_date).isAfter(djs()))
+
+  return {
+    isAdmin,
+    hasPermission,
+    initialRooms,
+    rooms,
+    isEmpty: !('search' in searchParams) && !rooms.length,
+    isInvalid: 'search' in searchParams && !rooms.length,
+  }
+}
+
+export async function leaveRoom(roomName: string) {
+  return apiRequest<DbRoom[]>(
+    '/api/livekit/leave',
+    {
+      method: 'POST',
+      keepalive: true,
+    },
+    { room_code: roomName }
+  )
 }
 
 export async function fetchDbRooms(searchParams?: RoomParams): Promise<DbRoom[]> {
@@ -146,6 +180,12 @@ export async function updateDbRoom(id: number, payload: RoomPayload): Promise<Db
   })
 }
 
+export async function generatePassword(id: number): Promise<{ password: string }> {
+  return apiRequest<{ password: string }>(`/admin/rooms/${id}/regenerate-password?length=10`, {
+    method: 'POST',
+  })
+}
+
 export async function deleteDbRoom(id: number): Promise<void> {
   await apiRequest(`/admin/rooms/${id}`, {
     method: 'DELETE',
@@ -201,7 +241,7 @@ export async function fetchRoomToken(roomCode: string): Promise<DbRoom[]> {
   })
 }
 
-export type Group = {
+export interface Group {
   id: number
   name: string
   description: string
@@ -244,7 +284,7 @@ export async function removeGroupMember(groupId: number, payload: number[]): Pro
   })
 }
 
-export type ActiveRoom = {
+export interface ActiveRoom {
   num_publishers: number
   sid: string
   name: string
@@ -273,14 +313,14 @@ export async function closeActiveRoom(name: string): Promise<void> {
   })
 }
 
-export type Permission = {
+export interface Permission {
   ID: number
   key: string
   description: string
   label?: string
 }
 
-export type Role = {
+export interface Role {
   id: number
   name: string
   description: string
@@ -331,7 +371,7 @@ export async function addRolePermission(roleId: number, permId: number[]): Promi
   })
 }
 
-export type User = {
+export interface User {
   id: number
   username: string
   email?: string
@@ -341,7 +381,7 @@ export type User = {
   presence?: string[]
 }
 
-export type UserResponse = {
+export interface UserResponse {
   data: User[]
   page?: number
   limit?: number
@@ -349,7 +389,7 @@ export type UserResponse = {
   total_pages?: number
 }
 
-export type ParamsUserAssignment = {
+export interface ParamsUserAssignment {
   exclude_group_id?: number
   search?: string
 }
@@ -364,6 +404,13 @@ export async function fetchUsers(props?: { params?: UserParams }): Promise<UserR
     },
     { ...searchParams }
   )
+}
+
+export async function fetchUsersEvent() {
+  return apiRequest('/admin/users/events', {
+    method: 'GET',
+    cache: 'no-store',
+  })
 }
 
 export async function fetchUsersAssignment(params?: ParamsUserAssignment): Promise<User[]> {
@@ -401,7 +448,7 @@ export async function deleteUser(id: number): Promise<void> {
   })
 }
 
-export type Recording = {
+export interface Recording {
   id: number
   room_id: string
   room_name: string
@@ -412,19 +459,15 @@ export type Recording = {
   created_at: string
 }
 
-export type RecordingParams = {
+export interface RecordingParams {
   room_id?: string
   search?: string
 }
 
-export async function fetchRecordings(
-  params?: RecordingParams,
-  signal?: AbortSignal
-): Promise<Recording[]> {
+export async function fetchRecordings(params?: RecordingParams): Promise<Recording[]> {
   return apiRequest<Recording[]>(
     qstring('/admin/recordings', { ...params }, { skipEmpty: true, skipNulls: true }),
     {
-      signal,
       method: 'GET',
       cache: 'no-store',
     }

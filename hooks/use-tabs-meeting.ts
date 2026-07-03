@@ -1,12 +1,17 @@
+'use client'
+
 import type { MouseEvent } from 'react'
 import type { ScreenID } from '@/feat/Room'
 import type { TabsContentList } from '@/feat/const'
-import { useRoomContext } from '@livekit/components-react'
+import { useContext } from 'react'
+import { useParticipants, useRoomContext } from '@livekit/components-react'
+import { useAuth } from '@/hooks/use-auth'
 import { useParamsState } from '@/hooks'
-import { useRoomState } from '@/feat/Room'
-import { GroupCode, ScreenCode } from '@/feat/enum'
+import { PickUserContext, useRoomState } from '@/feat/Room'
+import { GroupCode, ParticipantAttribute, ScreenCode } from '@/feat/enum'
 import { TabsContents } from '@/feat/const'
 import { getRemoteUrl } from '@/feat/api'
+import { toast } from '@/components/ui/sonner'
 
 export interface ImperativeContent {
   code: 0 | ScreenCode
@@ -16,9 +21,43 @@ export interface ImperativeContent {
 
 export function useTabsMeeting() {
   const room = useRoomContext()
+  const usePickUserContext = useContext(PickUserContext)
+  const remoteParticipants = useParticipants()
+  const { role } = useAuth()
   const { screen, record, startRecording, stopRecording, startActiveScreen, stopActiveScreen } =
     useRoomState()
   const { closePanel, openTabsPolling, openTabsNotes } = useParamsState()
+  const truncateName = (name: string, length: number) => {
+    return name.length > length ? name.slice(0, length) + '...' : name
+  }
+
+  async function handleTogglePickUser() {
+    if (!room || !remoteParticipants) return
+
+    const participants = Array.from(remoteParticipants.values()).filter(({ attributes }) => {
+      const attributesRole = attributes[ParticipantAttribute.RoleName.toLowerCase()]
+      return attributesRole === 'user'
+    })
+    if (participants.length === 0)
+      return toast.pick('Tidak ada peserta', {
+        position: 'top-center',
+      })
+
+    const randomIndex = Math.floor(Math.random() * participants.length)
+    const choosenUser = participants[randomIndex]
+    usePickUserContext?.sendPickUser(
+      JSON.stringify({
+        name: choosenUser.name ?? 'unknown',
+        identity: choosenUser.identity ?? 'unknown',
+      }),
+      {
+        reliable: true,
+      }
+    )
+    toast.pick(`${truncateName(choosenUser.name ?? 'unknown', 20)} telah dipilih`, {
+      position: 'top-center',
+    })
+  }
 
   function handleToggleActiveScreen(id: ScreenID) {
     return async (e: MouseEvent<HTMLButtonElement>) => {
@@ -103,7 +142,10 @@ export function useTabsMeeting() {
         }
         break
       case GroupCode.PickRandom:
-        // Not defined yet
+        prop = {
+          ...prop,
+          handle: handleTogglePickUser,
+        }
         break
       default: {
         const _exhaustiveCheck: never = list.id
@@ -118,9 +160,11 @@ export function useTabsMeeting() {
     activeScreen: screen?.id,
     isHostScreen: room.localParticipant.identity === screen?.host,
     isHostRecord: room.localParticipant.identity === record,
-    items: TabsContents.filter(({ hide }) => !hide).map((content) => ({
-      ...content,
-      lists: content.lists.filter((list) => !list.hide).map(remapContent),
-    })),
+    items: TabsContents(role ? role.name : '')
+      .filter(({ hide }) => !hide)
+      .map((content) => ({
+        ...content,
+        lists: content.lists.filter((list) => !list.hide).map(remapContent),
+      })),
   }
 }

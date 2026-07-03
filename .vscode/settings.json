@@ -11,6 +11,7 @@
   // Style
   "css.lint.unknownAtRules": "ignore",
   "tailwindCSS.classFunctions": ["tw", "cn", "clsx", "tw\\.[a-z-]+"],
+  "tailwindCSS.lint.suggestCanonicalClasses": "ignore",
   "[typescriptreact]": {
     "editor.defaultFormatter": "esbenp.prettier-vscode"
   }

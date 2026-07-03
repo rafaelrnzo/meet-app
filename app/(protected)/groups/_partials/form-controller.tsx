@@ -1,12 +1,12 @@
 'use client'
 
-import { Field, FieldError, FieldLabel } from '@/components/ui/field'
-import { Input } from '@/components/ui/input'
-import { Textarea } from '@/components/ui/textarea'
 import type { AnyFormApi, useForm } from '@tanstack/react-form'
 import type { Combobox } from '@/components/ui/combobox'
 import type { Button } from '@/components/ui/button'
-import InlineCombobox from '@/app/(protected)/groups/_partials/inline-combobox'
+import { Textarea } from '@/components/ui/textarea'
+import { Input } from '@/components/ui/input'
+import { Field, FieldError, FieldLabel } from '@/components/ui/field'
+import { default as InlineCombobox } from '@/app/(protected)/groups/_partials/inline-combobox'
 
 export type Option = {
   value: string
@@ -28,6 +28,7 @@ type FormProps = {
   name: ReturnType<typeof useForm>['Field']['name']
   formApi: AnyFormApi
   subLabel?: string
+  required?: boolean
   listeners?: Parameters<ReturnType<typeof useForm>['Field']>[0]['listeners']
 }
 

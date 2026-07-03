@@ -1,7 +1,7 @@
-import { toast } from '@/components/ui/sonner'
-import { logoutSession } from '@/feat/Auth/api'
-import { useSession } from 'next-auth/react'
 import { notFound, useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
+import { logoutSession } from '@/feat/Auth/api'
+import { toast } from '@/components/ui/sonner'
 
 type UseAuthOptions = {
   requireAdmin?: boolean
@@ -46,6 +46,7 @@ export function useAuth(options?: UseAuthOptions) {
     role,
     token: data?.access_token,
     user: data?.profile,
+    publicUrl: data?.publicUrl,
     hasPermission,
     logout: logoutHandler,
   }

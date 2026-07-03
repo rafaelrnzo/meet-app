@@ -23,6 +23,15 @@ export interface ConnectionDetails {
   participantToken: string
 }
 
+export interface ParticipantStatus {
+  isSpeaking: boolean
+  isRecording: boolean
+  isWhiteboard: boolean
+  isPresentation: boolean
+  isWatchYoutube: boolean
+  isHandRaised: boolean
+}
+
 export interface TabProps {
   id: number
   content: () => FC
@@ -30,3 +39,10 @@ export interface TabProps {
   parentId?: number
   description?: string
 }
+
+export interface ResponseNext<P = object, S = object> {
+  params: Promise<P>
+  searchParams: Promise<S>
+}
+
+export type RoleName = 'admin' | 'moderator' | 'user'

@@ -65,7 +65,6 @@ export async function GET(request: NextRequest) {
           emptyTimeout: 10 * 60, // 10 minutes
         })
       }
-      // eslint-disable-next-line no-empty
     } catch {}
 
     // Return connection details

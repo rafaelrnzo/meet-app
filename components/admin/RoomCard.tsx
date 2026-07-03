@@ -1,8 +1,8 @@
 'use client'
 
-import { motion } from 'framer-motion'
-import { Users, Calendar, MoreVertical, PlayCircle, StopCircle } from 'lucide-react'
 import type { DbRoom, ActiveRoom } from '@/lib/api/admin-api'
+import { Users, Calendar, MoreVertical } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 interface RoomCardProps {
@@ -17,7 +17,7 @@ export function RoomCard({ room, activeRoom, onClick, onDelete }: RoomCardProps)
 
   return (
     <motion.div
-      {...({ layoutId: `room-${room.id}` } as any)}
+      {...{ layoutId: `room-${room.id}` }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
       className={cn(
         'group bg-card text-card-foreground relative cursor-pointer overflow-hidden rounded-2xl border p-5 shadow-sm transition-all hover:shadow-md',

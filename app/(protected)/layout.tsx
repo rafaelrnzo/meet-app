@@ -1,10 +1,9 @@
-import React from 'react'
-import { SidebarProvider } from '@/components/ui/sidebar'
-import { ProtectedContent } from '@/app/(protected)/client'
+import { default as React } from 'react'
+import { redirect } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { fetcher } from '@/feat/Auth/helpers'
-import { redirect } from 'next/navigation'
-import { SessionProvider } from 'next-auth/react'
+import { SidebarProvider } from '@/components/ui/sidebar'
+import { ProtectedContent } from '@/app/(protected)/client'
 
 export default async function ProtectedLayout({ children }: { children: React.ReactNode }) {
   const session = await auth()
@@ -21,10 +20,8 @@ export default async function ProtectedLayout({ children }: { children: React.Re
   }
 
   return (
-    <SessionProvider>
-      <SidebarProvider>
-        <ProtectedContent>{children}</ProtectedContent>
-      </SidebarProvider>
-    </SessionProvider>
+    <SidebarProvider>
+      <ProtectedContent>{children}</ProtectedContent>
+    </SidebarProvider>
   )
 }

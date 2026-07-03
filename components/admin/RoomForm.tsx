@@ -1,12 +1,26 @@
 'use client'
 
-import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { Input } from '@/components/ui/input'
-import { Checkbox } from '@/components/ui/checkbox'
-import { Label } from '@/components/ui/label'
-import type { ActiveRoom, DbRoom, Group, ParamsUserAssignment, User } from '@/lib/api/admin-api'
+import type { ReactNode } from 'react'
+import type { AnyFormApi } from '@tanstack/react-form'
+import type { DbRoom, Group, ParamsUserAssignment, User } from '@/lib/api/admin-api'
+import type { RoomSchemaValue } from '@/feat/rooms/dto'
+import { useCallback, useEffect, useState } from 'react'
+import { useForm, useStore } from '@tanstack/react-form'
+import { cn, djs, omit } from '@/lib/utils'
 import { createDbRoom, fetchUsersAssignment, updateDbRoom } from '@/lib/api/admin-api'
+import { roomSchema } from '@/feat/rooms/schema'
+import { getRoomDefaultValue, getRoomPayload } from '@/feat/rooms/dto'
+import { defaultErrorMessage } from '@/config'
 import { TableViewSearch } from '@/compounds/table-view/search'
+import { Textarea } from '@/components/ui/textarea'
+import { toast } from '@/components/ui/sonner'
+import { Separator } from '@/components/ui/separator'
+import { default as NoData } from '@/components/ui/no-data'
+import { Modal } from '@/components/ui/modal'
+import { Label } from '@/components/ui/label'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import { Input } from '@/components/ui/input'
+import { Icon } from '@/components/ui/icon'
 import {
   Field,
   FieldContent,
@@ -15,31 +29,19 @@ import {
   FieldLabel,
   FieldTitle,
 } from '@/components/ui/field'
-import { Textarea } from '@/components/ui/textarea'
-import { cn, djs, omit } from '@/lib/utils'
-import { CalendarWithTime } from '@/components/ui/calendar-with-time'
 import { Combobox } from '@/components/ui/combobox'
+import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent } from '@/components/ui/card'
-import { Separator } from '@/components/ui/separator'
-import { getRoomDefaultValue, getRoomPayload } from '@/feat/rooms/dto'
-import type { RoomSchemaValue } from '@/feat/rooms/dto'
-import { roomSchema } from '@/feat/rooms/schema'
-import type { AnyFormApi } from '@tanstack/react-form'
-import { useForm, useStore } from '@tanstack/react-form'
-import { Modal } from '@/components/ui/modal'
-import { Icon } from '@/components/ui/icon'
-import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
-import { toast } from '@/components/ui/sonner'
-import { defaultErrorMessage } from '@/config'
-import NoData from '@/components/ui/no-data'
+import { CalendarWithTime } from '@/components/ui/calendar-with-time'
 
 interface RoomFormProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  onSuccess: () => void
+  onSuccess?: () => void
   initialData?: DbRoom | null
   groups: Group[]
-  activeRooms: ActiveRoom[]
+  activeParticipant?: number
+  children?: ReactNode
 }
 
 interface FormFieldProps {
@@ -79,15 +81,12 @@ export function RoomForm({
   onSuccess,
   initialData,
   groups,
-  activeRooms,
+  children,
+  activeParticipant = 0,
 }: RoomFormProps) {
   const [users, setUsers] = useState<User[]>([])
   const [showPassword, setShowPassword] = useState(false)
   const [queryParams, setQueryParams] = useState<ParamsUserAssignment>({})
-  const activeParticipant = useMemo(
-    () => activeRooms.find((ar) => ar.name === initialData?.room_code)?.num_participants,
-    [activeRooms, initialData?.room_code]
-  )
   const defaultValues: RoomSchemaValue = initialData
     ? getRoomDefaultValue(initialData)
     : roomSchema().getDefault()
@@ -112,7 +111,7 @@ export function RoomForm({
           description: `Ruang rapat ${payload.name} berhasil ${initialData ? 'diperbarui' : 'dibuat'}`,
         })
         onOpenChange(false)
-        onSuccess()
+        onSuccess?.()
         formApi.reset()
       } catch (error) {
         let message =
@@ -165,6 +164,7 @@ export function RoomForm({
 
   return (
     <Modal
+      trigger={{ asChild: true, children }}
       title={{ children: initialData ? 'Perbarui Ruangan' : 'Buat Ruangan Baru' }}
       root={{
         open,

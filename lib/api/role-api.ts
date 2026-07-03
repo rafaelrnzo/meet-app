@@ -1,6 +1,6 @@
 import { apiRequest } from '@/lib/api/admin-api'
 
-export type Role = {
+export interface Role {
   id: number
   name: string
   description: string
@@ -9,7 +9,7 @@ export type Role = {
   updated_at: string
 }
 
-export type Permission = {
+export interface Permission {
   id: number
   key: string
   description: string

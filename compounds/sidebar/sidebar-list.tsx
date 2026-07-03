@@ -1,6 +1,11 @@
 'use client'
 
+import type { AuthProfileDTO } from '@/feat/Auth/dto'
 import * as React from 'react'
+import { usePathname } from 'next/navigation'
+import { default as Link } from 'next/link'
+import { sidebarItems } from '@/lib/menu-items'
+import { useAuth } from '@/hooks/use-auth'
 import {
   Sidebar,
   SidebarContent,
@@ -12,13 +17,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from '@/components/ui/sidebar'
-import { Button } from '@/components/ui/button'
-import { sidebarItems } from '@/lib/menu-items'
-import { useAuth } from '@/hooks/use-auth'
-import { usePathname } from 'next/navigation'
-import Link from 'next/link'
 import { Icon } from '@/components/ui/icon'
-import type { AuthProfileDTO } from '@/feat/Auth/dto'
+import { Button } from '@/components/ui/button'
 
 function SidebarList({
   user,

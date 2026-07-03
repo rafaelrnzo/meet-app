@@ -1,20 +1,21 @@
 'use client'
 
+import type { RowSelectionState } from '@tanstack/react-table'
 import type { Recording, RecordingParams } from '@/lib/api/admin-api'
 import type { RecordingSSEDTO } from './dto'
-import type { RowSelectionState } from '@tanstack/react-table'
-import path from 'path'
-import { defaultErrorMessage } from '@/config'
-import { deleteRecording, fetchRecordings, updateRecordingName } from '@/lib/api/admin-api'
-import { djs, qstring } from '@/lib/utils'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { default as path } from 'path'
 import { mailtoHandler } from './helper'
 import { RecordingEvent } from './dto'
-import { toast } from '@/components/ui/sonner'
+import { djs, qstring } from '@/lib/utils'
+import { deleteRecording, fetchRecordings, updateRecordingName } from '@/lib/api/admin-api'
+import { useEventSource } from '@/hooks/use-event-source'
 import { useAuth } from '@/hooks/use-auth'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { defaultErrorMessage } from '@/config'
+import { toast } from '@/components/ui/sonner'
 
 export const useRecording = () => {
-  const { loading: authLoading, token } = useAuth()
+  const { loading: authLoading, token, publicUrl } = useAuth()
   const [recordings, setRecordings] = useState<Recording[]>([])
   const [isLoading, setIsLoading] = useState<boolean>(false)
   const [queryParams, setQueryParams] = useState<RecordingParams>({ search: '' })
@@ -117,30 +118,14 @@ export const useRecording = () => {
     })
   }
 
-  // SSE
-  // TODO: sse new recording
-  useEffect(() => {
-    const eventSourceUrl = qstring(
-      `${process.env.NEXT_PUBLIC_BACKEND_URL}/admin/recordings/events`,
-      { token }
-    )
-    const eventSource = new EventSource(eventSourceUrl)
-
-    eventSource.onmessage = (message: MessageEvent<string>) => {
-      const event: RecordingSSEDTO = JSON.parse(message.data)
-      if ([RecordingEvent.StatusUpdate, RecordingEvent.Delete].includes(event.type)) {
+  useEventSource<RecordingSSEDTO>({
+    eventUrl: qstring(`${publicUrl}/admin/recordings/events`, { token }),
+    onMessage: (event) => {
+      if (Object.values(RecordingEvent).includes(event.type)) {
         getRecordings()
       }
-    }
-
-    eventSource.onerror = () => {
-      eventSource.close()
-    }
-
-    return () => {
-      eventSource.close()
-    }
-  }, [token])
+    },
+  })
 
   // handle click outside input rename
   useEffect(() => {

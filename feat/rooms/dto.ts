@@ -1,6 +1,6 @@
 import type * as yup from 'yup'
-import type { roomSchema } from './schema'
 import type { DbRoom } from '@/lib/api/admin-api'
+import type { roomSchema } from './schema'
 import { djs } from '@/lib/utils'
 
 type RoomSchemaValue = yup.InferType<ReturnType<typeof roomSchema>>
@@ -19,13 +19,13 @@ interface RoomPayload {
   name: string
   description: string
   max_participants: number
-  assigned_to: string[]
+  assigned_to: string[] | null
   group_id: number
   start_date: string
   end_date: string
   password: string
   is_mute_on_start: boolean
-  metadata: string
+  metadata?: string
 }
 
 interface SelectOptions {
@@ -69,13 +69,53 @@ const getRoomPayload = (data: RoomSchemaValue): RoomPayload => {
     end_date: data.endDate?.toISOString() ?? '',
     password: data.password,
     is_mute_on_start: data.isMuteOnStart,
-    metadata: JSON.stringify({ polling: [], banned: [] }),
+    metadata: JSON.stringify({ polling: [], banned: [] }), // TODO: pastikan apakah sesuai
   }
 }
 
 const SORT_ROOM = ['newest', 'oldest', 'name_asc', 'name_desc', 'group'] as const
 
 type SortRoomType = (typeof SORT_ROOM)[number]
+
+enum RoomSSEEvent {
+  RoomUpdated = 'room_updated',
+  ParticipantJoined = 'participant_joined',
+  ParticipantLeft = 'participant_left',
+  RecordingStarted = 'recording_started',
+  RecordingStopped = 'recording_stopped',
+}
+
+interface RoomEventUpdated {
+  type: RoomSSEEvent.RoomUpdated
+  data: {
+    is_live: boolean
+    participants: number
+    room_id: string
+    updated_at: string
+  }
+}
+
+interface RoomEventParticipantData {
+  room_id: string
+  identity: string
+  participant_count: number
+}
+
+interface RoomEventParticipant {
+  type: RoomSSEEvent.ParticipantJoined | RoomSSEEvent.ParticipantLeft
+  data: RoomEventParticipantData
+}
+
+type RoomSSEDTO = RoomEventUpdated | RoomEventParticipant
+
+interface RoomMetadata {
+  waiting_room_enabled: boolean
+  allow_screen: boolean
+  allow_reaction: boolean
+  allow_audio: boolean
+  allow_video: boolean
+  // room_id: number
+}
 
 export type {
   RoomSchemaValue,
@@ -87,5 +127,7 @@ export type {
   TabsValue,
   StatusOption,
   FileResponse,
+  RoomSSEDTO,
+  RoomMetadata,
 }
-export { getRoomDefaultValue, getRoomPayload, SORT_ROOM }
+export { getRoomDefaultValue, getRoomPayload, SORT_ROOM, RoomSSEEvent }

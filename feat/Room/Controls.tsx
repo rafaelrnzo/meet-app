@@ -1,37 +1,42 @@
 'use client'
 
 import type { FC, ReactNode } from 'react'
+import { useState } from 'react'
 import { ConnectionState } from 'livekit-client'
-import { MonitorPlayIcon, PhoneSlashIcon, SmileyIcon } from '@phosphor-icons/react'
+import { MonitorPlayIcon, PhoneSlashIcon } from '@phosphor-icons/react'
 import {
   MicDisabledIcon,
-  CameraDisabledIcon,
   MicIcon,
-  CameraIcon,
   useRoomContext,
   useConnectionState,
 } from '@livekit/components-react'
-import { useParamsState, useMediaControls } from '@/hooks'
+import { useMediaControls } from '@/hooks'
 import { ToggleTrack } from '@/components/ToggleTrack'
-import { HugeIcon, ChevronUp } from '@/components/HugeIcon'
+import { ReactionIcon } from '@/components/ReactionIcon'
 import { HandRaisedIcon } from '@/components/HandRaised'
+import { default as CameraControl } from '@/components/CameraControl'
 import { ButtonIcon } from '@/components/Button'
 
 export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
   const room = useRoomContext()
-  const { router } = useParamsState()
-  const {
-    audioEnabled,
-    videoEnabled,
-    shareScreenEnabled,
-    handleToggleAudio,
-    handleToggleVideo,
-    handleToggleShareScreen,
-  } = useMediaControls({ room })
+  const { audioEnabled, shareScreenEnabled, handleToggleAudio, handleToggleShareScreen } =
+    useMediaControls({ room })
   const state = useConnectionState(room)
+  const [isReactionUp, setReactionUp] = useState(false)
+  const [isCameraUp, setCameraUp] = useState(false)
 
   if (state === ConnectionState.Connecting) {
     return null
+  }
+
+  const handleReactionUp = () => {
+    setReactionUp((prev) => !prev)
+    setCameraUp(false)
+  }
+
+  const handleCameraUp = () => {
+    setCameraUp((prev) => !prev)
+    setReactionUp(false)
   }
 
   return (
@@ -45,27 +50,18 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
         {audioEnabled ? <MicIcon /> : <MicDisabledIcon />}
       </ToggleTrack>
       <div className='dark:bg-primary/50 flex items-center gap-1 rounded-full bg-red-200 p-1'>
-        <ToggleTrack
-          title={videoEnabled ? 'Tutup kamera' : 'Aktifkan kamera'}
-          isActive={videoEnabled}
-          onClick={handleToggleVideo}
-          className='size-8 md:size-10'
-        >
-          {videoEnabled ? <CameraIcon /> : <CameraDisabledIcon />}
-        </ToggleTrack>
-        <button className='dark:hover:bg-primary/50 relative inline-flex size-8 items-center justify-center rounded-full hover:bg-red-300 md:size-10'>
-          <HugeIcon icon={ChevronUp} strokeWidth={2} />
-        </button>
+        <CameraControl isOpen={isCameraUp} onToggle={handleCameraUp} setOpen={setCameraUp} />
       </div>
-      <ButtonIcon isActive={shareScreenEnabled} onClick={handleToggleShareScreen}>
+      <ButtonIcon isActive={!shareScreenEnabled} onClick={handleToggleShareScreen}>
         <MonitorPlayIcon weight='fill' size={22} />
       </ButtonIcon>
-      <ButtonIcon isActive>
-        <SmileyIcon weight='fill' size={24} />
-      </ButtonIcon>
+      <ReactionIcon isOpen={isReactionUp} onToggle={handleReactionUp} />
       <HandRaisedIcon />
       {children}
-      <ButtonIcon onClick={() => router.replace('/')}>
+      <ButtonIcon
+        onClick={() => room.disconnect()}
+        className='text-error bg-red-200 hover:bg-red-200!'
+      >
         <PhoneSlashIcon weight='fill' size={20} />
       </ButtonIcon>
     </div>

@@ -12,8 +12,10 @@ import type { ConnectionDetails } from '@/feat/types'
 import { useEffect, useMemo, useRef } from 'react'
 import { ConnectionState, MediaDeviceFailure, Room, RoomEvent, VideoPresets } from 'livekit-client'
 import { RoomContext } from '@livekit/components-react'
+import { leaveRoom } from '@/lib/api/admin-api'
 import { useParamsState } from '@/hooks'
 import { RoomState, RoomLayout } from '@/feat/Room'
+import { toast } from '@/components/ui/sonner'
 
 export interface RoomConferenceProps {
   children?: ReactNode
@@ -60,12 +62,25 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
   const room = useMemo(() => new Room(roomOptions.current()), []) // Maybe changed
   const roomEvent = useRef({
     leave: () => router.replace('/'),
-    error: (e: unknown) => {
-      console.log('Failed to get active media devices:', e)
+    error: (e: Error) => {
+      const failure = MediaDeviceFailure.getFailure(e)
 
-      alert(
-        `Encountered an unexpected error, check the console logs for details: ${(e as Error).message}`
-      )
+      if (
+        failure === MediaDeviceFailure.PermissionDenied ||
+        failure === MediaDeviceFailure.NotFound
+      ) {
+        toast.device(
+          'Error: Tidak dapat menemukan mikrofon dan kamera, atau pengguna menolak atas izin akses mikrofon dan kamera. Silahkan muat ulang halaman ini, atau tutup dan kembali ke halaman ini untuk mengaktifkan mikrofon dan kamera.',
+          {
+            position: 'top-center',
+          }
+        )
+      } else {
+        toast.device('Error: Terjadi kesalahan media yang tidak diketahui.', {
+          position: 'top-center',
+          description: e instanceof Error ? e.message : String(e),
+        })
+      }
     },
   })
 
@@ -73,17 +88,15 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
     const { serverUrl, participantToken } = propsRef.current.connectionDetails
     const { leave, error } = roomEvent.current
 
-    room.on(RoomEvent.Disconnected, leave)
-    room.on(RoomEvent.MediaDevicesError, error)
-    room.on(RoomEvent.MediaDevicesError, (error) => {
-      const failure = MediaDeviceFailure.getFailure(error)
+    function handleLeave() {
+      leaveRoom(room.name)
+        .finally(() => room.disconnect())
+        .catch((e) => console.log(e))
+    }
 
-      if (failure === MediaDeviceFailure.PermissionDenied) {
-        console.log('User disallowed access to the capturing device.')
-      } else if (failure === MediaDeviceFailure.NotFound) {
-        console.log('The requested device is unavailable.')
-      }
-    })
+    room.on(RoomEvent.Disconnected, leave)
+    room.on(RoomEvent.Disconnected, handleLeave)
+    room.on(RoomEvent.MediaDevicesError, error)
 
     let mounted = true
 
@@ -113,6 +126,7 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
       mounted = false
 
       room.off(RoomEvent.Disconnected, leave)
+      room.off(RoomEvent.Disconnected, handleLeave)
       room.off(RoomEvent.MediaDevicesError, error)
 
       if (
@@ -120,7 +134,7 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
         room.state === ConnectionState.Connecting ||
         room.state === ConnectionState.Reconnecting
       ) {
-        room.disconnect()
+        handleLeave()
       }
     }
   }, [room])

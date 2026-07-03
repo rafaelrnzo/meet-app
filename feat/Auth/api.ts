@@ -1,9 +1,9 @@
 'use server'
 
 import type { RefreshTokenResponseDTO } from '@/feat/Auth/dto'
+import { createResponseError, createResponseSuccess } from '@/lib/utils'
 import { auth, signOut } from '@/lib/auth'
 import { fetcher } from '@/feat/Auth/helpers'
-import { createResponseError, createResponseSuccess } from '@/lib/utils'
 
 // API Endpoints
 const KEYCLOAK_ID = process.env.KEYCLOAK_ID ?? ''

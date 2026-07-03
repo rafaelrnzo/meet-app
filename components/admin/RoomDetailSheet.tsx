@@ -1,8 +1,10 @@
 'use client'
 
+import type { DbRoom, ActiveRoom, MemberRoom, RoomParams } from '@/lib/api/admin-api'
+import type { FileResponse, StatusOption, TabsValue } from '@/feat/rooms/dto'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import type { DbRoom, ActiveRoom, MemberRoom, RoomParams } from '@/lib/api/admin-api'
+import { displayedError, copyHandler } from '@/lib/utils'
 import {
   deleteRoomPresentation,
   fetchMemberRoom,
@@ -10,19 +12,17 @@ import {
   updateRoomPermissions,
   uploadRoomPresentation,
 } from '@/lib/api/admin-api'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { useAuth } from '@/hooks/use-auth'
+import { defaultErrorMessage } from '@/config'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import RoomTabs from '@/components/features/rooms/RoomTabs'
-import { useAuth } from '@/hooks/use-auth'
 import { toast } from '@/components/ui/sonner'
 import { Modal, ModalDelete } from '@/components/ui/modal'
-import { displayedError, copyHandler } from '@/lib/utils'
-import RoomDetailModal from '@/components/features/rooms/RoomDetailModal'
-import type { FileResponse, StatusOption, TabsValue } from '@/feat/rooms/dto'
+import { Input } from '@/components/ui/input'
 import { Icon } from '@/components/ui/icon'
-import { defaultErrorMessage } from '@/config'
+import { Button } from '@/components/ui/button'
+import { default as RoomTabs } from '@/components/features/rooms/RoomTabs'
+import { default as RoomDetailModal } from '@/components/features/rooms/RoomDetailModal'
 
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
 interface RoomDetailSheetProps {
@@ -32,10 +32,10 @@ interface RoomDetailSheetProps {
   onClose: () => void
   canDelete: boolean
   onDelete: (id: number) => void
-  onEditSuccess: () => void // Callback to refresh data
+  onEditSuccess?: () => void // Callback to refresh data
   handleEdit: (room: DbRoom | null) => void
-  isModalDetail: boolean
-  setModalDetail: (val: boolean) => void
+  isModalDetail?: boolean
+  setModalDetail?: (val: boolean) => void
 }
 export function RoomDetailSheet({
   room,
@@ -48,6 +48,7 @@ export function RoomDetailSheet({
   isModalDetail,
   setModalDetail,
 }: RoomDetailSheetProps) {
+  const { hasPermission } = useAuth()
   const [isShowTooltip, setShowTooltip] = useState(false)
   const [isOpenDelete, setIsOpenDelete] = useState(false)
   const [isOpenBlock, setIsOpenBlock] = useState(false)
@@ -60,29 +61,11 @@ export function RoomDetailSheet({
   const [userIdentity, setUserIdentity] = useState('')
   const [files, setFiles] = useState<FileResponse[]>([])
 
-  const { isAdmin } = useAuth()
+  const canManage = hasPermission('room:manage') && !activeRoom?.num_participants
+
   const ROLE_USER = 'user'
   const params = useRef<RoomParams>({})
   const MAX_FILE = 5
-
-  // Helper to construct full URL for presentations
-  // const getPresentationUrl = (path: string | undefined): string => {
-  //   if (!path) return ''
-
-  //   // If already a full URL (http/https), return as-is (backward compatibility)
-  //   if (path.startsWith('http://') || path.startsWith('https://')) {
-  //     return path
-  //   }
-
-  //   // If relative path, prepend backend URL
-  //   const API_BASE =
-  //     process.env.NEXT_PUBLIC_BACKEND_URL?.replace(/\/+$/, '') ||
-  //     (typeof window !== 'undefined'
-  //       ? `${window.location.protocol}//${window.location.hostname}:8080`
-  //       : 'http://localhost:8080')
-
-  //   return `${API_BASE}${path.startsWith('/') ? path : '/' + path}`
-  // }
 
   const handleCopyLink = async () => {
     const { success } = await copyHandler(room?.room_code ?? '')
@@ -162,10 +145,10 @@ export function RoomDetailSheet({
         }
       }
       toast.dismiss()
-      onEditSuccess()
+      onEditSuccess?.()
     } catch (error) {
       toast.dismiss()
-      displayedError(error, 'Gagal menguopload file')
+      displayedError(error, 'Gagal mengupload file')
     }
   }
 
@@ -200,13 +183,13 @@ export function RoomDetailSheet({
       {isOpen && room && (
         <>
           <motion.div
-            {...({
+            {...{
               initial: { opacity: 0 },
               animate: { opacity: 1 },
               exit: { opacity: 0 },
               onClick: onClose,
               className: 'fixed inset-0 z-50 bg-black/40',
-            } as any)}
+            }}
           />
           <motion.div
             {...({
@@ -224,7 +207,7 @@ export function RoomDetailSheet({
                   <h2 className='text-lg font-semibold text-red-800'>{room.name}</h2>
                 </div>
                 <div className='flex items-center gap-2'>
-                  {isAdmin && (
+                  {canManage && (
                     <Button
                       variant='primary-outline'
                       onClick={() => {
@@ -270,22 +253,24 @@ export function RoomDetailSheet({
             </div>
 
             <div className='flex h-full flex-col overflow-y-auto'>
-              <Tabs defaultValue={activeTab} className='h-full overflow-auto'>
+              <Tabs defaultValue={activeTab} className='h-full overflow-x-hidden overflow-y-auto'>
                 <TabsList variant='line'>
-                  {tabsTrigger.map((tabs) => (
-                    <TabsTrigger
-                      key={tabs}
-                      value={tabs}
-                      onClick={() => setActiveTab(tabs)}
-                      className='cursor-pointer rounded-none text-sm font-medium text-neutral-400 hover:text-red-800 data-[state=active]:border-b-2 data-[state=active]:border-b-red-800 data-[state=active]:text-red-800 data-[state=active]:after:opacity-0!'
-                    >
-                      {tabs === 'overview'
-                        ? 'Ringkasan Ruangan'
-                        : tabs === 'participants'
-                          ? 'Akses dan Peserta Ruangan'
-                          : 'Pengaturan Ruangan'}
-                    </TabsTrigger>
-                  ))}
+                  {tabsTrigger
+                    .filter((tabs) => (!canManage ? tabs !== 'settings' : tabs))
+                    .map((tabs) => (
+                      <TabsTrigger
+                        key={tabs}
+                        value={tabs}
+                        onClick={() => setActiveTab(tabs)}
+                        className='cursor-pointer rounded-none text-sm font-medium text-neutral-400 hover:text-red-800 data-[state=active]:border-b-2 data-[state=active]:border-b-red-800 data-[state=active]:text-red-800 data-[state=active]:after:opacity-0!'
+                      >
+                        {tabs === 'overview'
+                          ? 'Ringkasan Ruangan'
+                          : tabs === 'participants'
+                            ? 'Akses dan Peserta Ruangan'
+                            : 'Pengaturan Ruangan'}
+                      </TabsTrigger>
+                    ))}
                 </TabsList>
                 <TabsContent value={activeTab}>
                   <RoomTabs
@@ -406,14 +391,14 @@ export function RoomDetailSheet({
         header={{
           children: (
             <div className='relative w-full'>
-              <div className='h-[172px] rounded-md bg-red-100 p-3'>
+              <div className='h-43 rounded-md bg-red-100 p-3'>
                 <p className='mb-3 text-left text-base font-semibold text-red-800'>{room?.name}</p>
                 <div className='flex flex-col gap-3'>
                   <Button
                     variant='primary'
                     className='w-full'
                     onClick={() => {
-                      setModalDetail(false)
+                      setModalDetail?.(false)
                       handleEdit(room)
                     }}
                   >
@@ -431,7 +416,7 @@ export function RoomDetailSheet({
               </div>
               <Button
                 className='absolute top-2 right-3 size-9 bg-red-200 p-1 hover:bg-red-300/70'
-                onClick={() => setModalDetail(false)}
+                onClick={() => setModalDetail?.(false)}
               >
                 <Icon type='close' className='text-red-500' />
                 <span className='sr-only'>Close</span>
@@ -468,19 +453,19 @@ export function RoomDetailSheet({
                 },
               },
               filterParticipants: { value: status, onValueChange: (val) => setStatus(val) },
-              onClose: () => setModalDetail(false),
+              onClose: () => setModalDetail?.(false),
               setIsOpenBlock,
               setUserIdentity,
             },
             settings: {
               setIsOpenDelete,
-              onClose: () => setModalDetail(false),
+              onClose: () => setModalDetail?.(false),
             },
           }}
         />
         <div className='mt-2 space-y-6'>
           <Button
-            onClick={() => setModalDetail(false)}
+            onClick={() => setModalDetail?.(false)}
             variant='ghost'
             className='w-full text-red-800'
           >

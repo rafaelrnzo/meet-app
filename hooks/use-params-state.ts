@@ -34,6 +34,9 @@ export function useParamsState<P extends Params = Params>() {
   const isTabsChats = tabsCode === TabsCode.TabsChats
   const isTabsPersonalize = tabsCode === TabsCode.TabsPersonalize
   const isTabsSettings = tabsCode === TabsCode.TabsSettings
+  const isTabsSettingsRecordings = tabsCode === TabsCode.TabsSettingsRecordings
+  const isTabsSettingsRooms = tabsCode === TabsCode.TabsSettingsRooms
+  const isTabsSettingsParticipants = tabsCode === TabsCode.TabsSettingsParticipants
   const isTabsActive = tabsCode > 0
 
   const openTab = (target: TabsCode) => router.replace(qstring(pathname, { ...currentParams, [SearchParamsKey.TabsCode]: target })) // prettier-ignore
@@ -47,6 +50,9 @@ export function useParamsState<P extends Params = Params>() {
   const openTabsChats = () => openTab(TabsCode.TabsChats)
   const openTabsPersonalize = () => openTab(TabsCode.TabsPersonalize)
   const openTabsSettings = () => openTab(TabsCode.TabsSettings)
+  const openTabsSettingsRecordings = () => openTab(TabsCode.TabsSettingsRecordings)
+  const openTabsSettingsRooms = () => openTab(TabsCode.TabsSettingsRooms)
+  const openTabsSettingsParticipants = () => openTab(TabsCode.TabsSettingsParticipants)
 
   return {
     // router primitives
@@ -81,6 +87,9 @@ export function useParamsState<P extends Params = Params>() {
     isTabsChats,
     isTabsPersonalize,
     isTabsSettings,
+    isTabsSettingsRecordings,
+    isTabsSettingsRooms,
+    isTabsSettingsParticipants,
     isTabsActive,
 
     // TabsCode toggles
@@ -95,5 +104,8 @@ export function useParamsState<P extends Params = Params>() {
     openTabsChats,
     openTabsPersonalize,
     openTabsSettings,
+    openTabsSettingsRecordings,
+    openTabsSettingsRooms,
+    openTabsSettingsParticipants,
   }
 }

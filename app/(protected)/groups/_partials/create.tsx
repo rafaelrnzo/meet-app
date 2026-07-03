@@ -1,14 +1,14 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import type { InferType } from 'yup'
 import type { SetStateAction } from 'react'
-import { Modal } from '@/components/ui/modal'
-import FormController from '@/app/(protected)/groups/_partials/form-controller'
+import type { Group } from '@/lib/api/admin-api'
+import { useEffect, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
 import { createGroupsSchema } from '@/schema/groups'
-import type { InferType } from 'yup'
-import type { Group } from '@/lib/api/admin-api'
+import { Modal } from '@/components/ui/modal'
 import { Icon } from '@/components/ui/icon'
+import { default as FormController } from '@/app/(protected)/groups/_partials/form-controller'
 
 interface CreateDialogProps {
   isCreateOpen: boolean

@@ -1,19 +1,8 @@
-import { useSession } from 'next-auth/react'
 import { useEffectEvent, useEffect } from 'react'
-
-type SourceEventType = (typeof SOURCE_EVENTS)[number]
-const SOURCE_EVENTS = [
-  'connected',
-  'room_updated',
-  'participant_joined',
-  'participant_left',
-  'recording_started',
-  'recording_stopped',
-  'ping',
-] as const
+import { useSession } from 'next-auth/react'
 
 type SourceEventParams = {
-  type: SourceEventType
+  type: string
   data?: {
     room_id?: string
     num_publishers?: number
@@ -28,16 +17,19 @@ type SourceEventParams = {
   }
 }
 
-export function useSourceEventRooms(callbackFn: (event: SourceEventParams) => void) {
+export function useSourceEventRooms(
+  callbackFn: (event: SourceEventParams) => void,
+  eventDeps: string[]
+) {
   const callbackEvent = useEffectEvent(callbackFn)
   const { data: session } = useSession()
-  const sessionData = { publicUrl: session?.publicUrl ?? '', token: session?.access_token ?? '' }
 
   const parseCallbackFn = useEffectEvent((event: MessageEvent<string>) => {
     try {
       const { type, data } = JSON.parse(event.data) as SourceEventParams
-      if (['ping', 'connected'].includes(type)) return
-
+      if (!eventDeps.includes(type)) {
+        return
+      }
       callbackEvent({ type, data })
     } catch (err) {
       console.error('Failed to parse souce event rooms', err, event.data)
@@ -45,25 +37,30 @@ export function useSourceEventRooms(callbackFn: (event: SourceEventParams) => vo
   })
 
   useEffect(() => {
-    const { publicUrl, token } = sessionData
+    const publicUrl = session?.publicUrl ?? ''
+    const token = session?.access_token ?? ''
+
+    if (!eventDeps.length) {
+      return
+    }
 
     const es = new EventSource(`${publicUrl}/api/rooms/events?token=${token}`)
     es.onmessage = parseCallbackFn
 
-    SOURCE_EVENTS.forEach((sourceEvent) => {
+    eventDeps.forEach((sourceEvent) => {
       es.addEventListener(sourceEvent, parseCallbackFn)
     })
 
-    es.onerror = (err) => {
-      console.log(err)
+    es.onerror = () => {
+      // Detect error here
     }
 
     return () => {
       es.close()
 
-      SOURCE_EVENTS.forEach((sourceEvent) => {
+      eventDeps.forEach((sourceEvent) => {
         es.removeEventListener(sourceEvent, parseCallbackFn)
       })
     }
-  }, [])
+  }, [session?.access_token, session?.publicUrl, eventDeps])
 }

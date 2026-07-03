@@ -1,16 +1,16 @@
 'use client'
 
-import { Button } from '@/components/ui/button'
-import { useEffect, useMemo, useState } from 'react'
+import type { InferType } from 'yup'
 import type { SetStateAction } from 'react'
 import type { Group, User } from '@/lib/api/admin-api'
-import { Modal } from '@/components/ui/modal'
 import type { Option } from '@/app/(protected)/groups/_partials/form-controller'
-import FormController from '@/app/(protected)/groups/_partials/form-controller'
+import { useEffect, useMemo, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
-import type { InferType } from 'yup'
 import { editGroupSchema } from '@/schema/groups'
+import { Modal } from '@/components/ui/modal'
 import { Icon } from '@/components/ui/icon'
+import { Button } from '@/components/ui/button'
+import { default as FormController } from '@/app/(protected)/groups/_partials/form-controller'
 
 interface EditDialogProps {
   isManageOpen: boolean
@@ -168,16 +168,16 @@ export default function EditDialog({
       >
         <div className='block items-end gap-2 md:flex'>
           <FormController
-            required
             formApi={form}
             name='user_ids'
             type='combobox'
+            required
             label='Tambah peserta kelompok'
             placeholder='Ketik nama peserta di sini...'
             items={allOptions}
             onValueChange={(value) => {
               if (!value) return
-              const numbers = (value as { value: number }[]).map((v) => Number(v))
+              const numbers = (value as unknown as { value: number }[]).map((v) => Number(v))
               setDisabledAdd(numbers)
             }}
             buttonProps={{
@@ -197,7 +197,7 @@ export default function EditDialog({
           <span className='mb-2 text-sm font-normal text-neutral-950'>
             Peserta saat ini {`(${displayedParticipants.length || 0})`}
           </span>
-          <div className='max-h-[281px] overflow-auto'>
+          <div className='max-h-70.25 overflow-auto'>
             {displayedParticipants.map((member) => (
               <div
                 key={member.id}

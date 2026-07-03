@@ -16,8 +16,13 @@ export enum LiveKitAction {
   PresentationUpdate = 'PRESENTATION_UPDATE',
   HandRaisedUpper = 'HANDRAISED_UPPER',
   HandRaisedLower = 'HANDRAISED_LOWER',
+  AllMicrophoneUpdate = 'ALL_MICROPHONE_UPDATE',
   MicrophoneUpdate = 'MICROPHONE_UPDATE',
   PollingVoteNow = 'POLLING_VOTE_NOW',
+  Reaction = 'REACTION',
+  PickUser = 'RANDOM_USER_SELECTED',
+  WaitingUpdate = 'WAITING_ROOM',
+  DisconnectRoom = 'ROOM_DISCONNECT',
 }
 
 export enum ParticipantAttribute {
@@ -27,6 +32,11 @@ export enum ParticipantAttribute {
   ScreenActiveUrl = 'SCREEN_ACTIVE_URL',
   ScreenActivePolling = 'SCREEN_ACTIVE_POLLING',
   HandRaised = 'HAND_RAISED',
+  RoleName = 'ROLE_NAME',
+}
+
+export enum EventBus {
+  ManualToggleAudio = 'MANUAL_TOGGLE_AUDIO',
 }
 
 export enum ConnectionInterceptor {
@@ -66,6 +76,9 @@ export enum TabsCode {
   TabsChats = 3,
   TabsPersonalize = 4,
   TabsSettings = 5,
+  TabsSettingsRecordings = 51,
+  TabsSettingsRooms = 52,
+  TabsSettingsParticipants = 53,
 }
 
 export enum GroupsCode {
@@ -83,4 +96,13 @@ export enum GroupCode {
   WatchYoutube = 5,
   Recording = 6,
   PickRandom = 7,
+}
+
+export enum CameraResolution {
+  UHD = '4k',
+  QHD = '2k',
+  FULLHD = '1080p',
+  HIGH = '720p',
+  STANDART = '540p',
+  LOW = '360p',
 }

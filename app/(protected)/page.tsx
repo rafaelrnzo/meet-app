@@ -1,82 +1,15 @@
-'use client'
-
-import { useCallback, useEffect, useState, useTransition } from 'react'
-import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { fetchDbRooms, fetchActiveRooms, fetchUserDbRooms } from '@/lib/api/admin-api'
-import type { DbRoom, ActiveRoom, RoomParams } from '@/lib/api/admin-api'
-import { useAuth } from '@/hooks/use-auth'
+import type { ResponseNext } from '@/feat/types'
+import { getRoomListConfig } from '@/lib/api/admin-api'
+import { default as PageContainer } from '@/compounds/page-container'
+import { default as NoData } from '@/components/ui/no-data'
+import { JoinRoom } from '@/components/JoinRoom'
+import { RoomListHeader } from '@/components/features/rooms/RoomListHeader'
 import { RoomList } from '@/components/features/rooms/RoomList'
-import { djs } from '@/lib/utils'
-import PageContainer from '@/compounds/page-container'
-import { TableViewHeader } from '@/compounds/table-view/header'
-import { useIsMobile } from '@/hooks/use-mobile'
-import { Loader } from 'lucide-react'
-import { handleSearchNotFound, joinRoomAction } from '@/feat/rooms/helper'
 
-export default function HomePage() {
-  const router = useRouter()
-  const { isAdmin, loading: authLoading, hasPermission } = useAuth()
-  const [roomCodeInput, setRoomCodeInput] = useState('')
-  const [dbRooms, setDbRooms] = useState<DbRoom[]>([])
-  const [dbUserRooms, setUserDbRooms] = useState<DbRoom[]>([])
-  const [activeRooms, setActiveRooms] = useState<ActiveRoom[]>([])
-  const [loading, setLoading] = useState(false)
-  const [isPendingJoin, startTransitionJoin] = useTransition()
-  const isMobile = useIsMobile()
-  const [queryParams, setQueryParams] = useState<RoomParams>({})
-  const [isEmptyRoomCode, setIsEmptyRoomCode] = useState(false)
-  const canShareLink = hasPermission('room:share')
-
-  const loadData = useCallback(
-    async (params?: RoomParams) => {
-      setLoading(true)
-      try {
-        if (!isAdmin) {
-          const [dbData, liveData] = await Promise.allSettled([
-            fetchUserDbRooms({ ...params }),
-            fetchActiveRooms(),
-          ])
-          if (dbData.status === 'fulfilled') setUserDbRooms(dbData.value || [])
-          if (liveData.status === 'fulfilled') setActiveRooms(liveData.value || [])
-        } else {
-          const [dbData, liveData] = await Promise.allSettled([
-            fetchDbRooms({ ...params }),
-            fetchActiveRooms(),
-          ])
-          if (dbData.status === 'fulfilled') setDbRooms(dbData.value || [])
-          if (liveData.status === 'fulfilled') setActiveRooms(liveData.value || [])
-        }
-      } finally {
-        setLoading(false)
-      }
-    },
-    [isAdmin]
+export default async function HomePage(props: ResponseNext) {
+  const { isAdmin, isEmpty, isInvalid, rooms, hasPermission } = await getRoomListConfig(
+    await props.searchParams
   )
-
-  // SSE for real-time updates
-  // useSourceEventRooms((event) => {
-  //   // setActiveRooms((current) => applyRoomEventToActiveRooms(current, event))
-  //   if (event.type !== 'participant_joined' && event.type !== 'participant_left') {
-  //     loadData()
-  //   }
-  // })
-
-  useEffect(() => {
-    if (!authLoading) {
-      loadData()
-    }
-  }, [authLoading, loadData])
-
-  const displayedRooms = (isAdmin ? dbRooms : dbUserRooms).filter(({ end_date }) =>
-    djs().isBefore(end_date)
-  )
-  const isSearchNotFound = !!queryParams.search && !displayedRooms.length
-
-  useEffect(() => {
-    handleSearchNotFound({ search: queryParams.search, countData: displayedRooms.length })
-  }, [displayedRooms.length, queryParams.search])
 
   return (
     <PageContainer
@@ -84,68 +17,25 @@ export default function HomePage() {
       title='Beranda'
       subTitle='Bergabung dalam ruangan secara instan'
       backToTopButton
-      insertAfterTitle={
-        <div className='flex items-center gap-2 max-lg:w-full max-md:flex-col'>
-          <Input
-            className='aria-invalid:text-error w-full bg-white aria-invalid:border-red-200 aria-invalid:bg-red-200 lg:w-64 xl:w-87.5'
-            placeholder='Masukkan kode ruangan di sini ...'
-            value={roomCodeInput}
-            onChange={(e) => setRoomCodeInput(e.target.value)}
-            aria-invalid={isEmptyRoomCode && !roomCodeInput.trim().length}
-          />
-          <Button
-            className='max-md:w-full'
-            onClick={() =>
-              startTransitionJoin(async () => {
-                await joinRoomAction({
-                  code: roomCodeInput,
-                  setIsEmptyRoomCode,
-                  onSuccess: (code) => router.push(`/rooms/${encodeURIComponent(code)}`),
-                })
-              })
-            }
-            variant='primary'
-            disabled={isPendingJoin}
-          >
-            {isPendingJoin ? (
-              <>
-                <Loader className='animate-spin' /> Bergabung ...
-              </>
-            ) : (
-              'Gabung Ruangan'
-            )}
-          </Button>
-        </div>
-      }
+      insertAfterTitle={<JoinRoom rooms={rooms} />}
     >
-      <div className='space-y-4 md:space-y-8'>
-        <TableViewHeader
-          search={{
-            placeholder: 'Cari ruangan',
-            onSearch: (search) => {
-              const updatedParams = { ...queryParams, search }
-              setQueryParams(updatedParams)
-              loadData(updatedParams)
-            },
-            'aria-invalid': isSearchNotFound,
-          }}
-          {...((!isMobile || isSearchNotFound) && {
-            headerAddon: (
-              <span className='text-base font-semibold text-red-800'>
-                {displayedRooms.length} Daftar Ruangan
-              </span>
-            ),
-          })}
+      {isEmpty ? (
+        <NoData
+          title='Tidak Ada Ruangan yang Tersedia'
+          desc='Ruangan yang sedang berlangsung akan muncul disini.'
+          className='mt-[min(20vh,200px)]'
         />
-
-        <RoomList
-          loading={loading}
-          staticRooms={displayedRooms}
-          activeRooms={activeRooms}
-          isAdmin={isAdmin}
-          canShareLink={canShareLink}
+      ) : (
+        <RoomListHeader
+          isInvalid={isInvalid}
+          headerAddon={
+            <span className='text-base font-semibold text-red-800'>
+              {rooms.length} Daftar Ruangan
+            </span>
+          }
         />
-      </div>
+      )}
+      <RoomList rooms={rooms} isAdmin={isAdmin} canShareLink={hasPermission('room:share')} />
     </PageContainer>
   )
 }

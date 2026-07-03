@@ -1,6 +1,6 @@
-import { Icon } from '@/components/ui/icon'
-import { BackToTopButton } from '@/compounds/back-to-top-button'
 import { cn } from '@/lib/utils'
+import { BackToTopButton } from '@/compounds/back-to-top-button'
+import { Icon } from '@/components/ui/icon'
 
 interface VariantProps {
   icon: 'room' | 'groups' | 'users' | 'roles' | 'recording'

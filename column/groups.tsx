@@ -1,10 +1,10 @@
 'use client'
 
-import { Icon } from '@/components/ui/icon'
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
-import ActionButton from '@/compounds/action-button'
-import type { Group } from '@/lib/api/admin-api'
 import type { CellContext, ColumnDef } from '@tanstack/react-table'
+import type { Group } from '@/lib/api/admin-api'
+import { default as ActionButton } from '@/compounds/action-button'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { Icon } from '@/components/ui/icon'
 
 interface GroupsColumnProps {
   handleDelete: ({ id, name }: { id: number; name: string }) => void
