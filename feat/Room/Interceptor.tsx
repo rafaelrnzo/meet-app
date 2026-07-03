@@ -34,11 +34,6 @@ export const InterceptorRoom: FC<InterceptorRoomProps> = ({
       description: 'Silakan hubungi admin untuk bergabung ke rapat ini.',
       back: 'Kembali',
     },
-    [ConnectionInterceptor.Unauthorized]: {
-      title: 'Anda tidak memiliki izin untuk mengakses ruang rapat',
-      description: 'Silakan hubungi admin untuk bergabung ke rapat ini.',
-      back: 'Kembali',
-    },
   }
 
   const { title, description, back } = copy[interceptor]

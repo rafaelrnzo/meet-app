@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuth } from '@/hooks/use-auth'
+import { authService } from '@/src/services/auth'
 
 /**
  * A wrapper component that checks for user authentication.
@@ -14,11 +14,10 @@ import { useAuth } from '@/hooks/use-auth'
  */
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const router = useRouter()
-  const { isAuthenticated } = useAuth()
   const [authorized, setAuthorized] = useState(false)
 
   useEffect(() => {
-    if (!isAuthenticated) {
+    if (!authService.isAuthenticated()) {
       router.push('/login')
     } else {
       setAuthorized(true)
