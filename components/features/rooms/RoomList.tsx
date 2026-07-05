@@ -137,9 +137,13 @@ const RoomList: FC<RoomListProps> = ({
   }
 
   function handleGenerateRoomCode(roomId: number) {
-    generateCode(roomId)
-      .then(() => router.refresh())
-      .catch((e) => toast.error(e instanceof Error ? e.message : 'Gagal membuat kode ruangan baru'))
+    generateCode(roomId).then(({ code, message }) => {
+      if (code) {
+        return router.refresh()
+      }
+
+      toast.error(message || 'Gagal membuat kode ruangan baru')
+    })
   }
 
   function handleShareLink(roomName: string) {
