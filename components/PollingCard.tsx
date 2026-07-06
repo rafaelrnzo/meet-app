@@ -1,9 +1,8 @@
 'use client'
 
 import type { FC } from 'react'
-import { useEffect, useRef, useState } from 'react'
+import { useState } from 'react'
 import { cn, djs } from '@/lib/utils'
-import { formatCountdown } from '@/feat/helpers'
 
 export interface PollingCardProps {
   loading?: boolean
@@ -33,8 +32,6 @@ export interface PollingMessage {
   totalParticipant: number
 }
 
-const TIMER_IN_MS = 60 * 3 // 3 min
-
 const ACTION_CLASSES = cn(
   'text-destructive mt-3 inline-flex size-auto h-11 not-disabled:cursor-pointer items-center justify-center rounded-md text-center font-semibold',
   'hover:not-disabled:bg-red-300 bg-red-200 disabled:opacity-40'
@@ -46,57 +43,14 @@ export const PollingCard: FC<PollingCardProps> = ({
   openedAt,
   totalParticipant,
   isResult = false,
-  withTimer = false,
   loading = false,
   onCheckedChange,
   onClosePolling,
 }) => {
   const [checkedId, setCheckedId] = useState(0)
-  const [feedback, setFeedback] = useState(false)
-  const [counter, setCounter] = useState(withTimer ? TIMER_IN_MS : -1)
   const Label = isResult ? 'p' : 'label'
-  const onClosePollingRef = useRef(onClosePolling)
   const answers = isResult ? options : options.filter((option) => option.id !== -2)
   const votesLength = answers.reduce((acc, ans) => acc + ans.votes.length, 0)
-
-  useEffect(() => {
-    if (!isResult || !withTimer) return
-
-    const timer = setInterval(() => {
-      setCounter((prev) => {
-        if (!(prev - 1)) {
-          clearInterval(timer)
-        }
-
-        return prev - 1
-      })
-    }, 1_000)
-
-    return () => {
-      clearInterval(timer)
-    }
-  }, [isResult, withTimer])
-
-  useEffect(() => {
-    if (!counter) {
-      onClosePollingRef.current?.()
-    }
-  }, [counter])
-
-  // INI NGIDE AJA WKWK, BIAR USERNYA GA BINGUNG KRN GADA DI FIGMA
-  if (feedback) {
-    return (
-      <div className='text-foreground bg-background mt-4 flex w-full flex-col gap-4 rounded-md border p-5 shadow'>
-        <p>Pendapat sudah direkam. Admin segera memproses pendapat Anda.</p>
-        <button
-          className='bg-secondary hover:not-disabled:bg-foreground/14 ml-auto inline-flex h-9 items-center rounded-md border px-3 text-sm shadow'
-          onClick={() => setFeedback(false)}
-        >
-          Ubah
-        </button>
-      </div>
-    )
-  }
 
   return (
     <div className='text-foreground bg-background mt-4 flex w-full flex-col gap-4 rounded-md border p-5 shadow'>
@@ -145,7 +99,6 @@ export const PollingCard: FC<PollingCardProps> = ({
                 onClick={() => {
                   onCheckedChange?.(-1)
                   setCheckedId(-1)
-                  setFeedback(true)
                 }}
               >
                 Lewati Pendapat {checkedId === id ? '(dilewati)' : ''}
@@ -168,7 +121,6 @@ export const PollingCard: FC<PollingCardProps> = ({
                     onChange={() => {
                       onCheckedChange?.(id)
                       setCheckedId(id)
-                      setFeedback(true)
                     }}
                   />
                 )}
@@ -197,11 +149,7 @@ export const PollingCard: FC<PollingCardProps> = ({
       </ul>
       {isResult && onClosePolling && (
         <button disabled={loading} onClick={() => onClosePolling()} className={cn(ACTION_CLASSES)}>
-          {loading ? (
-            'Menutup pendapat...'
-          ) : (
-            <>Tutup Pendapat {counter >= 0 ? `(${formatCountdown(counter)})` : ''}</>
-          )}
+          {loading ? 'Menutup pendapat...' : 'Tutup Pendapat'}
         </button>
       )}
     </div>

@@ -4,7 +4,7 @@ import { SmileyIcon } from '@phosphor-icons/react'
 import { useReaction } from '@/hooks/use-reaction'
 import { ButtonIcon } from '@/components/Button'
 
-export const ReactionIcon = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: () => void }) => {
+export const ReactionIcon = ({ isOpen, onToggle }: { isOpen: boolean; onToggle?: () => void }) => {
   const { sendReaction, reactions } = useReaction()
   const truncateName = (name: string, length: number) => {
     return name.length > length ? name.slice(0, length) + '...' : name
@@ -16,7 +16,7 @@ export const ReactionIcon = ({ isOpen, onToggle }: { isOpen: boolean; onToggle: 
         <SmileyIcon weight='fill' size={24} />
       </ButtonIcon>
       {isOpen && (
-        <div className='absolute bottom-32 left-1/2 z-50 mb-4 flex -translate-x-1/2 gap-4 rounded-full border border-neutral-400 bg-white p-2 shadow-xl'>
+        <div className='absolute bottom-32 left-1/2 mb-4 flex -translate-x-1/2 gap-4 rounded-full border border-neutral-400 bg-white p-2 shadow-xl'>
           {['💖', '👍', '🎉', '👏', '😂', '😮'].map((emoji) => (
             <button
               key={emoji}

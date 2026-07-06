@@ -1,4 +1,4 @@
-import type { Room } from 'livekit-client'
+import type { RemoteParticipant, Room } from 'livekit-client'
 import * as Y from 'yjs'
 import { Awareness } from 'y-protocols/awareness'
 import { ConnectionState, RoomEvent } from 'livekit-client'
@@ -34,6 +34,7 @@ export class LiveKitYjsProvider<T extends object = TLDrawCursor> {
 
   private _chunkBuffer = new Map<string, (Uint8Array | null)[]>()
   private _cleanupInterval: ReturnType<typeof setInterval>
+  private _participantAwareness = new Map<string, number>()
 
   private _handleUpdate: (update: Uint8Array, origin: unknown) => void
   private _handleAwareness: (
@@ -115,6 +116,13 @@ export class LiveKitYjsProvider<T extends object = TLDrawCursor> {
             clientId: number
             state: AwarenessState<T>
           }
+          if (_participant && 'identity' in (_participant as never)) {
+            this._participantAwareness.set(
+              (_participant as { identity: string }).identity,
+              clientId
+            )
+          }
+
           this.awareness.getStates().set(clientId, state)
           this.awareness.emit('change', [{ added: [], updated: [clientId], removed: [] }, 'remote'])
         } catch (e) {
@@ -128,6 +136,7 @@ export class LiveKitYjsProvider<T extends object = TLDrawCursor> {
     doc.on('update', this._handleUpdate)
     this.awareness.on('change', this._handleAwareness)
     room.on(RoomEvent.DataReceived, this._handleDataReceived)
+    room.on(RoomEvent.ParticipantDisconnected, this._handleParticipantDisconnected)
 
     // Clean up stale chunks every 30 seconds (handle packet loss edge case)
     this._cleanupInterval = setInterval(() => this._chunkBuffer.clear(), 30_000)
@@ -164,6 +173,23 @@ export class LiveKitYjsProvider<T extends object = TLDrawCursor> {
     return null
   }
 
+  private _handleParticipantDisconnected = (participant: RemoteParticipant) => {
+    const clientId = this._participantAwareness.get(participant.identity)
+
+    if (clientId == null) return
+
+    this._participantAwareness.delete(participant.identity)
+    this.awareness.getStates().delete(clientId)
+    this.awareness.emit('change', [
+      {
+        added: [],
+        updated: [],
+        removed: [clientId],
+      },
+      'remote',
+    ])
+  }
+
   private _requestInitialState() {
     if (this.room.state !== ConnectionState.Connected) return
     const stateVector = Y.encodeStateVector(this.doc)
@@ -181,5 +207,6 @@ export class LiveKitYjsProvider<T extends object = TLDrawCursor> {
     this.awareness.off('change', this._handleAwareness)
     this.awareness.destroy()
     this.room.off(RoomEvent.DataReceived, this._handleDataReceived)
+    this.room.off(RoomEvent.ParticipantDisconnected, this._handleParticipantDisconnected)
   }
 }
