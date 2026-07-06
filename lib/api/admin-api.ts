@@ -192,15 +192,21 @@ export async function deleteDbRoom(id: number): Promise<void> {
   })
 }
 
-export async function generateCode(roomId: number): Promise<{ code: string }> {
-  const res = await apiRequest<{ code: string }>(
-    `/admin/rooms/${roomId}/regenerate-code?length=10`,
-    {
-      method: 'POST',
-      cache: 'no-store',
-    }
-  )
-  return res
+export async function generateCode(
+  roomId: number
+): Promise<{ code: string | null; message?: string }> {
+  try {
+    const res = await apiRequest<{ code: string }>(
+      `/admin/rooms/${roomId}/regenerate-code?length=10`,
+      {
+        method: 'POST',
+        cache: 'no-store',
+      }
+    )
+    return { code: res.code }
+  } catch (e) {
+    return { code: null, message: e instanceof Error ? e.message : '' }
+  }
 }
 
 export async function uploadRoomPresentation(id: number, file: File): Promise<{ path: string }> {

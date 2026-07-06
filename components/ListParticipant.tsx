@@ -4,7 +4,6 @@ import type { FC } from 'react'
 import type { HostMessage } from '@/feat/Tabs'
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { useParticipants } from '@livekit/components-react'
 import {
   BlockGameIcon,
   DoNotTouch01Icon,
@@ -37,12 +36,12 @@ import {
 import { HugeIcon } from '@/components/HugeIcon'
 import { Button } from '@/components/Button'
 
-export const ListParticipantPending: FC<{ participantPending: HostMessage['participants'] }> = ({
-  participantPending,
-}) => {
+export const ListParticipantPending: FC<{
+  participantPending: HostMessage['participants']
+  onHandleParticipant?: (participantId: string) => void
+}> = ({ participantPending, onHandleParticipant }) => {
   const { name: roomName } = useParams<{ name: string }>()
   const [loadingId, setLoadingId] = useState<string[]>([])
-  const mergedParticipant = useParticipants()
 
   async function handleParticipant(action: 'accept' | 'reject', participantId: string) {
     try {
@@ -52,6 +51,7 @@ export const ListParticipantPending: FC<{ participantPending: HostMessage['parti
         roomName,
         identity: participantId,
       })
+      onHandleParticipant?.(participantId)
     } catch (e) {
       console.log('Failed to accept/reject:', e)
     } finally {
@@ -60,44 +60,32 @@ export const ListParticipantPending: FC<{ participantPending: HostMessage['parti
   }
 
   return (
-    <div>
-      {!!participantPending.length && (
-        <div>
-          <h3>Pending</h3>
-          <ul>
-            {participantPending.map(({ participantId, participantName }) => (
-              <li key={participantId} className='flex items-center justify-between'>
-                <p>{participantName}</p>
-                <button
-                  className='text-destructive disabled:opacity-70'
-                  disabled={loadingId.includes(participantId)}
-                  onClick={() => handleParticipant('reject', participantId)}
-                >
-                  Tolak
-                </button>
-                <button
-                  className='disabled:opacity-70'
-                  disabled={loadingId.includes(participantId)}
-                  onClick={() => handleParticipant('accept', participantId)}
-                >
-                  Terima
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+    !!participantPending.length && (
       <div>
-        <h3>Semua</h3>
+        <h3>Pending</h3>
         <ul>
-          {mergedParticipant.map(({ identity, ...participant }) => (
-            <li key={identity}>
-              <p>{participant.name}</p>
+          {participantPending.map(({ participantId, participantName }) => (
+            <li key={participantId} className='flex items-center justify-between'>
+              <p>{participantName}</p>
+              <button
+                className='text-destructive disabled:opacity-70'
+                disabled={loadingId.includes(participantId)}
+                onClick={() => handleParticipant('reject', participantId)}
+              >
+                Tolak
+              </button>
+              <button
+                className='disabled:opacity-70'
+                disabled={loadingId.includes(participantId)}
+                onClick={() => handleParticipant('accept', participantId)}
+              >
+                Terima
+              </button>
             </li>
           ))}
         </ul>
       </div>
-    </div>
+    )
   )
 }
 
@@ -205,7 +193,7 @@ export function ListParticipant() {
                         ) : (
                           <>
                             <button
-                              onClick={() => (isLocal ? lowerHandLocal() : lowerHand(identity))}
+                              onClick={isLocal ? lowerHandLocal : lowerHand.bind(null, identity)}
                               disabled={!canClickHand}
                               className={cn('rounded-full p-2 transition-colors', {
                                 'cursor-pointer hover:bg-neutral-100': canClickHand,

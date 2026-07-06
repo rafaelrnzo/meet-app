@@ -138,16 +138,16 @@ export function usePollingQuestion(config?: { optionLength?: number }) {
   )
 
   const disabled =
-    !question ||
-    options.filter((option) => !!option.value).length < 2 ||
+    !question.trim() ||
+    options.filter((option) => !!option.value.trim()).length < 2 ||
     options
-      .filter((option) => !!option.value)
+      .filter((option) => !!option.value.trim())
       .reduce(
         (acc, opt) => {
-          if (opt.value.toLowerCase() === acc.text.toLowerCase()) {
+          if (opt.value.trim().toLowerCase() === acc.text.toLowerCase()) {
             acc.dup = true
           } else {
-            acc.text = opt.value.toLowerCase()
+            acc.text = opt.value.trim().toLowerCase()
           }
 
           return acc
