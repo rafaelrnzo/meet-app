@@ -99,10 +99,10 @@ export enum GroupCode {
 }
 
 export enum CameraResolution {
-  UHD = '4k',
-  QHD = '2k',
-  FULLHD = '1080p',
-  HIGH = '720p',
-  STANDART = '540p',
-  LOW = '360p',
+  UHD = 2160,
+  QHD = 1440,
+  FULLHD = 1080,
+  HIGH = 720,
+  STANDART = 540,
+  LOW = 360,
 }

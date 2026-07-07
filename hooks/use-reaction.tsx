@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocalParticipant } from '@livekit/components-react'
 import { useDataChannel } from '@/hooks/use-data-channel'
 import { LiveKitAction } from '@/feat/enum'
@@ -13,6 +13,7 @@ interface Reaction {
 export const useReaction = () => {
   const { localParticipant } = useLocalParticipant()
   const [reactions, setReactions] = useState<Reaction[]>([])
+  const reactionElementRef = useRef<HTMLDivElement | null>(null)
 
   const addReaction = ({ id, emoji, senderName, x }: Reaction) => {
     setReactions((prev) => [
@@ -43,5 +44,36 @@ export const useReaction = () => {
     send(emoji, { reliable: false })
   }
 
-  return { sendReaction, reactions }
+  const truncateName = (name: string, length: number) => {
+    return name.length > length ? name.slice(0, length) + '...' : name
+  }
+
+  // Imperative - Not possible through declarative state
+  useEffect(() => {
+    const gridWrapper = document.querySelector<HTMLElement>('.lk-grid-layout-wrapper')
+    if (!gridWrapper || !reactionElementRef.current) {
+      return
+    }
+
+    const observer = new ResizeObserver((entries) => {
+      entries.forEach((entry) => {
+        const [{ inlineSize, blockSize }] = entry.borderBoxSize
+        const reactionElement = reactionElementRef.current
+
+        if (reactionElement) {
+          reactionElement.style.width = inlineSize + 'px'
+          reactionElement.style.height = blockSize + 'px'
+        } else {
+          observer.unobserve(entry.target)
+        }
+      })
+    })
+
+    observer.observe(gridWrapper)
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
+  return { truncateName, sendReaction, reactions, reactionElementRef }
 }

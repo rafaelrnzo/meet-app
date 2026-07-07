@@ -2,6 +2,7 @@ import { Inter } from 'next/font/google'
 import { SessionProvider } from 'next-auth/react'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { Toaster } from '@/components/ui/sonner'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import './globals.css'
 
 export const metadata = {
@@ -19,9 +20,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang='en' className={`${inter.variable} antialiased`}>
       <body style={{ margin: 0 }}>
-        <SessionProvider>
-          <TooltipProvider>{children}</TooltipProvider>
-        </SessionProvider>
+        <ErrorBoundary>
+          <SessionProvider>
+            <TooltipProvider>{children}</TooltipProvider>
+          </SessionProvider>
+        </ErrorBoundary>
         <Toaster position='bottom-right' richColors />
       </body>
     </html>
