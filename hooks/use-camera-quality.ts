@@ -74,11 +74,13 @@ export const useCameraQuality = () => {
     }
   })
 
-  // Sync max capability
-  useEffect(() => syncMaxResolutionEvent(track?.id), [track?.id])
+  useEffect(() => {
+    // Sync max capability
+    syncMaxResolutionEvent(track?.id)
 
-  // Sync resolution state when new track comes in
-  useEffect(() => syncResolutionStateEvent(track?.id), [track?.id])
+    // Sync resolution state when new track comes in
+    syncResolutionStateEvent(track?.id)
+  }, [track?.id])
 
   return {
     resolution,

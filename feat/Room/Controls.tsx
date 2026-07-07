@@ -9,6 +9,7 @@ import {
   MicIcon,
   useRoomContext,
   useConnectionState,
+  useLocalParticipant,
 } from '@livekit/components-react'
 import { useMediaControls } from '@/hooks'
 import { ToggleTrack } from '@/components/ToggleTrack'
@@ -19,23 +20,43 @@ import { ButtonIcon } from '@/components/Button'
 
 export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
   const room = useRoomContext()
+  const { localParticipant } = useLocalParticipant()
   const {
-    audioEnabled,
+    // audioEnabled,
     videoEnabled,
     shareScreenEnabled,
-    handleToggleAudio,
+    // handleToggleAudio,
     handleToggleShareScreen,
-  } = useMediaControls({ room })
+  } = useMediaControls({
+    defaults: { audioEnabled: false, videoEnabled: false },
+    persistUserChoices: false,
+    room,
+  })
   const state = useConnectionState(room)
   const [activeState, setActiveState] = useState<'camera' | 'reaction' | ''>('')
   const isCameraActive = activeState === 'camera'
   const isReactionActive = activeState === 'reaction'
+  const audioEnabled = localParticipant.isMicrophoneEnabled
 
   useEffect(() => {
     if (!videoEnabled) {
       setActiveState('')
     }
   }, [videoEnabled])
+
+  // useEffect(() => {
+  //   const storage = localStorage.getItem('lk-user-choices')
+  //   if (storage) {
+  //     try {
+  //       const uchoices = JSON.parse(storage)
+  //       if (typeof uchoices === 'object') {
+  //         localStorage.setItem('lk-user-choices', JSON.stringify({ ...uchoices, audioEnabled }))
+  //       }
+  //     } catch (e) {
+  //       console.log('Failed to parse storage:', e)
+  //     }
+  //   }
+  // }, [audioEnabled])
 
   if (state === ConnectionState.Connecting) {
     return null
@@ -46,8 +67,27 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
       <ToggleTrack
         title={audioEnabled ? 'Bisukan mikrofon' : 'Aktifkan mikrofon'}
         isActive={audioEnabled}
-        onClick={handleToggleAudio}
         className='size-10 md:size-12'
+        onClick={async () => {
+          const storage = localStorage.getItem('lk-user-choices')
+          if (storage) {
+            try {
+              const uchoices = JSON.parse(storage)
+              if (typeof uchoices === 'object') {
+                localStorage.setItem(
+                  'lk-user-choices',
+                  JSON.stringify({
+                    ...uchoices,
+                    audioEnabled: !audioEnabled,
+                  })
+                )
+              }
+            } catch (e) {
+              console.log('Failed to parse storage:', e)
+            }
+          }
+          await localParticipant.setMicrophoneEnabled(!audioEnabled)
+        }}
       >
         {audioEnabled ? <MicIcon /> : <MicDisabledIcon />}
       </ToggleTrack>
