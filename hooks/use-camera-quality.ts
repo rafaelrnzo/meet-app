@@ -1,112 +1,90 @@
 'use client'
 
-import type { CameraResolutionOptions } from '@/feat/const'
-import { useEffect, useState } from 'react'
+import type { CameraResolution } from '@/feat/enum'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
 import { Track, VideoPresets } from 'livekit-client'
-import { useLocalParticipant, useTracks } from '@livekit/components-react'
-import { CameraResolution } from '@/feat/enum'
+import { useLocalParticipant, usePersistentUserChoices, useTracks } from '@livekit/components-react'
 
-interface UseCameraQualityProps {
-  isVideoEnabled?: boolean
-  isOpen: boolean
-}
-
-export const useCameraQuality = ({ isVideoEnabled }: UseCameraQualityProps) => {
+export const useCameraQuality = () => {
   const { localParticipant } = useLocalParticipant()
-  const [selectedQuality, setSelectedQuality] = useState<CameraResolution>(CameraResolution.LOW)
-  const [maxCapabilities, setMaxCapabilities] = useState({ width: -1, height: -1 })
+  const { saveVideoInputEnabled } = usePersistentUserChoices()
+  const [resolution, setResolution] = useState(VideoPresets.h720.resolution)
+  const [maxResolution, setMaxResolution] = useState<number>(Infinity)
+  const pendingResolutionRef = useRef(VideoPresets.h720.resolution)
   const tracks = useTracks([Track.Source.Camera])
   const videoTrack = tracks.find((t) => t.participant.identity === localParticipant.identity)
   const track = videoTrack?.publication.track?.mediaStreamTrack
+  const isCameraEnabled = localParticipant.isCameraEnabled
 
-  useEffect(() => {
-    if (track) {
-      const capabilities = track.getCapabilities()
-      const settings = track.getSettings()
-      const constraint = track.getConstraints()
-
-      // No need to reset, let livekit does
-      setMaxCapabilities({
-        width: Math.max(
-          capabilities.width?.max ?? 0,
-          settings.width ?? 0,
-          constraint.width as number
-        ),
-        height: Math.max(
-          capabilities.height?.max ?? 0,
-          settings.height ?? 0,
-          constraint.height as number
-        ),
-      })
-    }
-  }, [track])
-
-  // "handleToggleMenuResolution" should listen video track in effect
-
-  const changeResolution = async (
-    quality: CameraResolution,
-    option: (typeof CameraResolutionOptions)[0]
-  ) => {
+  const changeResolution = async (quality: CameraResolution) => {
     const localTrack = localParticipant?.getTrackPublication(Track.Source.Camera)?.videoTrack
-    const targetPreset = { value: VideoPresets.h360 }
+    const preset = VideoPresets[`h${quality}` as keyof typeof VideoPresets]
 
-    await localParticipant.setCameraEnabled(false)
-
-    switch (quality) {
-      case CameraResolution.LOW:
-        targetPreset.value = VideoPresets.h360
-        break
-      case CameraResolution.STANDART:
-        targetPreset.value = VideoPresets.h540
-        break
-      case CameraResolution.HIGH:
-        targetPreset.value = VideoPresets.h720
-        break
-      case CameraResolution.FULLHD:
-        targetPreset.value = VideoPresets.h1080
-        break
-      case CameraResolution.QHD:
-        targetPreset.value = VideoPresets.h1440
-        break
-      case CameraResolution.UHD:
-        targetPreset.value = VideoPresets.h2160
-        break
-      default:
-        break
+    if (!preset || !localTrack) {
+      return
     }
+
+    // Capture preset resolution
+    pendingResolutionRef.current = preset.resolution
 
     try {
-      const { value } = targetPreset
-
-      // Restart instead apply constraint
-      await localTrack?.restartTrack({ resolution: value.resolution })
-
-      const activeSettings = localTrack?.mediaStreamTrack.getSettings()
-      console.log(`Resolusi berhasil diubah ke: ${activeSettings?.width}x${activeSettings?.height}`)
-      setSelectedQuality(option.value)
+      await localTrack.restartTrack({ resolution: preset.resolution })
+      setResolution(preset.resolution)
     } catch (error) {
       console.error('Gagal mengubah resolusi kamera:', error)
     }
   }
 
-  const isOptionDisabled = (value: string) => {
-    if (!isVideoEnabled || !maxCapabilities) return false
+  // Manually toggle camera - make it persistance follow livekit api
+  const toggleCamera = async () => {
+    if (!localParticipant.isCameraEnabled) {
+      // Set resolution when enable with correct constraint acquired by browser it self.
+      await localParticipant.setCameraEnabled(true, {
+        resolution: pendingResolutionRef.current,
+      })
+    } else {
+      await localParticipant.setCameraEnabled(false)
+    }
 
-    let optionWidth = 1280
-    if (value === '360p') optionWidth = 640
-    if (value === '540p') optionWidth = 960
-    if (value === '720p') optionWidth = 1280
-    if (value === '1080p') optionWidth = 1920
-    if (value === '2k') optionWidth = 2560
-    if (value === '4k') optionWidth = 3840
-
-    return optionWidth > maxCapabilities.width
+    saveVideoInputEnabled(localParticipant.isCameraEnabled)
   }
 
+  const syncMaxResolutionEvent = useEffectEvent((trackId?: string) => {
+    if (!track || track?.id !== trackId) return
+
+    const max = Math.max(
+      track.getCapabilities().height?.max ?? -1,
+      track.getSettings().height ?? -1
+    )
+
+    if (max > 0) setMaxResolution(max)
+  })
+
+  const syncResolutionStateEvent = useEffectEvent((trackId?: string) => {
+    if (!track || track?.id !== trackId) return
+
+    const currentHeight = track.getSettings().height
+    if (currentHeight) {
+      // Update the real track, instead forcing to restart
+      setResolution((prev) => ({
+        ...prev,
+        height: currentHeight,
+        width: track.getSettings().width ?? prev.width,
+      }))
+    }
+  })
+
+  // Sync max capability
+  useEffect(() => syncMaxResolutionEvent(track?.id), [track?.id])
+
+  // Sync resolution state when new track comes in
+  useEffect(() => syncResolutionStateEvent(track?.id), [track?.id])
+
   return {
-    selectedQuality,
+    resolution,
+    maxResolution,
+    isCameraEnabled,
     changeResolution,
-    isOptionDisabled,
-    setMaxCapabilities,
+    toggleCamera,
   }
 }

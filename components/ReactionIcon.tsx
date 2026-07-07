@@ -4,19 +4,16 @@ import { SmileyIcon } from '@phosphor-icons/react'
 import { useReaction } from '@/hooks/use-reaction'
 import { ButtonIcon } from '@/components/Button'
 
-export const ReactionIcon = ({ isOpen, onToggle }: { isOpen: boolean; onToggle?: () => void }) => {
-  const { sendReaction, reactions } = useReaction()
-  const truncateName = (name: string, length: number) => {
-    return name.length > length ? name.slice(0, length) + '...' : name
-  }
+export const ReactionIcon = ({ isOpen, onClick }: { isOpen: boolean; onClick?: () => void }) => {
+  const { sendReaction, truncateName, reactions, reactionElementRef } = useReaction()
 
   return (
-    <>
-      <ButtonIcon isActive={!isOpen} className='relative' onClick={onToggle}>
+    <div className='relative'>
+      <ButtonIcon isActive={!isOpen} className='relative' onClick={onClick}>
         <SmileyIcon weight='fill' size={24} />
       </ButtonIcon>
       {isOpen && (
-        <div className='absolute bottom-32 left-1/2 mb-4 flex -translate-x-1/2 gap-4 rounded-full border border-neutral-400 bg-white p-2 shadow-xl'>
+        <div className='absolute -top-[calc(100%+48px)] left-[calc(50%-40px)] flex -translate-x-1/2 gap-4 rounded-full border border-neutral-400 bg-white p-2 shadow-xl xl:-top-[calc(100%+67px)]'>
           {['💖', '👍', '🎉', '👏', '😂', '😮'].map((emoji) => (
             <button
               key={emoji}
@@ -28,7 +25,10 @@ export const ReactionIcon = ({ isOpen, onToggle }: { isOpen: boolean; onToggle?:
           ))}
         </div>
       )}
-      <div className='pointer-events-none absolute inset-0 z-50 overflow-hidden'>
+      <div
+        ref={reactionElementRef}
+        className='pointer-events-none fixed inset-0 top-3 left-3 overflow-hidden'
+      >
         {reactions.map(({ id, emoji, senderName, x }) => (
           <div
             key={id}
@@ -50,16 +50,16 @@ export const ReactionIcon = ({ isOpen, onToggle }: { isOpen: boolean; onToggle?:
             transform: translateY(0) scale(0.5);
             opacity: 0;
           }
-          10% {
-            transform: translateY(-50px) scale(1);
+          5% {
+            transform: translateY(-5vh) scale(1);
             opacity: 1;
           }
           100% {
-            transform: translateY(-500px) scale(0.8);
+            transform: translateY(-75vh);
             opacity: 0;
           }
         }
       `}</style>
-    </>
+    </div>
   )
 }
