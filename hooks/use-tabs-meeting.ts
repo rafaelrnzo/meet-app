@@ -82,47 +82,39 @@ export function useTabsMeeting() {
 
   function handleToggleActiveScreen(id: ScreenID) {
     return async (e: MouseEvent<HTMLButtonElement>) => {
-      let success = true
+      const target = e.currentTarget
       if (screen?.id === id) {
-        if (!confirm('Apakah anda yakin ingin mengakhiri sesi ini?')) {
-          return e.preventDefault()
-        }
-
         return stopActiveScreen()
       }
 
       if (id === ScreenCode.WatchYoutube || id === ScreenCode.Presentation) {
-        const target = e.currentTarget
-        const prevtext = target.textContent
+        if (!files.length) return toast.error('Tidak ada berkas presentasi yang di unggah')
 
-        target.disabled = true
-        target.textContent = 'Memulai...'
+        try {
+          target.disabled = true
+          target.textContent = 'Memulai...'
 
-        if (!files.length) toast.error('Tidak ada file yang di unggah')
-
-        const { data } = await getRemoteUrl(
-          {
-            yt: 'https://youtu.be/e1QIqXmZ2os?si=Gd9591aZIBoeI3Mi',
-            file: files[0].file_url,
-          },
-          id
-        )
-
-        if (data?.url) {
+          const { data } = await getRemoteUrl(
+            {
+              yt: 'https://youtu.be/e1QIqXmZ2os?si=Gd9591aZIBoeI3Mi', //dummy
+              file: files[0].file_url,
+            },
+            id
+          )
+          if (!data) {
+            toast.error('Gagal mendapatkan data file')
+            return
+          }
           await startActiveScreen(id, { url: data.url })
-        } else {
-          // May add toast error here
-          success = false
+          closePanel()
+        } catch (error) {
+          console.error('Failed to get path file', error)
+        } finally {
+          target.disabled = false
+          target.textContent = 'Berhenti'
         }
-
-        target.disabled = false
-        target.textContent = prevtext
       } else {
         await startActiveScreen(id)
-      }
-
-      if (success) {
-        closePanel()
       }
     }
   }
