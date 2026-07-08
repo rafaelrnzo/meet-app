@@ -53,6 +53,12 @@ export interface ParticipantGroup {
   lists: ParticipantList[]
 }
 
+export interface MetadataInfo {
+  banned_users: string[]
+  banned_users_name: { name: string; identity: string }[]
+  room_id: string
+}
+
 export function useTabsParticipant() {
   const room = useRoomContext()
   const roomInfo = useRoomInfo()
@@ -75,20 +81,19 @@ export function useTabsParticipant() {
     return p.isMicrophoneEnabled
   })
 
-  const bannedUserIdentity = () => {
+  const bannedUserIdentity = (): MetadataInfo => {
+    const defaultMetadata = { banned_users: [], banned_users_name: [], room_id: '' }
     if (!roomInfo.metadata) {
-      return { banned_users: [] as string[] }
+      return defaultMetadata
     }
 
     try {
-      return JSON.parse(roomInfo.metadata) as {
-        banned_users: string[]
-      }
+      return JSON.parse(roomInfo.metadata) satisfies MetadataInfo
     } catch {
-      return { banned_users: [] }
+      return defaultMetadata
     }
   }
-  const bannedIds = bannedUserIdentity()?.banned_users ?? []
+  const bannedIds = bannedUserIdentity().banned_users_name
 
   const participantGroups: ParticipantGroup[] = [
     {
@@ -98,7 +103,7 @@ export function useTabsParticipant() {
       lists: [
         // 1. List Participant Active
         ...remoteParticipants
-          .filter((participant) => !bannedIds.includes(participant.identity))
+          .filter((participant) => !bannedIds.some((b) => b.identity === participant.identity))
           .sort((a, b) => {
             const isRaised = (v: unknown) => v === true || v === 'true' || v === '1'
             const aRaised = isRaised(a.attributes?.[ParticipantAttribute.HandRaised])
@@ -131,9 +136,9 @@ export function useTabsParticipant() {
           }),
 
         // 2. List Participant Banned
-        ...bannedIds.map((identity) => ({
+        ...bannedIds.map(({ identity, name }) => ({
           id: identity,
-          name: identity,
+          name: name,
           attributes: {} as any,
           isRaised: false,
           isModerator: false,
