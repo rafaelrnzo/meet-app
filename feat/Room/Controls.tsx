@@ -1,64 +1,37 @@
 'use client'
 
 import type { FC, ReactNode } from 'react'
-import { useEffect, useState } from 'react'
-import { ConnectionState } from 'livekit-client'
-import { MonitorPlayIcon, PhoneSlashIcon } from '@phosphor-icons/react'
-import {
-  MicDisabledIcon,
-  MicIcon,
-  useRoomContext,
-  useConnectionState,
-  useLocalParticipant,
-} from '@livekit/components-react'
-import { useMediaControls } from '@/hooks'
+import { CheckIcon, PhoneSlashIcon, MonitorPlayIcon } from '@phosphor-icons/react'
+import { CameraIcon, CameraDisabledIcon, MicDisabledIcon, MicIcon } from '@livekit/components-react'
+import { cn } from '@/lib/utils'
+import { useControls } from '@/hooks'
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ToggleTrack } from '@/components/ToggleTrack'
 import { ReactionIcon } from '@/components/ReactionIcon'
+import { HugeIcon, ChevronUp } from '@/components/HugeIcon'
 import { HandRaisedIcon } from '@/components/HandRaised'
-import { CameraControl } from '@/components/CameraControl'
 import { ButtonIcon } from '@/components/Button'
 
 export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
-  const room = useRoomContext()
-  const { localParticipant } = useLocalParticipant()
   const {
-    // audioEnabled,
+    isConnecting,
+    audioEnabled,
     videoEnabled,
+    chevronEnabled,
     shareScreenEnabled,
-    // handleToggleAudio,
+    resolution,
+    resolutionOptions,
+    isCameraActive,
+    isReactionActive,
+    disconnect,
+    handleResolutionChange,
     handleToggleShareScreen,
-  } = useMediaControls({
-    defaults: { audioEnabled: false, videoEnabled: false },
-    persistUserChoices: false,
-    room,
-  })
-  const state = useConnectionState(room)
-  const [activeState, setActiveState] = useState<'camera' | 'reaction' | ''>('')
-  const isCameraActive = activeState === 'camera'
-  const isReactionActive = activeState === 'reaction'
-  const audioEnabled = localParticipant.isMicrophoneEnabled
+    setAudioEnabled,
+    setVideoEnabled,
+    setActiveState,
+  } = useControls()
 
-  useEffect(() => {
-    if (!videoEnabled) {
-      setActiveState('')
-    }
-  }, [videoEnabled])
-
-  // useEffect(() => {
-  //   const storage = localStorage.getItem('lk-user-choices')
-  //   if (storage) {
-  //     try {
-  //       const uchoices = JSON.parse(storage)
-  //       if (typeof uchoices === 'object') {
-  //         localStorage.setItem('lk-user-choices', JSON.stringify({ ...uchoices, audioEnabled }))
-  //       }
-  //     } catch (e) {
-  //       console.log('Failed to parse storage:', e)
-  //     }
-  //   }
-  // }, [audioEnabled])
-
-  if (state === ConnectionState.Connecting) {
+  if (isConnecting) {
     return null
   }
 
@@ -68,39 +41,79 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
         title={audioEnabled ? 'Bisukan mikrofon' : 'Aktifkan mikrofon'}
         isActive={audioEnabled}
         className='size-10 md:size-12'
-        onClick={async () => {
-          const storage = localStorage.getItem('lk-user-choices')
-          if (storage) {
-            try {
-              const uchoices = JSON.parse(storage)
-              if (typeof uchoices === 'object') {
-                localStorage.setItem(
-                  'lk-user-choices',
-                  JSON.stringify({
-                    ...uchoices,
-                    audioEnabled: !audioEnabled,
-                  })
-                )
-              }
-            } catch (e) {
-              console.log('Failed to parse storage:', e)
-            }
-          }
-          await localParticipant.setMicrophoneEnabled(!audioEnabled)
-        }}
+        onClick={() => setAudioEnabled((prev) => !prev)}
       >
         {audioEnabled ? <MicIcon /> : <MicDisabledIcon />}
       </ToggleTrack>
       <div className='dark:bg-primary/50 flex items-center gap-1 rounded-full bg-red-200 p-1'>
-        <CameraControl
-          isActive={isCameraActive}
-          onClick={() => setActiveState((prev) => (!prev || prev !== 'camera' ? 'camera' : ''))}
-          onToggle={(enable) => {
-            if (!enable) {
-              setActiveState('')
-            }
-          }}
-        />
+        <div className='relative inline-block'>
+          {isCameraActive && (
+            <div className='absolute bottom-full left-1/2 mb-3 w-56 -translate-x-1/2 rounded-xl bg-white p-1.5 shadow-xl ring-1 ring-black/5 dark:bg-zinc-900 dark:ring-white/10'>
+              <div className='px-3 py-1.5 text-[11px] font-semibold tracking-wider text-gray-400 uppercase'>
+                Camera Quality
+              </div>
+              <div className='mt-1 space-y-0.5'>
+                {resolutionOptions.map(({ disabled, ...option }) => (
+                  <button
+                    key={option.value}
+                    disabled={disabled}
+                    onClick={() => handleResolutionChange(option.value)}
+                    className={`flex w-full items-center justify-between rounded-lg px-3 py-2 text-left text-sm transition-colors ${
+                      disabled
+                        ? 'cursor-not-allowed text-gray-400 opacity-40 dark:text-zinc-600'
+                        : resolution.height === option.value
+                          ? 'bg-gray-100 font-medium text-gray-900 dark:bg-zinc-800 dark:text-white'
+                          : 'text-gray-700 hover:bg-gray-50 dark:text-zinc-300 dark:hover:bg-zinc-800/50'
+                    }`}
+                  >
+                    <span>
+                      {option.label}{' '}
+                      {disabled && (
+                        <span className='text-[10px] font-normal text-red-500'>
+                          (Tidak didukung)
+                        </span>
+                      )}
+                    </span>
+                    {resolution.height === option.value && !disabled && (
+                      <CheckIcon className='size-4 text-gray-900 dark:text-white' weight='bold' />
+                    )}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+          <div className='dark:bg-primary/50 flex items-center gap-1 rounded-full bg-red-200 p-1'>
+            <ToggleTrack
+              title={videoEnabled ? 'Tutup kamera' : 'Aktifkan kamera'}
+              isActive={videoEnabled}
+              onClick={() => setVideoEnabled((prev) => !prev)}
+              className='size-8 md:size-10'
+            >
+              {videoEnabled ? <CameraIcon /> : <CameraDisabledIcon />}
+            </ToggleTrack>
+            <Tooltip>
+              <TooltipTrigger className='cursor-pointer' asChild>
+                <button
+                  disabled={!chevronEnabled}
+                  inert={!chevronEnabled}
+                  onClick={() =>
+                    setActiveState((prev) => (!prev || prev !== 'camera' ? 'camera' : ''))
+                  }
+                  className={cn(
+                    'dark:hover:bg-primary/50 relative inline-flex size-8 items-center justify-center rounded-full transition-transform duration-200 hover:bg-red-300 md:size-10',
+                    isCameraActive ? 'rotate-180' : '',
+                    !chevronEnabled ? 'cursor-not-allowed opacity-40' : ''
+                  )}
+                >
+                  <HugeIcon icon={ChevronUp} strokeWidth={2} />
+                </button>
+              </TooltipTrigger>
+              <TooltipContent className='bg-red-800 text-sm'>
+                Nyalakan kamera untuk mengatur kualitas kamera
+              </TooltipContent>
+            </Tooltip>
+          </div>
+        </div>
       </div>
       <ButtonIcon isActive={!shareScreenEnabled} onClick={handleToggleShareScreen}>
         <MonitorPlayIcon weight='fill' size={22} />
@@ -111,10 +124,7 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
       />
       <HandRaisedIcon />
       {children}
-      <ButtonIcon
-        onClick={() => room.disconnect()}
-        className='text-error bg-red-200 hover:bg-red-200!'
-      >
+      <ButtonIcon onClick={() => disconnect()} className='text-error bg-red-200 hover:bg-red-200!'>
         <PhoneSlashIcon weight='fill' size={20} />
       </ButtonIcon>
     </div>
