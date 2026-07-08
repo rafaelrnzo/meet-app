@@ -31,7 +31,10 @@ export async function prejoinVerify(payload: PrejoinPayload) {
     const { data } = await fetcher(url, {
       method: 'POST',
       headers: createAuthHeaders(session.access_token),
-      body: JSON.stringify({ room_code: payload.roomName }),
+      body: JSON.stringify({
+        room_code: payload.roomName,
+        ...(payload.password && { password: payload.password }),
+      }),
     })
 
     return data as { data: ConnectionDetails; interceptor: ConnectionInterceptor }
