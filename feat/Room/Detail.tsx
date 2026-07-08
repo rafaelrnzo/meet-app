@@ -25,6 +25,7 @@ export interface RoomDetailProps {
   codec: VideoCodec
   singlePeerConnection: boolean
   isTesting?: boolean
+  withPassword?: boolean
 }
 
 export const RoomDetail: FC<RoomDetailProps> = (props) => {
@@ -35,6 +36,8 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
   const [connectionDetails, setConnectionDetails] = useState<ConnectionDetails | undefined>()
   const { data: session } = useSession()
   const username = session?.profile.username ?? 'Unknown'
+  const roleName = session?.roles.name ?? 'user'
+  const [isWrongPassword, setIsWrongPassword] = useState(false)
 
   // Reference
   const preJoinDefaults = useRef({ username: '', audioEnabled: false, videoEnabled: false })
@@ -59,6 +62,7 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
         setConnectionDetails(connectionDetailsData)
       } else {
         setInterceptor(interceptor)
+        setIsWrongPassword(interceptor === ConnectionInterceptor.WrongPassword)
       }
     } catch (e) {
       setInterceptor(ConnectionInterceptor.Unknown)
@@ -140,7 +144,7 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
     }
   }, [interceptor, props.roomName, session?.access_token])
 
-  if (interceptor) {
+  if (interceptor && interceptor !== ConnectionInterceptor.WrongPassword) {
     return <InterceptorRoom interceptor={interceptor} onClick={handleBackToPrejoin.current} />
   }
 
@@ -163,6 +167,10 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
       onError={handlePreJoinError.current}
       isLoading={loading}
       isGuest={false}
+      withPassword={props.withPassword}
+      roleName={roleName === 'admin' ? 'super admin' : roleName === 'user' ? 'peserta' : roleName}
+      isWrongPassword={isWrongPassword}
+      setIsWrongPassword={setIsWrongPassword}
     />
   )
 }

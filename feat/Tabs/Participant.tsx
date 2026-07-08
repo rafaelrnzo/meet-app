@@ -31,7 +31,6 @@ export const TabsParticipant = () => {
       if (!triggerEvents.includes(status)) {
         return
       }
-
       setPending(pending)
     }
 
@@ -65,7 +64,14 @@ export const TabsParticipant = () => {
             <ListParticipant />
           </TabsContent>
           <TabsContent value='waiting' className='mt-0'>
-            <ListParticipantPending participantPending={pending} />
+            <ListParticipantPending
+              participantPending={pending}
+              onHandleParticipant={(handledParticipantid) =>
+                setPending((prev) =>
+                  prev.filter(({ participantId }) => participantId !== handledParticipantid)
+                )
+              }
+            />
           </TabsContent>
         </div>
       </Tabs>
