@@ -45,6 +45,7 @@ export enum ConnectionInterceptor {
   Pending = 'pending',
   Limit = 'limit',
   Unauthorized = 'unauthorized',
+  WrongPassword = 'wrong_password',
 }
 
 export enum SearchParamsKey {

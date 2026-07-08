@@ -2,7 +2,8 @@
 
 import type { FC } from 'react'
 import type { LocalUserChoices, PreJoinProps as PrejoinPropsBase } from '@livekit/components-react'
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   CameraDisabledIcon,
   CameraIcon,
@@ -13,6 +14,9 @@ import {
 } from '@livekit/components-react'
 import { cn } from '@/lib/utils'
 import { usePreJoin, useTabEffect } from '@/hooks'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
+import { Icon } from '@/components/ui/icon'
+import { FieldError } from '@/components/ui/field'
 import { ToggleTrack } from '@/components/ToggleTrack'
 import { HugeIcon, Alert01Icon, Loading03Icon } from '@/components/HugeIcon'
 
@@ -24,6 +28,7 @@ export const defaultPrejoin = {
   roomTitle: 'Test Room',
   roomIntro: 'Siap untuk bergabung?',
   joinLabel: 'Masuk Ruang Rapat',
+  joinWithPasswordLabel: 'Masukkan Kata Sandi untuk Masuk',
   micLabel: 'Mikrofon utama',
   camLabel: 'Kamera utama',
   camOffLabel: 'Kamera mati',
@@ -52,11 +57,15 @@ export interface PreJoinProps extends Omit<PrejoinPropsBase, 'onSubmit' | 'onVal
   isLoadingLabel?: string
   isGuest?: boolean
   withPassword?: boolean
+  isWrongPassword?: boolean
+  setIsWrongPassword?: React.Dispatch<boolean>
   onSubmit?: (values: LocalUserChoicesPassword) => void
   onValidate?: (values: LocalUserChoicesPassword) => boolean
 }
 
 export const PreJoin: FC<PreJoinProps> = (props) => {
+  const router = useRouter()
+  const [showPassword, setShowPassword] = useState(false)
   const {
     isLoading,
     isLoadingLabel,
@@ -64,12 +73,15 @@ export const PreJoin: FC<PreJoinProps> = (props) => {
     roomTitle,
     roomIntro,
     joinLabel,
+    joinWithPasswordLabel,
     camOffLabel,
     cancelLabel,
     rolesLabel,
     roleName,
     isGuest,
     withPassword,
+    isWrongPassword,
+    setIsWrongPassword,
     className,
     micLabel,
     camLabel,
@@ -90,6 +102,7 @@ export const PreJoin: FC<PreJoinProps> = (props) => {
     activeVideoLabel,
     username,
     isValid,
+    password,
     setAudioDeviceId,
     setVideoDeviceId,
     setUsername,
@@ -240,7 +253,7 @@ export const PreJoin: FC<PreJoinProps> = (props) => {
           </div>
           <div className='flex items-center justify-center gap-2.5'>
             <p className='text-right'>{rolesLabel}</p>
-            <span className='border-primary text-primary rounded-full border p-3 whitespace-nowrap'>
+            <span className='border-primary text-primary rounded-full border p-3 whitespace-nowrap first-letter:capitalize'>
               {isGuest ? 'Tamu' : roleName}
             </span>
           </div>
@@ -261,22 +274,56 @@ export const PreJoin: FC<PreJoinProps> = (props) => {
               </div>
             )}
             {withPassword && (
-              <div className='flex items-center justify-center'>
-                <input
-                  id='password'
-                  name='password'
-                  type='password'
-                  className='hover:not-disabled:bg-secondary inline-flex h-11 w-full items-center justify-between rounded-md border px-3 disabled:opacity-40'
-                  required
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoComplete='off'
-                  placeholder='Masukkan kata sandi'
-                />
+              <div className='mb-1 space-y-2'>
+                <InputGroup>
+                  <InputGroupInput
+                    id='password'
+                    name='password'
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    onChange={(e) => {
+                      setPassword(e.target.value)
+
+                      if (isWrongPassword) {
+                        setIsWrongPassword?.(false)
+                      }
+                    }}
+                    autoComplete='off'
+                    placeholder='Masukkan kata sandi'
+                    aria-invalid={isWrongPassword}
+                  />
+                  <InputGroupAddon
+                    align='inline-end'
+                    onClick={() => setShowPassword((prev) => !prev)}
+                    className='cursor-pointer'
+                  >
+                    <Icon
+                      type={showPassword ? 'eye-off' : 'eye'}
+                      className='active:text-neutral-950'
+                    />
+                  </InputGroupAddon>
+                </InputGroup>
+                {isWrongPassword && (
+                  <FieldError
+                    errors={[
+                      {
+                        message:
+                          '✕ Kata sandi salah, harap gunakan kata sandi yang dibagikan oleh admin',
+                      },
+                    ]}
+                    className='text-error text-xs'
+                  />
+                )}
               </div>
             )}
             <button
               type='submit'
-              className='bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-md px-4 font-semibold hover:bg-red-900 disabled:opacity-40'
+              className={cn(
+                'bg-primary text-primary-foreground inline-flex h-11 items-center justify-center rounded-md px-4 font-semibold hover:bg-red-900 disabled:opacity-40',
+                withPassword &&
+                  !password &&
+                  'border border-neutral-400 bg-neutral-50 text-neutral-400 hover:bg-neutral-50 disabled:opacity-100'
+              )}
               onClick={handleSubmit}
               disabled={!isValid || isLoading}
             >
@@ -285,6 +332,8 @@ export const PreJoin: FC<PreJoinProps> = (props) => {
                   <HugeIcon icon={Loading03Icon} size={20} className='animate-spin' />
                   {isLoadingLabel && <span className='ml-2 inline-block'>{isLoadingLabel}</span>}
                 </>
+              ) : withPassword && !password ? (
+                joinWithPasswordLabel
               ) : (
                 joinLabel
               )}
@@ -292,6 +341,7 @@ export const PreJoin: FC<PreJoinProps> = (props) => {
             <button
               type='button'
               className='hover:not-disabled:bg-secondary inline-flex h-11 items-center justify-center rounded-md border px-4 font-semibold shadow'
+              onClick={() => router.back()}
             >
               {cancelLabel}
             </button>
