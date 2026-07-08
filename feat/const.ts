@@ -167,7 +167,7 @@ export const TabsContents = (role: string) => [
   {
     id: GroupsCode.Content,
     headline: 'Konten',
-    hide: false,
+    hide: role === 'user',
     lists: [
       {
         id: GroupCode.Presentation,
@@ -181,7 +181,7 @@ export const TabsContents = (role: string) => [
   {
     id: GroupsCode.Media,
     headline: 'Media',
-    hide: false,
+    hide: role === 'user',
     lists: [
       {
         id: GroupCode.WatchYoutube,
@@ -195,7 +195,7 @@ export const TabsContents = (role: string) => [
   {
     id: GroupsCode.Admin,
     headline: 'Admin',
-    hide: false,
+    hide: role === 'user',
     lists: [
       {
         id: GroupCode.Recording,
