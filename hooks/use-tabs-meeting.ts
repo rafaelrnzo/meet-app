@@ -1,10 +1,12 @@
 'use client'
 
 import type { MouseEvent } from 'react'
+import type { FileResponse } from '@/feat/rooms/dto'
 import type { ScreenID } from '@/feat/Room'
 import type { TabsContentList } from '@/feat/const'
-import { useContext } from 'react'
-import { useParticipants, useRoomContext } from '@livekit/components-react'
+import { useContext, useEffect, useState } from 'react'
+import { useParticipants, useRoomContext, useRoomInfo } from '@livekit/components-react'
+import { getOnePresentation } from '@/lib/api/admin-api'
 import { useAuth } from '@/hooks/use-auth'
 import { useParamsState } from '@/hooks'
 import { PickUserContext, useRoomState } from '@/feat/Room'
@@ -21,15 +23,34 @@ export interface ImperativeContent {
 
 export function useTabsMeeting() {
   const room = useRoomContext()
+  const roomInfo = useRoomInfo()
+  const roomId: { room_id: number } = roomInfo.metadata ? JSON.parse(roomInfo.metadata) : ''
   const usePickUserContext = useContext(PickUserContext)
   const remoteParticipants = useParticipants()
   const { role } = useAuth()
+  const [files, setFiles] = useState<FileResponse[]>([])
   const { screen, record, startRecording, stopRecording, startActiveScreen, stopActiveScreen } =
     useRoomState()
   const { closePanel, openTabsPolling, openTabsNotes } = useParamsState()
   const truncateName = (name: string, length: number) => {
     return name.length > length ? name.slice(0, length) + '...' : name
   }
+
+  const loadPresentations = async () => {
+    try {
+      const file = await getOnePresentation(roomId.room_id || 0)
+      setFiles(Array.isArray(file) ? file : file ? [file] : [])
+    } catch (error) {
+      console.error('Failed to load data', error)
+    }
+  }
+
+  useEffect(() => {
+    if (roomId.room_id) {
+      loadPresentations()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomId.room_id])
 
   async function handleTogglePickUser() {
     if (!room || !remoteParticipants) return
@@ -62,7 +83,6 @@ export function useTabsMeeting() {
   function handleToggleActiveScreen(id: ScreenID) {
     return async (e: MouseEvent<HTMLButtonElement>) => {
       let success = true
-
       if (screen?.id === id) {
         if (!confirm('Apakah anda yakin ingin mengakhiri sesi ini?')) {
           return e.preventDefault()
@@ -78,7 +98,15 @@ export function useTabsMeeting() {
         target.disabled = true
         target.textContent = 'Memulai...'
 
-        const { data } = await getRemoteUrl(id)
+        if (!files.length) toast.error('Tidak ada file yang di unggah')
+
+        const { data } = await getRemoteUrl(
+          {
+            yt: 'https://youtu.be/e1QIqXmZ2os?si=Gd9591aZIBoeI3Mi',
+            file: files[0].file_url,
+          },
+          id
+        )
 
         if (data?.url) {
           await startActiveScreen(id, { url: data.url })
