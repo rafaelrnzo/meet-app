@@ -1,5 +1,5 @@
-export { useCameraQuality } from './use-camera-quality'
 export { useConferenceRoom } from './use-conference-room'
+export { useControls } from './use-controls'
 export { useDataChannel } from './use-data-channel'
 export { useHandRaises } from './use-hand-raises'
 export { useMediaControls } from './use-media-controls'
