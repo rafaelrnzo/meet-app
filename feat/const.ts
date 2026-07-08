@@ -153,7 +153,7 @@ export const TabsContents = (role: string) => [
         icon: 'hugeicons/anaytics-01' as const,
         title: 'Jajak pendapat',
         description: 'Buat & kelola jajak pendapat',
-        hide: false,
+        hide: role === 'user',
       },
       {
         id: GroupCode.Whiteboard,
