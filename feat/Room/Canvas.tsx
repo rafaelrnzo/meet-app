@@ -1,15 +1,18 @@
 'use client'
 
-import type { ComponentProps, FC } from 'react'
+import type { ComponentProps, ComponentType, FC } from 'react'
 import type { ScreenID } from '@/feat/Room/State'
 import { useEffect, useState } from 'react'
 import { default as dynamic } from 'next/dynamic'
 import { RecordIcon } from '@phosphor-icons/react'
 import { Chevron } from '@livekit/components-react'
+import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
 import { useRoomState } from '@/feat/Room/State'
 import { ScreenCode } from '@/feat/enum'
+import { Button } from '@/components/ui/button'
 import { Loading } from '@/components/Loading'
+import { HugeIcon } from '@/components/HugeIcon'
 
 const Whiteboard = dynamic(async () => (await import('@/feat/Activity/Whiteboard')).Whiteboard, {
   ssr: false,
@@ -58,8 +61,6 @@ const config = {
     comp: WatchYoutube,
   },
   [ScreenCode.Presentation]: {
-    border: cn('border-orange-500'),
-    background: cn('bg-orange-500'),
     comp: Presentation,
   },
   [ScreenCode.Notes]: {
@@ -78,10 +79,16 @@ const configDefault = { border: '', background: '', comp: () => null }
 
 export const RoomCanvas: FC<ComponentProps<'div'>> = ({ className, ...props }) => {
   const { screen, record } = useRoomState()
-  const screnConfig = screen?.id ? config[screen.id] : configDefault
+  const screenConfig: {
+    border?: string
+    background?: string
+    comp: ComponentType<{
+      onReady?: () => void
+    }>
+  } = screen?.id ? config[screen.id] : configDefault
   const [isReady, setIsReady] = useState(false)
   const [open, setIsOpen] = useState(false)
-  const { border, background, comp: Component } = screnConfig
+  const { border, background, comp: Component } = screenConfig
   const borderColor = border || (record ? 'border-destructive' : 'border-transparent')
   const backgroundColor = background || (record ? 'bg-destructive' : 'bg-transparent')
 
@@ -152,19 +159,29 @@ export const RoomCanvas: FC<ComponentProps<'div'>> = ({ className, ...props }) =
               REC
             </div>
           )}
-          {screen && (
-            <button
-              className='inline-flex size-8 items-center justify-center rounded-full hover:bg-black/20'
-              onClick={() => setIsOpen((previous) => !previous)}
-            >
-              <Chevron
-                className={cn(
-                  '-translate-x-px scale-125 rotate-0 transition-all',
-                  open && 'rotate-180'
-                )}
-              />
-            </button>
-          )}
+          {screen ? (
+            screen?.id === ScreenCode.Presentation ? (
+              <Button
+                className='-translate-x-5! translate-y-4!'
+                variant='destructive-light'
+                onClick={() => setIsOpen((previous) => !previous)}
+              >
+                {open ? <HugeIcon icon={ArrowRight01Icon} /> : <HugeIcon icon={ArrowLeft01Icon} />}
+              </Button>
+            ) : (
+              <button
+                className='inline-flex size-8 items-center justify-center rounded-full hover:bg-black/20'
+                onClick={() => setIsOpen((previous) => !previous)}
+              >
+                <Chevron
+                  className={cn(
+                    '-translate-x-px scale-125 rotate-0 transition-all',
+                    open && 'rotate-180'
+                  )}
+                />
+              </button>
+            )
+          ) : null}
         </div>
       </div>
     </div>

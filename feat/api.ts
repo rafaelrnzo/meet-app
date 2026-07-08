@@ -5,10 +5,6 @@ import { auth } from '@/lib/auth'
 import { ScreenCode, ConnectionInterceptor } from '@/feat/enum'
 import { createAuthHeaders, fetcher } from '@/feat/Auth/helpers'
 
-const DEFAULT_YOUTUBE_URL = 'https://youtu.be/e1QIqXmZ2os?si=Gd9591aZIBoeI3Mi'
-
-const DEFAULT_FILE_URL = 'https://ontheline.trincoll.edu/images/bookdown/sample-local-pdf.pdf'
-
 interface PrejoinPayload {
   roomName: string
   participantName: string
@@ -70,13 +66,17 @@ export async function acceptOrDeniedParticipant({
 }
 
 export async function getRemoteUrl(
+  url: {
+    yt: string
+    file: string
+  },
   screenId: Extract<ScreenCode, ScreenCode.WatchYoutube | ScreenCode.Presentation>
 ) {
   await new Promise((res) => setTimeout(res, 1000))
 
   const identifier = {
-    [ScreenCode.WatchYoutube]: DEFAULT_YOUTUBE_URL,
-    [ScreenCode.Presentation]: DEFAULT_FILE_URL,
+    [ScreenCode.WatchYoutube]: url.yt,
+    [ScreenCode.Presentation]: url.file,
   }
 
   try {
