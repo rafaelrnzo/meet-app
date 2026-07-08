@@ -5,7 +5,7 @@ import { XIcon } from '@phosphor-icons/react'
 import { ConnectionInterceptor } from '@/feat/enum'
 
 interface InterceptorRoomProps {
-  interceptor: ConnectionInterceptor
+  interceptor: Exclude<ConnectionInterceptor, ConnectionInterceptor.WrongPassword>
   onClick?: () => void
 }
 
