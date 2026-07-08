@@ -1,5 +1,6 @@
 import type * as yup from 'yup'
 import type { DbRoom } from '@/lib/api/admin-api'
+import type { PollingMessage } from '@/components/PollingCard'
 import type { roomSchema } from './schema'
 import { djs } from '@/lib/utils'
 
@@ -109,12 +110,10 @@ interface RoomEventParticipant {
 type RoomSSEDTO = RoomEventUpdated | RoomEventParticipant
 
 interface RoomMetadata {
-  waiting_room_enabled: boolean
-  allow_screen: boolean
-  allow_reaction: boolean
-  allow_audio: boolean
-  allow_video: boolean
-  // room_id: number
+  banned_users: string[]
+  banned_users_name: any[]
+  polling: PollingMessage[]
+  room_id: number
 }
 
 export type {

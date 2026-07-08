@@ -1,17 +1,18 @@
 'use client'
 
 import type { FC } from 'react'
-import { useState } from 'react'
 import { cn, djs } from '@/lib/utils'
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group'
 
 export interface PollingCardProps {
   loading?: boolean
   openedAt: number
-  withTimer?: boolean
   question: string
   options: PollingOption[]
   totalParticipant: number
   isResult?: boolean
+  isHistory?: boolean
+  checked?: number
   onCheckedChange?: (id: number) => void
   onClosePolling?: () => void
 }
@@ -39,23 +40,22 @@ const ACTION_CLASSES = cn(
 
 export const PollingCard: FC<PollingCardProps> = ({
   question,
-  options,
+  options: answers,
   openedAt,
   totalParticipant,
   isResult = false,
+  isHistory = false,
   loading = false,
+  checked,
   onCheckedChange,
   onClosePolling,
 }) => {
-  const [checkedId, setCheckedId] = useState(0)
   const Label = isResult ? 'p' : 'label'
-  const answers = isResult ? options : options.filter((option) => option.id !== -2)
-  const votesLength = answers.reduce((acc, ans) => acc + ans.votes.length, 0)
 
   return (
     <div className='text-foreground bg-background mt-4 flex w-full flex-col gap-4 rounded-md border p-5 shadow'>
-      <h3 className='text-primary font-semibold'>{question}</h3>
-      {isResult && (
+      <h3 className='text-primary font-semibold wrap-anywhere'>{question}</h3>
+      {isHistory && (
         <div className='flex w-full flex-wrap items-center gap-2 text-xs leading-4'>
           <svg xmlns='http://www.w3.org/2000/svg' width={16} height={16} fill='none'>
             <path
@@ -72,59 +72,37 @@ export const PollingCard: FC<PollingCardProps> = ({
           <time dateTime={djs(openedAt).toString()} className='mr-auto translate-y-px'>
             {djs(openedAt).format('DD MMMM YYYY, HH.mm WIB')}
           </time>
-          <p className='flex items-center gap-2'>
-            <svg xmlns='http://www.w3.org/2000/svg' width={15} height={16} fill='none'>
-              <path
-                fill='#A3A3A3'
-                d='M4.019 9.132v5.604A1.264 1.264 0 0 1 2.756 16H1.27A1.262 1.262 0 0 1 0 14.736V9.132a1.264 1.264 0 0 1 1.271-1.271h1.485a1.263 1.263 0 0 1 1.263 1.271Zm5.494-7.86v13.464A1.264 1.264 0 0 1 8.243 16H6.757a1.271 1.271 0 0 1-1.271-1.264V1.272A1.28 1.28 0 0 1 6.757 0h1.485a1.27 1.27 0 0 1 1.271 1.272ZM15 5.522v9.214A1.264 1.264 0 0 1 13.737 16h-1.484a1.262 1.262 0 0 1-1.272-1.264V5.522a1.272 1.272 0 0 1 1.272-1.272h1.517A1.27 1.27 0 0 1 15 5.522Z'
-                style={{
-                  fill: '#a3a3a3',
-                  fillOpacity: 1,
-                }}
-              />
-            </svg>
-            <span className='translate-y-0.5'>
-              {votesLength}/{totalParticipant}
-            </span>
-          </p>
         </div>
       )}
       <ul className='flex flex-col gap-2'>
         {answers.map(({ id, value, votes }) => (
-          <li key={id} className='flex flex-col'>
+          <RadioGroup
+            key={id}
+            value={`${checked}`}
+            onValueChange={(val) => onCheckedChange?.(Number(val))}
+            className='flex flex-col'
+          >
             {!isResult && id === -1 ? (
               <button
-                disabled={checkedId === id}
+                disabled={checked === id}
                 className={cn(ACTION_CLASSES)}
-                onClick={() => {
-                  onCheckedChange?.(-1)
-                  setCheckedId(-1)
-                }}
+                onClick={() => onCheckedChange?.(-1)}
               >
-                Lewati Pendapat {checkedId === id ? '(dilewati)' : ''}
+                Lewati Pendapat {checked === id ? '(dilewati)' : ''}
               </button>
             ) : (
               <Label
                 htmlFor={isResult ? void 0 : `answer-option-${id}`}
                 className={cn(
                   'flex items-center hover:not-disabled:cursor-pointer',
-                  !isResult && (checkedId === id ? 'bg-primary text-primary-foreground' : 'hover:not-disabled:border-primary hover:not-disabled:text-primary'), // prettier-ignore
-                  !isResult ? 'gap-4 rounded-md border p-5' : 'gap-2'
+                  !isResult && (checked === id ? 'bg-primary text-primary-foreground border-primary' : 'hover:not-disabled:border-primary hover:not-disabled:text-primary '), // prettier-ignore
+                  !isResult ? 'gap-4 rounded-md border-2 p-5' : 'gap-2'
                 )}
               >
-                {!isResult && (
-                  <input
-                    type='radio'
-                    id={`answer-option-${id}`}
-                    name={`answer-option-${id}`}
-                    checked={checkedId === id}
-                    onChange={() => {
-                      onCheckedChange?.(id)
-                      setCheckedId(id)
-                    }}
-                  />
-                )}
-                <span className={cn('text-sm', !isResult && 'font-semibold')}>{value}</span>
+                {!isResult && <RadioGroupItem id={`answer-option-${id}`} value={`${id}`} />}
+                <span className={cn('text-sm wrap-anywhere', !isResult && 'font-semibold')}>
+                  {value}
+                </span>
               </Label>
             )}
             {isResult && (
@@ -133,7 +111,7 @@ export const PollingCard: FC<PollingCardProps> = ({
                   <span className='bg-foreground/10 absolute inset-0 rounded-full'></span>
                   <span
                     style={{
-                      width: `${((id > -2 ? votes.length : totalParticipant - votesLength) / totalParticipant) * 100}%`,
+                      width: `${(votes.length / totalParticipant) * 100}%`,
                     }}
                     className={cn(
                       'absolute top-0 bottom-0 left-0 rounded-full',
@@ -141,10 +119,10 @@ export const PollingCard: FC<PollingCardProps> = ({
                     )}
                   ></span>
                 </div>
-                <span className='block min-w-3 text-right text-sm'>{`${id > -2 ? votes.length : totalParticipant - votesLength}`}</span>
+                <span className='block min-w-3 text-right text-sm'>{votes.length}</span>
               </div>
             )}
-          </li>
+          </RadioGroup>
         ))}
       </ul>
       {isResult && onClosePolling && (
