@@ -68,6 +68,7 @@ export interface DbRoom {
   password?: string
   is_mute_on_start: boolean
   participants?: number
+  enable_start_room: boolean
 }
 
 export interface MemberRoom {

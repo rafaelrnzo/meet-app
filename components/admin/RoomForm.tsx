@@ -1,12 +1,11 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import type { AnyFormApi } from '@tanstack/react-form'
 import type { DbRoom, Group, ParamsUserAssignment, User } from '@/lib/api/admin-api'
 import type { RoomSchemaValue } from '@/feat/rooms/dto'
 import { useCallback, useEffect, useState } from 'react'
 import { useForm, useStore } from '@tanstack/react-form'
-import { cn, djs, omit } from '@/lib/utils'
+import { cn, djs, omit, randomString } from '@/lib/utils'
 import { createDbRoom, fetchUsersAssignment, updateDbRoom } from '@/lib/api/admin-api'
 import { roomSchema } from '@/feat/rooms/schema'
 import { getRoomDefaultValue, getRoomPayload } from '@/feat/rooms/dto'
@@ -33,6 +32,7 @@ import { Combobox } from '@/components/ui/combobox'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Card, CardContent } from '@/components/ui/card'
 import { CalendarWithTime } from '@/components/ui/calendar-with-time'
+import { Button } from '@/components/ui/button'
 
 interface RoomFormProps {
   open: boolean
@@ -85,7 +85,6 @@ export function RoomForm({
   activeParticipant = 0,
 }: RoomFormProps) {
   const [users, setUsers] = useState<User[]>([])
-  const [showPassword, setShowPassword] = useState(false)
   const [queryParams, setQueryParams] = useState<ParamsUserAssignment>({})
   const defaultValues: RoomSchemaValue = initialData
     ? getRoomDefaultValue(initialData)
@@ -99,7 +98,7 @@ export function RoomForm({
         isEdit: !!initialData,
       }),
     },
-    onSubmit: async ({ value, formApi }: { value: RoomSchemaValue; formApi: AnyFormApi }) => {
+    onSubmit: async ({ value }: { value: RoomSchemaValue }) => {
       const payload = getRoomPayload(value)
       try {
         if (initialData) {
@@ -112,7 +111,6 @@ export function RoomForm({
         })
         onOpenChange(false)
         onSuccess?.()
-        formApi.reset()
       } catch (error) {
         let message =
           error instanceof Error
@@ -171,7 +169,6 @@ export function RoomForm({
         onOpenChange: (val) => {
           onOpenChange(val)
           form.reset()
-          setShowPassword(false)
           setQueryParams({})
         },
         modal: false,
@@ -294,28 +291,32 @@ export function RoomForm({
 
               return (
                 <FormField label='Kata sandi ruangan (Opsional)' {...{ name, isInvalid, errors }}>
-                  <InputGroup>
-                    <InputGroupInput
-                      id={name}
-                      {...{ name, value }}
-                      type={showPassword ? 'text' : 'password'}
-                      onChange={(event) => handleChange(event.target.value)}
-                      placeholder='Contoh: @ruanganpimpinan1'
-                      aria-invalid={isInvalid}
-                      autoComplete='new-password'
-                      aria-autocomplete='none'
-                    />
-                    <InputGroupAddon
-                      align='inline-end'
-                      onClick={() => setShowPassword((prev) => !prev)}
-                      className='cursor-pointer'
+                  <div className='flex gap-2'>
+                    <InputGroup>
+                      <InputGroupInput {...{ value }} placeholder='Buat kata sandi baru' readOnly />
+                      {value && (
+                        <InputGroupAddon align='inline-end'>
+                          <Button
+                            variant='ghost'
+                            className='hover:bg-transparent'
+                            onClick={() => handleChange('')}
+                          >
+                            <Icon type='close' className='text-error' />
+                          </Button>
+                        </InputGroupAddon>
+                      )}
+                    </InputGroup>
+
+                    <Button
+                      variant='secondary-outline'
+                      onClick={() => {
+                        const newPassword = randomString(10)
+                        handleChange(newPassword)
+                      }}
                     >
-                      <Icon
-                        type={showPassword ? 'eye-off' : 'eye'}
-                        className='active:text-neutral-950'
-                      />
-                    </InputGroupAddon>
-                  </InputGroup>
+                      <Icon type='arrow-clockwise' />
+                    </Button>
+                  </div>
                 </FormField>
               )
             }}
