@@ -26,7 +26,7 @@ interface RoomPayload {
   end_date: string
   password: string
   is_mute_on_start: boolean
-  metadata?: string
+  enable_start_room: boolean
 }
 
 interface SelectOptions {
@@ -55,7 +55,8 @@ const getRoomDefaultValue = (data: DbRoom): RoomSchemaValue => {
     endDate: djs(data.end_date).toDate(),
     password: data.password || '',
     isMuteOnStart: data.is_mute_on_start,
-    totalGroupMember: 0, // TODO: get from API
+    totalGroupMember: 0,
+    enableStartRoom: data.enable_start_room,
   }
 }
 
@@ -70,7 +71,7 @@ const getRoomPayload = (data: RoomSchemaValue): RoomPayload => {
     end_date: data.endDate?.toISOString() ?? '',
     password: data.password,
     is_mute_on_start: data.isMuteOnStart,
-    metadata: JSON.stringify({ polling: [], banned: [] }), // TODO: pastikan apakah sesuai
+    enable_start_room: data.enableStartRoom,
   }
 }
 

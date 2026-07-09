@@ -78,6 +78,7 @@ const roomSchema = (props?: { activeParticipant?: number; isEdit?: boolean }) =>
       .default([])
       .test('isFull', PARTICIPANT_FULL_MESSAGE, isParticipantFull('assignedTo')),
     isMuteOnStart: yup.boolean().default(false),
+    enableStartRoom: yup.boolean().default(false),
   })
 
 export { roomSchema }
