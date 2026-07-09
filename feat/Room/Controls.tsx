@@ -26,9 +26,9 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
     disconnect,
     handleResolutionChange,
     handleToggleShareScreen,
-    setAudioEnabled,
     setVideoEnabled,
     setActiveState,
+    handleToggleAudio,
   } = useControls()
 
   if (isConnecting) {
@@ -41,7 +41,7 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
         title={audioEnabled ? 'Bisukan mikrofon' : 'Aktifkan mikrofon'}
         isActive={audioEnabled}
         className='size-10 md:size-12'
-        onClick={() => setAudioEnabled((prev) => !prev)}
+        onClick={handleToggleAudio}
       >
         {audioEnabled ? <MicIcon /> : <MicDisabledIcon />}
       </ToggleTrack>

@@ -2,7 +2,7 @@
 
 import type { CameraResolution } from '@/feat/enum'
 import { useEffect, useState } from 'react'
-import { ConnectionState, Track, VideoPresets } from 'livekit-client'
+import { ConnectionState, RoomEvent, Track, VideoPresets } from 'livekit-client'
 import {
   useRoomContext,
   useConnectionState,
@@ -69,6 +69,23 @@ export const useControls = () => {
     track.toggle(!shareScreenEnabled).then((result) => setShareScreenEnabled(result ?? false))
   }
 
+  const handleToggleAudio = async () => {
+    const targetState = !audioEnabled
+
+    try {
+      await localParticipant.setMicrophoneEnabled(targetState)
+      setAudioEnabled(targetState)
+    } catch (error) {
+      console.error('Gagal mengubah status mikrofon:', error)
+      setAudioEnabled(audioEnabled)
+    }
+  }
+
+  // set microphone state
+  useEffect(() => {
+    localParticipant.setMicrophoneEnabled(audioEnabled)
+  }, [localParticipant, audioEnabled])
+
   // Sync storage, for prejoin
   useEffect(() => saveVideoInputEnabled(videoEnabled), [saveVideoInputEnabled, videoEnabled])
   useEffect(() => saveAudioInputEnabled(audioEnabled), [saveAudioInputEnabled, audioEnabled])
@@ -105,6 +122,28 @@ export const useControls = () => {
     }
   }, [track])
 
+  // Sync audio and video
+  useEffect(() => {
+    if (!room) return
+
+    const handleTrackMutedOrUnmuted = () => {
+      const isMicEnabled = !!room.localParticipant?.isMicrophoneEnabled
+      const isCameraEnabled = !!room.localParticipant?.isCameraEnabled
+      setAudioEnabled(isMicEnabled)
+      setVideoEnabled(isCameraEnabled)
+    }
+
+    room.localParticipant?.on(RoomEvent.TrackMuted, handleTrackMutedOrUnmuted)
+    room.localParticipant?.on(RoomEvent.TrackUnmuted, handleTrackMutedOrUnmuted)
+    room.localParticipant?.on(RoomEvent.LocalTrackPublished, handleTrackMutedOrUnmuted)
+
+    return () => {
+      room.localParticipant?.off(RoomEvent.TrackMuted, handleTrackMutedOrUnmuted)
+      room.localParticipant?.off(RoomEvent.TrackUnmuted, handleTrackMutedOrUnmuted)
+      room.localParticipant?.off(RoomEvent.LocalTrackPublished, handleTrackMutedOrUnmuted)
+    }
+  }, [room])
+
   return {
     isConnecting,
     isCameraActive,
@@ -124,5 +163,6 @@ export const useControls = () => {
     setActiveState,
     setResolution,
     setMaxResolution,
+    handleToggleAudio,
   }
 }
