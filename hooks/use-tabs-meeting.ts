@@ -12,7 +12,6 @@ import { useParamsState } from '@/hooks'
 import { PickUserContext, useRoomState } from '@/feat/Room'
 import { GroupCode, ParticipantAttribute, ScreenCode } from '@/feat/enum'
 import { TabsContents } from '@/feat/const'
-import { getRemoteUrl } from '@/feat/api'
 import { toast } from '@/components/ui/sonner'
 
 export interface ImperativeContent {
@@ -31,7 +30,7 @@ export function useTabsMeeting() {
   const [files, setFiles] = useState<FileResponse[]>([])
   const { screen, record, startRecording, stopRecording, startActiveScreen, stopActiveScreen } =
     useRoomState()
-  const { closePanel, openTabsPolling, openTabsNotes } = useParamsState()
+  const { openTabsPolling, openTabsNotes, openTabsWatchYoutube } = useParamsState()
   const truncateName = (name: string, length: number) => {
     return name.length > length ? name.slice(0, length) + '...' : name
   }
@@ -83,35 +82,40 @@ export function useTabsMeeting() {
   function handleToggleActiveScreen(id: ScreenID) {
     return async (e: MouseEvent<HTMLButtonElement>) => {
       const target = e.currentTarget
+      const prevtext = target.textContent
+
+      // Indicate message if prevented by any
+      let errorMessage = ''
+
       if (screen?.id === id) {
+        if (!confirm('Apakah anda yakin ingin mengakhiri sesi ini?')) {
+          return e.preventDefault()
+        }
+
         return stopActiveScreen()
       }
 
+      if (!screen) return
+
       if (id === ScreenCode.WatchYoutube || id === ScreenCode.Presentation) {
-        if (!files.length) return toast.error('Tidak ada berkas presentasi yang di unggah')
+        if (!files.length) {
+          errorMessage = 'Tidak ada berkas presentasi yang di unggah'
+        }
 
-        try {
-          target.disabled = true
-          target.textContent = 'Memulai...'
+        target.disabled = true
+        target.textContent = 'Memulai...'
 
-          const { data } = await getRemoteUrl(
-            {
-              yt: 'https://youtu.be/e1QIqXmZ2os?si=Gd9591aZIBoeI3Mi', //dummy
-              file: files[0].file_url,
-            },
-            id
-          )
-          if (!data) {
-            toast.error('Gagal mendapatkan data file')
-            return
-          }
-          await startActiveScreen(id, { url: data.url })
-          closePanel()
-        } catch (error) {
-          console.error('Failed to get path file', error)
-        } finally {
-          target.disabled = false
-          target.textContent = 'Berhenti'
+        if (screen.url) {
+          await startActiveScreen(id, { url: screen.url })
+        } else {
+          //
+        }
+
+        target.disabled = false
+        target.textContent = prevtext
+
+        if (errorMessage) {
+          toast.error('Tidak ada berkas presentasi yang di unggah')
         }
       } else {
         await startActiveScreen(id)
@@ -149,8 +153,7 @@ export function useTabsMeeting() {
       case GroupCode.WatchYoutube:
         prop = {
           ...prop,
-          code: ScreenCode.WatchYoutube,
-          handle: handleToggleActiveScreen(ScreenCode.WatchYoutube),
+          handle: openTabsWatchYoutube,
         }
         break
       case GroupCode.Recording:

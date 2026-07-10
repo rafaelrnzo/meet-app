@@ -1,5 +1,6 @@
 import type * as yup from 'yup'
 import type { DbRoom } from '@/lib/api/admin-api'
+import type { PollingMessage } from '@/components/PollingCard'
 import type { roomSchema } from './schema'
 import { djs } from '@/lib/utils'
 
@@ -25,7 +26,7 @@ interface RoomPayload {
   end_date: string
   password: string
   is_mute_on_start: boolean
-  metadata?: string
+  enable_start_room: boolean
 }
 
 interface SelectOptions {
@@ -54,7 +55,8 @@ const getRoomDefaultValue = (data: DbRoom): RoomSchemaValue => {
     endDate: djs(data.end_date).toDate(),
     password: data.password || '',
     isMuteOnStart: data.is_mute_on_start,
-    totalGroupMember: 0, // TODO: get from API
+    totalGroupMember: 0,
+    enableStartRoom: data.enable_start_room,
   }
 }
 
@@ -69,7 +71,7 @@ const getRoomPayload = (data: RoomSchemaValue): RoomPayload => {
     end_date: data.endDate?.toISOString() ?? '',
     password: data.password,
     is_mute_on_start: data.isMuteOnStart,
-    metadata: JSON.stringify({ polling: [], banned: [] }), // TODO: pastikan apakah sesuai
+    enable_start_room: data.enableStartRoom,
   }
 }
 
@@ -109,12 +111,10 @@ interface RoomEventParticipant {
 type RoomSSEDTO = RoomEventUpdated | RoomEventParticipant
 
 interface RoomMetadata {
-  waiting_room_enabled: boolean
-  allow_screen: boolean
-  allow_reaction: boolean
-  allow_audio: boolean
-  allow_video: boolean
-  // room_id: number
+  banned_users: string[]
+  banned_users_name: any[]
+  polling: PollingMessage[]
+  room_id: number
 }
 
 export type {

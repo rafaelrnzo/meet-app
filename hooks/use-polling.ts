@@ -1,13 +1,16 @@
+import type { RoomMetadata } from '@/feat/rooms/dto'
 import type { PollingMessage, PollingOption } from '@/components/PollingCard'
 import { useEffect, useState, useEffectEvent } from 'react'
 import { RoomEvent } from 'livekit-client'
 import { useRoomContext } from '@livekit/components-react'
 import { generateRoomId } from '@/lib/utils'
+import { updateMetadataPolling } from '@/lib/api/admin-api'
 import { useParamsState } from '@/hooks/use-params-state'
 import { useDataChannel } from '@/hooks/use-data-channel'
 import { useRoomState } from '@/feat/Room'
 import { LiveKitAction, ParticipantAttribute, ScreenCode } from '@/feat/enum'
-import { updateRoomMetadata } from '@/example-api'
+import { defaultErrorMessage } from '@/config'
+import { toast } from '@/components/ui/sonner'
 
 interface VoteMessage {
   optionId: number
@@ -22,7 +25,7 @@ export function usePollingSession(onReady?: () => void) {
   const [loading, setLoading] = useState(false)
   const parsed = JSON.parse(screen?.polling ?? '') as PollingMessage[]
   const pollings = { ...parsed.find((polling) => !polling.closedAt) }
-  const { id, openedAt = -1, totalParticipant = 100, question = '', options = [] } = pollings
+  const { id, openedAt = -1, totalParticipant = 0, question = '', options = [] } = pollings
   const room = useRoomContext()
 
   const { send: updateVote } = useDataChannel<VoteMessage>(
@@ -66,7 +69,12 @@ export function usePollingSession(onReady?: () => void) {
     })
 
     room.localParticipant.setAttributes({
-      [ParticipantAttribute.ScreenActivePolling]: JSON.stringify(newMessages),
+      [ParticipantAttribute.ScreenActivePolling]: JSON.stringify(
+        newMessages.map((message) => ({
+          ...message,
+          totalParticipant: message.options.reduce((acc, value) => acc + value.votes.length, 0),
+        }))
+      ),
     })
   }
 
@@ -86,6 +94,12 @@ export function usePollingSession(onReady?: () => void) {
     )
   }
 
+  function findVote() {
+    return options.find((opt) =>
+      opt.votes.some((vote) => vote.identity === room.localParticipant.identity)
+    )?.id
+  }
+
   async function endPolling() {
     const prev = room.localParticipant.attributes[ParticipantAttribute.ScreenActivePolling]
     if (!prev || !room.metadata) return
@@ -93,7 +107,7 @@ export function usePollingSession(onReady?: () => void) {
     setLoading(true)
 
     try {
-      const roomMetadata: { polling: PollingMessage[] } = JSON.parse(room.metadata)
+      const roomMetadata: RoomMetadata = JSON.parse(room.metadata)
       const localPolling: PollingMessage[] = JSON.parse(prev)
       const updatedLocalPolling = localPolling.map((message) =>
         message.identity === room.localParticipant.identity
@@ -101,25 +115,34 @@ export function usePollingSession(onReady?: () => void) {
           : message
       )
 
-      const { error } = await updateRoomMetadata(room.name, {
+      await updateMetadataPolling({
+        room_id: roomMetadata.room_id,
         polling: [...roomMetadata.polling, ...updatedLocalPolling],
       })
 
-      if (error) {
-        throw error
-      }
-
       openPanelOpen()
       stopActiveScreen()
-    } catch (e) {
-      console.log('Failed to end polling:', e)
+    } catch (error) {
+      toast.error('Gagal menutup jajak pendapat', {
+        description: error instanceof Error ? error.message : defaultErrorMessage,
+      })
     } finally {
       setLoading(false)
     }
   }
 
   useEffect(() => prepareToAnswer(), [])
-  return { totalParticipant, openedAt, question, options, isHost, loading, selectVote, endPolling }
+  return {
+    totalParticipant,
+    openedAt,
+    question,
+    options,
+    isHost,
+    loading,
+    selectVote,
+    findVote,
+    endPolling,
+  }
 }
 
 export function usePollingQuestion(config?: { optionLength?: number }) {
@@ -137,25 +160,20 @@ export function usePollingQuestion(config?: { optionLength?: number }) {
     }))
   )
 
+  const uniqueValues = new Set()
   const disabled =
     !question.trim() ||
     options.filter((option) => !!option.value.trim()).length < 2 ||
     options
       .filter((option) => !!option.value.trim())
-      .reduce(
-        (acc, opt) => {
-          if (opt.value.trim().toLowerCase() === acc.text.toLowerCase()) {
-            acc.dup = true
-          } else {
-            acc.text = opt.value.trim().toLowerCase()
-          }
+      .some((opt) => {
+        const val = opt.value.trim().toLowerCase()
+        if (uniqueValues.has(val)) return true
+        uniqueValues.add(val)
+        return false
+      })
 
-          return acc
-        },
-        { text: '', dup: false }
-      ).dup
-
-  function startPolling(totalParticipant: number) {
+  function startPolling() {
     const participant = room.localParticipant
     const prev = participant.attributes[ParticipantAttribute.ScreenActivePolling] || '[]'
 
@@ -164,13 +182,12 @@ export function usePollingQuestion(config?: { optionLength?: number }) {
       const payload: PollingMessage = {
         id: `${generateRoomId()}-${Date.now()}`,
         identity: room.localParticipant.identity,
-        totalParticipant,
+        totalParticipant: 0,
         question,
         openedAt: Date.now(),
         closedAt: null,
         options: [
           ...options.filter((option) => !!option.value),
-          { id: -2, value: 'Tidak menjawab', votes: [] },
           { id: -1, value: 'Lewati pendapat', votes: [] },
         ],
       }
@@ -184,8 +201,14 @@ export function usePollingQuestion(config?: { optionLength?: number }) {
         setOptions((prev) => prev.map((previous) => ({ ...previous, value: '', votes: [] })))
         setCollapse(history.length > 0)
       })
-    } catch (e) {
-      console.log('Failed to start polling:', e)
+
+      toast.success('Jajak pendapat berhasil dibuat', {
+        description: `Jajak pendapat “${question}” berhasil dibuat`,
+      })
+    } catch (error) {
+      toast.error('Gagal membuat jajak pendapat', {
+        description: error instanceof Error ? error.message : defaultErrorMessage,
+      })
     }
   }
 

@@ -4,6 +4,7 @@ import type { FC } from 'react'
 import type { HostMessage } from '@/feat/Tabs'
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import { microtask } from 'framer-motion'
 import {
   BlockGameIcon,
   DoNotTouch01Icon,
@@ -61,29 +62,53 @@ export const ListParticipantPending: FC<{
 
   return (
     !!participantPending.length && (
-      <div>
-        <h3>Pending</h3>
-        <ul>
+      <div className='mx-auto w-full max-w-2xl bg-white p-2'>
+        <ul className='mb-6 space-y-5 overflow-y-auto'>
           {participantPending.map(({ participantId, participantName }) => (
             <li key={participantId} className='flex items-center justify-between'>
-              <p>{participantName}</p>
-              <button
-                className='text-destructive disabled:opacity-70'
-                disabled={loadingId.includes(participantId)}
-                onClick={() => handleParticipant('reject', participantId)}
-              >
-                Tolak
-              </button>
-              <button
-                className='disabled:opacity-70'
-                disabled={loadingId.includes(participantId)}
-                onClick={() => handleParticipant('accept', participantId)}
-              >
-                Terima
-              </button>
+              <div className='flex items-center space-x-2'>
+                <div className='flex h-10 w-10 items-center justify-center rounded-full border border-neutral-400 bg-red-50'>
+                  <span className='font-semibold text-red-800 uppercase'>
+                    {participantName.slice(0, 2)}
+                  </span>
+                </div>
+                <span className='text-sm font-medium text-red-800'>{participantName}</span>
+              </div>
+
+              <div className='flex items-center space-x-2'>
+                <Button
+                  className='text-error rounded-lg border border-red-200 px-2 py-1 text-sm font-medium shadow-none transition-colors hover:bg-red-50 disabled:opacity-70'
+                  disabled={loadingId.includes(participantId)}
+                  onClick={() => handleParticipant('reject', participantId)}
+                >
+                  Tolak
+                </Button>
+                <Button
+                  className='text-success rounded-lg border border-green-200 px-2 py-1 text-sm font-medium shadow-none transition-colors hover:bg-green-50 disabled:opacity-70'
+                  disabled={loadingId.includes(participantId)}
+                  onClick={() => handleParticipant('accept', participantId)}
+                >
+                  Terima
+                </Button>
+              </div>
             </li>
           ))}
         </ul>
+
+        <div className='grid grid-cols-2 gap-2 pt-3'>
+          <Button
+            className='text-error flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border-transparent bg-red-200 p-3 text-sm font-semibold shadow-none hover:bg-red-200/80!'
+            onClick={() => console.log('Tolak Semua')}
+          >
+            Tolak Semua
+          </Button>
+          <Button
+            className='text-success flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border-transparent bg-green-200 p-3 text-sm font-semibold shadow-none hover:bg-green-200/80!'
+            onClick={() => console.log('Terima Semua')}
+          >
+            Terima Semua
+          </Button>
+        </div>
       </div>
     )
   )
@@ -160,7 +185,7 @@ export function ListParticipant() {
 
                       <TabsListItemContent className='flex flex-col justify-center'>
                         <TabsListItemTitle
-                          className={cn('max-w-45.5 truncate', isBanned && 'text-red-900')}
+                          className={cn('max-w-38 truncate', isBanned && 'text-red-900')}
                         >
                           {name}
                         </TabsListItemTitle>
@@ -182,33 +207,36 @@ export function ListParticipant() {
                       <menu className='flex items-center gap-2'>
                         {isBanned ? (
                           amIModerator && (
-                            <button
+                            <Button
                               onClick={() => handleModerateParticipant(identity, 'unban')}
                               className='flex cursor-pointer items-center gap-1.5 rounded-lg px-2 py-1 text-sm text-neutral-700 transition-colors hover:bg-neutral-100'
                             >
                               <HugeIcon icon={Unlocked} size={18} className='text-neutral-600' />
                               <span>Buka blokir</span>
-                            </button>
+                            </Button>
                           )
                         ) : (
                           <>
-                            <button
+                            <Button
                               onClick={isLocal ? lowerHandLocal : lowerHand.bind(null, identity)}
                               disabled={!canClickHand}
-                              className={cn('rounded-full p-2 transition-colors', {
-                                'cursor-pointer hover:bg-neutral-100': canClickHand,
-                                'cursor-default hover:bg-transparent': !canClickHand,
-                                'opacity-70': !isLocal && !isRaised,
-                              })}
+                              className={cn(
+                                'rounded-full border-none p-2 shadow-none transition-colors',
+                                {
+                                  'cursor-pointer hover:bg-neutral-100': canClickHand,
+                                  'cursor-default hover:bg-transparent': !canClickHand,
+                                  'opacity-70': !isLocal && !isRaised,
+                                }
+                              )}
                             >
                               {isRaised ? (
                                 <HugeIcon icon={HandIcon} size={20} color='#991B1B' />
                               ) : (
                                 <HugeIcon icon={DoNotTouch01Icon} size={20} color='#A3A3A3' />
                               )}
-                            </button>
+                            </Button>
 
-                            <button
+                            <Button
                               onClick={async () =>
                                 handleParticipantMute({
                                   isLocal: isLocal,
@@ -216,18 +244,21 @@ export function ListParticipant() {
                                 })
                               }
                               disabled={!canClickMic}
-                              className={cn('rounded-full p-2 transition-colors', {
-                                'cursor-pointer hover:bg-neutral-100': canClickMic,
-                                'cursor-default hover:bg-transparent': !canClickMic,
-                                'opacity-70': !amIModerator && !isLocal,
-                              })}
+                              className={cn(
+                                'rounded-full border-none p-2 shadow-none transition-colors',
+                                {
+                                  'cursor-pointer hover:bg-neutral-100': canClickMic,
+                                  'cursor-default hover:bg-transparent': !canClickMic,
+                                  'opacity-70': !amIModerator && !isLocal,
+                                }
+                              )}
                             >
                               {isMuted ? (
                                 <HugeIcon icon={MicOff} size={20} color='#A3A3A3' />
                               ) : (
                                 <HugeIcon icon={Mic} size={20} color='#991B1B' />
                               )}
-                            </button>
+                            </Button>
 
                             {showDropdown && (
                               <DropdownMenu>

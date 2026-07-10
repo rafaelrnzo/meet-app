@@ -2,6 +2,7 @@
 
 import type { UserParams } from '@/feat/users/dto'
 import type { RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
+import type { PollingMessage } from '@/components/PollingCard'
 import { djs, qstring } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 
@@ -67,6 +68,7 @@ export interface DbRoom {
   password?: string
   is_mute_on_start: boolean
   participants?: number
+  enable_start_room: boolean
 }
 
 export interface MemberRoom {
@@ -316,6 +318,16 @@ export async function fetchActiveRoomsForAll(): Promise<DbRoom[]> {
 export async function closeActiveRoom(name: string): Promise<void> {
   await apiRequest(`/admin/rooms/${encodeURIComponent(name)}`, {
     method: 'DELETE',
+  })
+}
+
+export async function updateMetadataPolling(payload: {
+  room_id: number
+  polling: PollingMessage[]
+}): Promise<void> {
+  await apiRequest('/api/livekit/livekit-polling', {
+    method: 'POST',
+    body: JSON.stringify(payload),
   })
 }
 

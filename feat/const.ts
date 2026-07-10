@@ -1,4 +1,5 @@
 import type { TabProps } from '@/feat/types'
+import { TabsWatchYoutube } from '@/feat/Tabs/WatchYoutube'
 import { TabsSettingsRooms } from '@/feat/Tabs/SettingsRooms'
 import { TabsSettingsRecordings } from '@/feat/Tabs/SettingsRecordings'
 import { TabsSettingsParticipants } from '@/feat/Tabs/SettingsParticipants'
@@ -53,7 +54,7 @@ export const RoomTabs = [
   {
     id: TabsCode.TabsMeetingWatchYoutube,
     parentId: 1,
-    content: () => WatchYoutube,
+    content: () => TabsWatchYoutube,
     hide: false,
     description: 'Bagikan video youtube',
   },
@@ -153,7 +154,7 @@ export const TabsContents = (role: string) => [
         icon: 'hugeicons/anaytics-01' as const,
         title: 'Jajak pendapat',
         description: 'Buat & kelola jajak pendapat',
-        hide: false,
+        hide: role === 'user',
       },
       {
         id: GroupCode.Whiteboard,

@@ -58,8 +58,6 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
         region: props.region,
       })
 
-      console.log(connectionDetails)
-
       if (connectionDetailsData) {
         setConnectionDetails(connectionDetailsData)
       } else {

@@ -81,13 +81,14 @@ export const TabsPolling: FC = () => {
           isActive
           disabled={disabled}
           className='size-auto h-11 font-semibold'
-          // @TODO
-          // get from backend max participant of the room
-          onClick={() => startPolling(5)}
+          onClick={() => startPolling()}
         >
           Buat Pendapat
         </ButtonTab>
       </div>
+      {!!history.length && (
+        <h1 className='mt-8 text-base font-semibold text-neutral-400'>Riwayat Pendapat</h1>
+      )}
       {[...history]
         .sort((a, b) => djs(b.openedAt).diff(a.openedAt))
         .filter((hist) => !!hist.closedAt)
@@ -95,6 +96,7 @@ export const TabsPolling: FC = () => {
           <PollingCard
             key={hist.id}
             openedAt={hist.openedAt}
+            isHistory
             totalParticipant={hist.totalParticipant}
             question={hist.question}
             options={hist.options}
