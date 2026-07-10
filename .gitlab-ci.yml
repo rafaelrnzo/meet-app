@@ -3,6 +3,7 @@ variables:
   SERVICE_NAME: "meet-app"
   TAG_COMMIT: "$REPOSITORY/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA"
   TAG_LATEST: "$REPOSITORY/$SERVICE_NAME:latest"
+  TAG_PROD_LATEST: "$REPOSITORY/$SERVICE_NAME:prod-latest"
   TAG_CACHE: "$REPOSITORY/$SERVICE_NAME:buildcache"
   FLUX_HTTPS_URL: "https://wush:$GIT_TOKEN@git.falahtech.com/wush/staging.git"
   BUILDKIT_NO_CLIENT_TOKEN: "1"
@@ -53,6 +54,47 @@ build:
     - staging
   retry: 1
 
+build_prod:
+  stage: build
+  tags:
+    - "45"
+  image:
+    name: moby/buildkit:latest
+    entrypoint: [""]
+  before_script:
+    - mkdir -p ~/.docker
+    - |
+      cat > ~/.docker/config.json <<EOF
+      {
+        "auths": {
+          "registry.falahtech.com": {
+            "username": "${DOCKER_USER}",
+            "password": "${DOCKER_PASSWORD}"
+          }
+        }
+      }
+      EOF
+  script:
+    - printf "%s" "$ENV_PRODUCTION" > .env.production
+    - chmod 600 .env.production
+    - |
+      echo "Using BuildKit service: $BUILDKIT_SERVICE"
+    - buildctl --addr "$BUILDKIT_SERVICE" debug workers
+    - |
+      buildctl --addr "$BUILDKIT_SERVICE" build \
+        --frontend dockerfile.v0 \
+        --local context=. \
+        --local dockerfile=. \
+        --opt filename=Dockerfile \
+        --export-cache type=registry,ref=${TAG_CACHE},mode=max \
+        --import-cache type=registry,ref=${TAG_CACHE} \
+        --output type=image,name=${TAG_COMMIT},push=true \
+        --output type=image,name=${TAG_PROD_LATEST},push=true
+  environment:
+    name: production
+  only:
+    - production
+  retry: 1
 
 deploy:
   stage: deploy
