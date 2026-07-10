@@ -12,12 +12,12 @@ import { useParamsState } from '@/hooks'
 import { PickUserContext, useRoomState } from '@/feat/Room'
 import { GroupCode, ParticipantAttribute, ScreenCode } from '@/feat/enum'
 import { TabsContents } from '@/feat/const'
-import { getRemoteUrl } from '@/feat/api'
 import { toast } from '@/components/ui/sonner'
 
 export interface ImperativeContent {
   code: 0 | ScreenCode
   onRecord?: boolean
+  onWatching?: boolean
   handle: (e: MouseEvent<HTMLButtonElement>) => void
 }
 
@@ -31,7 +31,7 @@ export function useTabsMeeting() {
   const [files, setFiles] = useState<FileResponse[]>([])
   const { screen, record, startRecording, stopRecording, startActiveScreen, stopActiveScreen } =
     useRoomState()
-  const { closePanel, openTabsPolling, openTabsNotes } = useParamsState()
+  const { closePanel, openTabsPolling, openTabsNotes, openTabsWatchYoutube } = useParamsState()
   const truncateName = (name: string, length: number) => {
     return name.length > length ? name.slice(0, length) + '...' : name
   }
@@ -91,6 +91,8 @@ export function useTabsMeeting() {
         return stopActiveScreen()
       }
 
+      if (!screen) return
+
       if (id === ScreenCode.WatchYoutube || id === ScreenCode.Presentation) {
         const target = e.currentTarget
         const prevtext = target.textContent
@@ -100,16 +102,8 @@ export function useTabsMeeting() {
 
         if (!files.length) toast.error('Tidak ada file yang di unggah')
 
-        const { data } = await getRemoteUrl(
-          {
-            yt: 'https://youtu.be/e1QIqXmZ2os?si=Gd9591aZIBoeI3Mi',
-            file: files[0].file_url,
-          },
-          id
-        )
-
-        if (data?.url) {
-          await startActiveScreen(id, { url: data.url })
+        if (screen.url) {
+          await startActiveScreen(id, { url: screen.url })
         } else {
           // May add toast error here
           success = false
@@ -157,8 +151,8 @@ export function useTabsMeeting() {
       case GroupCode.WatchYoutube:
         prop = {
           ...prop,
-          code: ScreenCode.WatchYoutube,
-          handle: handleToggleActiveScreen(ScreenCode.WatchYoutube),
+          onWatching: !!screen?.url,
+          handle: openTabsWatchYoutube,
         }
         break
       case GroupCode.Recording:

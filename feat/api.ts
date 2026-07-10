@@ -72,8 +72,6 @@ export async function getRemoteUrl(
   },
   screenId: Extract<ScreenCode, ScreenCode.WatchYoutube | ScreenCode.Presentation>
 ) {
-  await new Promise((res) => setTimeout(res, 1000))
-
   const identifier = {
     [ScreenCode.WatchYoutube]: url.yt,
     [ScreenCode.Presentation]: url.file,
