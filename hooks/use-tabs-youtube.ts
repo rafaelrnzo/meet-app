@@ -6,15 +6,18 @@ import { parseYoutubeURL } from '@/feat/helpers'
 import { ScreenCode, SearchParamsKey } from '@/feat/enum'
 
 export function useTabsYoutube() {
-  const { screen, startActiveScreen, stopActiveScreen } = useRoomState()
+  const { screen, isHost, startActiveScreen, stopActiveScreen } = useRoomState()
   const { router, pathname, currentParams } = useParamsState()
-  const [url, setUrl] = useState(screen?.url ?? '')
+  const [url, setUrl] = useState(isHost ? (screen?.url ?? '') : '')
   const [isPlayed, setIsPlayed] = useState(!!url)
   const { match } = parseYoutubeURL(url)
   const urlRef = useRef(url)
   const isStartSharingRef = useRef(false)
+  const preventUpdate = !!screen && !isHost
 
   const youtubeToggleEvent = useEffectEvent(async (played: boolean) => {
+    if (preventUpdate) return
+
     if (played) {
       await startActiveScreen(ScreenCode.WatchYoutube, { url: urlRef.current })
 
@@ -36,6 +39,7 @@ export function useTabsYoutube() {
 
   return {
     url,
+    preventUpdate,
     isPlayed,
     match,
     urlRef,

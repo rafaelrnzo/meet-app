@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
 export const TabsWatchYoutube: FC = () => {
-  const { url, isPlayed, match, urlRef, isStartSharingRef, setUrl, setIsPlayed } = useTabsYoutube()
+  const { url, isPlayed, preventUpdate, match, urlRef, isStartSharingRef, setUrl, setIsPlayed } =
+    useTabsYoutube()
 
   return (
     <div className='flex flex-col gap-4'>
@@ -32,7 +33,7 @@ export const TabsWatchYoutube: FC = () => {
           isStartSharingRef.current = true
           setIsPlayed((prev) => !prev)
         }}
-        disabled={!match}
+        disabled={preventUpdate || !match}
       >
         {isPlayed ? 'Berhenti Berbagi' : 'Mulai Berbagi'}
       </Button>

@@ -17,7 +17,6 @@ import { toast } from '@/components/ui/sonner'
 export interface ImperativeContent {
   code: 0 | ScreenCode
   onRecord?: boolean
-  onWatching?: boolean
   handle: (e: MouseEvent<HTMLButtonElement>) => void
 }
 
@@ -151,7 +150,6 @@ export function useTabsMeeting() {
       case GroupCode.WatchYoutube:
         prop = {
           ...prop,
-          onWatching: !!screen?.url,
           handle: openTabsWatchYoutube,
         }
         break
