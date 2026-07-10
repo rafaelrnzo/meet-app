@@ -13,7 +13,7 @@ export const ReactionIcon = ({ isOpen, onClick }: { isOpen: boolean; onClick?: (
         <SmileyIcon weight='fill' size={24} />
       </ButtonIcon>
       {isOpen && (
-        <div className='absolute -top-[calc(100%+48px)] left-[calc(50%-40px)] flex -translate-x-1/2 gap-4 rounded-full border border-neutral-400 bg-white p-2 shadow-xl xl:-top-[calc(100%+67px)]'>
+        <div className='absolute -top-[calc(100%+48px)] left-[calc(50%-40px)] z-2 flex -translate-x-1/2 gap-4 rounded-full border border-neutral-400 bg-white p-2 shadow-xl xl:-top-[calc(100%+67px)]'>
           {['💖', '👍', '🎉', '👏', '😂', '😮'].map((emoji) => (
             <button
               key={emoji}
@@ -27,7 +27,7 @@ export const ReactionIcon = ({ isOpen, onClick }: { isOpen: boolean; onClick?: (
       )}
       <div
         ref={reactionElementRef}
-        className='pointer-events-none fixed inset-0 top-3 left-3 overflow-hidden'
+        className='pointer-events-none fixed inset-0 top-3 left-3 z-2 overflow-hidden'
       >
         {reactions.map(({ id, emoji, senderName, x }) => (
           <div

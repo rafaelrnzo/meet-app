@@ -40,13 +40,13 @@ export function isVideoCodec(codec?: string): codec is VideoCodec {
 }
 
 export function parseYoutubeURL(url?: string) {
-  if (!url) return ''
+  if (!url) return { match: false, youtubeVideoID: '' }
 
   // Accept full YouTube URL or bare video ID
   const match = /(?:youtube\.com\/watch\?v=|youtu\.be\/|embed\/)([^&?/]+)/.exec(url.trim())
   const youtubeVideoID = match?.[1] ?? url.trim()
 
-  return youtubeVideoID
+  return { match: !!match?.[1], youtubeVideoID }
 }
 
 export async function unsecuredCopyToClipboard(text: string) {
