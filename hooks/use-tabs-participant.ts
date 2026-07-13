@@ -169,6 +169,11 @@ export function useTabsParticipant() {
     async () => null
   )
 
+  const { send: sendModerateRoom } = useDataChannel<{ ban: boolean }>(
+    LiveKitAction.ModerateRoom,
+    async () => null
+  )
+
   // HANDLER ACTION
   const handleBroadcastMuteAll = async () => {
     const nextState = !shouldMuteAll
@@ -214,6 +219,7 @@ export function useTabsParticipant() {
     }
 
     try {
+      sendModerateRoom({ ban: true }, { destinationIdentities: [identity], reliable: true })
       await moderateParticipant(action, { identity, room_code: roomCode })
     } catch (error) {
       console.error(`Gagal melakukan aksi ${action} pada peserta:`, error)

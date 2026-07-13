@@ -4,7 +4,6 @@ import type { FC } from 'react'
 import type { HostMessage } from '@/feat/Tabs'
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
-import { microtask } from 'framer-motion'
 import {
   BlockGameIcon,
   DoNotTouch01Icon,
@@ -60,6 +59,23 @@ export const ListParticipantPending: FC<{
     }
   }
 
+  async function handleParticipantAll(action: 'accept' | 'reject') {
+    try {
+      setLoadingId((prev) => [...prev, 'all'])
+      participantPending.forEach(async ({ participantId }) => {
+        await acceptOrDeniedParticipant({
+          action,
+          roomName,
+          identity: participantId,
+        })
+      })
+    } catch (e) {
+      console.log('Failed to accept/reject:', e)
+    } finally {
+      setLoadingId((prev) => prev.filter((id) => id !== 'all'))
+    }
+  }
+
   return (
     !!participantPending.length && (
       <div className='mx-auto w-full max-w-2xl bg-white p-2'>
@@ -98,13 +114,13 @@ export const ListParticipantPending: FC<{
         <div className='grid grid-cols-2 gap-2 pt-3'>
           <Button
             className='text-error flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border-transparent bg-red-200 p-3 text-sm font-semibold shadow-none hover:bg-red-200/80!'
-            onClick={() => console.log('Tolak Semua')}
+            onClick={() => handleParticipantAll('reject')}
           >
             Tolak Semua
           </Button>
           <Button
             className='text-success flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border-transparent bg-green-200 p-3 text-sm font-semibold shadow-none hover:bg-green-200/80!'
-            onClick={() => console.log('Terima Semua')}
+            onClick={() => handleParticipantAll('accept')}
           >
             Terima Semua
           </Button>
@@ -218,7 +234,9 @@ export function ListParticipant() {
                         ) : (
                           <>
                             <Button
-                              onClick={isLocal ? lowerHandLocal : lowerHand.bind(null, identity)}
+                              onClick={
+                                isLocal ? lowerHandLocal : lowerHand.bind(null, { identity, name })
+                              }
                               disabled={!canClickHand}
                               className={cn(
                                 'rounded-full border-none p-2 shadow-none transition-colors',

@@ -1,6 +1,6 @@
 import type { RaisedHandUser } from '@/hooks/use-hand-raises'
 import { useEffect, useRef, useCallback } from 'react'
-import { HandFistIcon, HandIcon } from '@phosphor-icons/react'
+import { HandIcon } from '@phosphor-icons/react'
 import { useLocalParticipant } from '@livekit/components-react'
 import { toast } from './ui/sonner'
 import { useHandRaises } from '@/hooks'
@@ -15,6 +15,7 @@ export const HandRaiseToast = () => {
 
   const { localParticipant } = useLocalParticipant()
   const roleAttribute = localParticipant?.attributes?.[ParticipantAttribute.RoleName.toLowerCase()]
+  const handLowererName = localParticipant?.attributes?.[ParticipantAttribute.HandLowererName]
 
   useEffect(() => {
     audioRef.current = new Audio('/raise_hand.mp3')
@@ -63,9 +64,16 @@ export const HandRaiseToast = () => {
       )
 
       if (loweredUser) {
-        const lowerMessage = loweredUser.isMe
-          ? 'Kamu menurunkan tangan'
-          : `${checkShowAsHost(loweredUser.roleName) ? 'Host' : loweredUser.name} menurunkan tangan`
+        const getHandLoweringMessage = (loweredUser: RaisedHandUser, handLowererName: string) => {
+          if (loweredUser.isMe) {
+            return handLowererName
+              ? `${handLowererName} menurunkan tangan kamu`
+              : 'Kamu menurunkan tangan'
+          } else {
+            return `${checkShowAsHost(loweredUser.roleName) ? 'Host' : loweredUser.name} menurunkan tangan`
+          }
+        }
+        const lowerMessage = getHandLoweringMessage(loweredUser, handLowererName)
 
         toastIdRef.current = toast.raise(lowerMessage, {
           duration: 1000,
@@ -104,7 +112,7 @@ export const HandRaiseToast = () => {
       position: 'top-center',
       id: 'hand-toast-id',
     })
-  }, [raisedHands, roleAttribute, dismissToast, playSound])
+  }, [raisedHands, roleAttribute, handLowererName, dismissToast, playSound])
 
   useEffect(() => {
     return () => {
