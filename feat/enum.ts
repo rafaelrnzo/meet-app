@@ -23,6 +23,7 @@ export enum LiveKitAction {
   PickUser = 'RANDOM_USER_SELECTED',
   WaitingUpdate = 'WAITING_ROOM',
   DisconnectRoom = 'ROOM_DISCONNECT',
+  ModerateRoom = 'MODERATE_ROOM',
 }
 
 export enum ParticipantAttribute {
@@ -32,6 +33,7 @@ export enum ParticipantAttribute {
   ScreenActiveUrl = 'SCREEN_ACTIVE_URL',
   ScreenActivePolling = 'SCREEN_ACTIVE_POLLING',
   HandRaised = 'HAND_RAISED',
+  HandLowererName = 'HAND_LOWERER_NAME',
   RoleName = 'ROLE_NAME',
 }
 
