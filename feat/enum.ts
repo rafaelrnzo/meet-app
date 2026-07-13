@@ -24,6 +24,7 @@ export enum LiveKitAction {
   WaitingUpdate = 'WAITING_ROOM',
   DisconnectRoom = 'ROOM_DISCONNECT',
   ModerateRoom = 'MODERATE_ROOM',
+  ClosePolling = 'CLOSE_POLLING',
 }
 
 export enum ParticipantAttribute {
