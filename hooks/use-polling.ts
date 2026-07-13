@@ -2,7 +2,7 @@ import type { RoomMetadata } from '@/feat/rooms/dto'
 import type { PollingMessage, PollingOption } from '@/components/PollingCard'
 import { useEffect, useState, useEffectEvent } from 'react'
 import { RoomEvent } from 'livekit-client'
-import { useRoomContext } from '@livekit/components-react'
+import { useLocalParticipant, useParticipants, useRoomContext } from '@livekit/components-react'
 import { generateRoomId } from '@/lib/utils'
 import { updateMetadataPolling } from '@/lib/api/admin-api'
 import { useParamsState } from '@/hooks/use-params-state'
@@ -20,13 +20,23 @@ interface VoteMessage {
 }
 
 export function usePollingSession(onReady?: () => void) {
-  const { screen, isHost, stopActiveScreen } = useRoomState()
+  const { screen, stopActiveScreen } = useRoomState()
   const { openPanelOpen, closePanel } = useParamsState()
   const [loading, setLoading] = useState(false)
   const parsed = JSON.parse(screen?.polling ?? '') as PollingMessage[]
   const pollings = { ...parsed.find((polling) => !polling.closedAt) }
-  const { id, openedAt = -1, totalParticipant = 0, question = '', options = [] } = pollings
+  const {
+    id,
+    openedAt = -1,
+    totalParticipant = 0,
+    question = '',
+    options = [],
+    identity,
+  } = pollings
   const room = useRoomContext()
+  const participants = useParticipants()
+  const { localParticipant } = useLocalParticipant()
+  const userRole = localParticipant.attributes[ParticipantAttribute.RoleName.toLowerCase()]
 
   const { send: updateVote } = useDataChannel<VoteMessage>(
     LiveKitAction.PollingVoteNow,
@@ -101,7 +111,9 @@ export function usePollingSession(onReady?: () => void) {
   }
 
   async function endPolling() {
-    const prev = room.localParticipant.attributes[ParticipantAttribute.ScreenActivePolling]
+    const prev = participants.find((user) => user.identity === identity)?.attributes[
+      ParticipantAttribute.ScreenActivePolling
+    ]
     if (!prev || !room.metadata) return
 
     setLoading(true)
@@ -110,9 +122,7 @@ export function usePollingSession(onReady?: () => void) {
       const roomMetadata: RoomMetadata = JSON.parse(room.metadata)
       const localPolling: PollingMessage[] = JSON.parse(prev)
       const updatedLocalPolling = localPolling.map((message) =>
-        message.identity === room.localParticipant.identity
-          ? { ...message, closedAt: Date.now() }
-          : message
+        message.identity === identity ? { ...message, closedAt: Date.now() } : message
       )
 
       await updateMetadataPolling({
@@ -133,11 +143,12 @@ export function usePollingSession(onReady?: () => void) {
 
   useEffect(() => prepareToAnswer(), [])
   return {
+    identity,
     totalParticipant,
     openedAt,
     question,
     options,
-    isHost,
+    isHost: ['admin', 'moderator'].includes(userRole),
     loading,
     selectVote,
     findVote,
@@ -235,10 +246,15 @@ export function usePollingQuestion(config?: { optionLength?: number }) {
       }
     }
 
-    getHistory()
-    room.addListener(RoomEvent.RoomMetadataChanged, updateHistory)
+    room
+      .on(RoomEvent.Connected, getHistory)
+      .on(RoomEvent.Reconnected, getHistory)
+      .on(RoomEvent.RoomMetadataChanged, updateHistory)
     return () => {
-      room.removeListener(RoomEvent.RoomMetadataChanged, updateHistory)
+      room
+        .off(RoomEvent.Connected, getHistory)
+        .off(RoomEvent.Reconnected, getHistory)
+        .off(RoomEvent.RoomMetadataChanged, updateHistory)
     }
   }, [room])
 
