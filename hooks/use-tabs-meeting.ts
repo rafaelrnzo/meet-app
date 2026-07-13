@@ -29,10 +29,6 @@ export function useTabsMeeting() {
     useRoomState()
   const { openTabsPolling, openTabsNotes, openTabsWatchYoutube } = useParamsState()
 
-  function truncateName(name: string, length: number) {
-    return name.length > length ? name.slice(0, length) + '...' : name
-  }
-
   function handleTogglePickUser() {
     return async () => {
       if (!room) return
@@ -47,30 +43,26 @@ export function useTabsMeeting() {
       }
 
       const randomIndex = Math.floor(Math.random() * participants.length)
-      const choosenUser = participants[randomIndex]
+      const { name, identity } = participants[randomIndex]
+      const overflowName = name.length > 20 ? name.slice(0, 20) + '...' : name
 
+      // Broadcast reset dismiss for all participant
       await room.localParticipant.publishData(
-        encoder.encode(
-          JSON.stringify({ action: LiveKitAction.PickUserReset, payload: choosenUser.name })
-        ),
+        encoder.encode(JSON.stringify({ action: LiveKitAction.PickUserReset, payload: name })),
         { reliable: false }
       )
 
+      // Broadcast only for selected pick
       await room.localParticipant.publishData(
-        encoder.encode(
-          JSON.stringify({ action: LiveKitAction.PickUser, payload: choosenUser.name })
-        ),
+        encoder.encode(JSON.stringify({ action: LiveKitAction.PickUser, payload: name })),
         {
           reliable: false,
-          destinationIdentities: [choosenUser.identity],
+          destinationIdentities: [identity],
         }
       )
 
       toast.dismiss()
-      toast.pick(`${truncateName(choosenUser.name ?? 'unknown', 20)} telah dipilih`, {
-        position: 'top-center',
-        duration: Infinity,
-      })
+      toast.pick(`${overflowName} telah dipilih`, { position: 'top-center', duration: Infinity })
     }
   }
 

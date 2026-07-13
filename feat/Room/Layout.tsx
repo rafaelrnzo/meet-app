@@ -109,6 +109,7 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
     const handlePickedUser = (data: Uint8Array) => {
       try {
         const rawString = decoder.decode(data)
+        const option = { position: 'top-center', duration: Infinity } as const
 
         // Invalid json parse
         if (!rawString.trim().startsWith('{')) {
@@ -120,15 +121,10 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
           payload: string
         }
 
-        if (action === LiveKitAction.PickUser) {
-          toastIdRef.current = toast.pick('Anda telah ditunjuk', {
-            position: 'top-center',
-            duration: Infinity,
-          })
-        }
-
-        if (action === LiveKitAction.PickUserReset) {
-          toast.dismiss()
+        // prettier-ignore
+        switch (action) {
+          case LiveKitAction.PickUser: return (toastIdRef.current = toast.pick('Anda telah ditunjuk', option))
+          case LiveKitAction.PickUserReset: return toast.dismiss()
         }
       } catch (e) {
         console.log('Failed to receive the message:', e)
