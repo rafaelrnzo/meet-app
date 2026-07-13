@@ -1,16 +1,15 @@
 'use client'
 
 import type { MouseEvent } from 'react'
-import type { FileResponse } from '@/feat/rooms/dto'
 import type { ScreenID } from '@/feat/Room'
 import type { TabsContentList } from '@/feat/const'
-import { useContext, useEffect, useState } from 'react'
-import { useParticipants, useRoomContext, useRoomInfo } from '@livekit/components-react'
-import { getOnePresentation } from '@/lib/api/admin-api'
+import { useRemoteParticipants, useRoomContext, useRoomInfo } from '@livekit/components-react'
+import { encoder } from '@/lib/utils'
+import { getPresentationUrl } from '@/lib/api/admin-api'
 import { useAuth } from '@/hooks/use-auth'
 import { useParamsState } from '@/hooks'
-import { PickUserContext, useRoomState } from '@/feat/Room'
-import { GroupCode, ParticipantAttribute, ScreenCode } from '@/feat/enum'
+import { useRoomState } from '@/feat/Room'
+import { GroupCode, LiveKitAction, ScreenCode } from '@/feat/enum'
 import { TabsContents } from '@/feat/const'
 import { toast } from '@/components/ui/sonner'
 
@@ -24,68 +23,60 @@ export function useTabsMeeting() {
   const room = useRoomContext()
   const roomInfo = useRoomInfo()
   const roomId: { room_id: number } = roomInfo.metadata ? JSON.parse(roomInfo.metadata) : ''
-  const usePickUserContext = useContext(PickUserContext)
-  const remoteParticipants = useParticipants()
+  const remoteParticipants = useRemoteParticipants()
   const { role } = useAuth()
-  const [files, setFiles] = useState<FileResponse[]>([])
   const { screen, record, startRecording, stopRecording, startActiveScreen, stopActiveScreen } =
     useRoomState()
   const { openTabsPolling, openTabsNotes, openTabsWatchYoutube } = useParamsState()
-  const truncateName = (name: string, length: number) => {
+
+  function truncateName(name: string, length: number) {
     return name.length > length ? name.slice(0, length) + '...' : name
   }
 
-  const loadPresentations = async () => {
-    try {
-      const file = await getOnePresentation(roomId.room_id || 0)
-      setFiles(Array.isArray(file) ? file : file ? [file] : [])
-    } catch (error) {
-      console.error('Failed to load data', error)
-    }
-  }
+  function handleTogglePickUser() {
+    return async () => {
+      if (!room) return
 
-  useEffect(() => {
-    if (roomId.room_id) {
-      loadPresentations()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [roomId.room_id])
+      const participants = remoteParticipants.map((participant) => ({
+        name: participant.name ?? 'Unknown',
+        identity: participant.identity,
+      }))
 
-  async function handleTogglePickUser() {
-    if (!room || !remoteParticipants) return
-
-    const participants = Array.from(remoteParticipants.values()).filter(({ attributes }) => {
-      const attributesRole = attributes[ParticipantAttribute.RoleName.toLowerCase()]
-      return attributesRole === 'user'
-    })
-    if (participants.length === 0)
-      return toast.pick('Tidak ada peserta', {
-        position: 'top-center',
-      })
-
-    const randomIndex = Math.floor(Math.random() * participants.length)
-    const choosenUser = participants[randomIndex]
-    usePickUserContext?.sendPickUser(
-      JSON.stringify({
-        name: choosenUser.name ?? 'unknown',
-        identity: choosenUser.identity ?? 'unknown',
-      }),
-      {
-        reliable: true,
+      if (!participants.length) {
+        return toast.pick('Tidak ada peserta', { position: 'top-center' })
       }
-    )
-    toast.pick(`${truncateName(choosenUser.name ?? 'unknown', 20)} telah dipilih`, {
-      position: 'top-center',
-    })
+
+      const randomIndex = Math.floor(Math.random() * participants.length)
+      const choosenUser = participants[randomIndex]
+
+      await room.localParticipant.publishData(
+        encoder.encode(
+          JSON.stringify({ action: LiveKitAction.PickUserReset, payload: choosenUser.name })
+        ),
+        { reliable: false }
+      )
+
+      await room.localParticipant.publishData(
+        encoder.encode(
+          JSON.stringify({ action: LiveKitAction.PickUser, payload: choosenUser.name })
+        ),
+        {
+          reliable: false,
+          destinationIdentities: [choosenUser.identity],
+        }
+      )
+
+      toast.dismiss()
+      toast.pick(`${truncateName(choosenUser.name ?? 'unknown', 20)} telah dipilih`, {
+        position: 'top-center',
+        duration: Infinity,
+      })
+    }
   }
 
   function handleToggleActiveScreen(id: ScreenID) {
     return async (e: MouseEvent<HTMLButtonElement>) => {
       const target = e.currentTarget
-      const prevtext = target.textContent
-
-      // Indicate message if prevented by any
-      let errorMessage = ''
 
       if (screen?.id === id) {
         if (!confirm('Apakah anda yakin ingin mengakhiri sesi ini?')) {
@@ -95,28 +86,33 @@ export function useTabsMeeting() {
         return stopActiveScreen()
       }
 
-      if (!screen) return
+      const error = { message: '' }
+      const action = {
+        [ScreenCode.WatchYoutube]: async () => {
+          // Moved to screen WatchYoutube.tsx handler
+        },
+        [ScreenCode.Presentation]: async () => {
+          try {
+            const { file_url } = await getPresentationUrl(roomId.room_id)
+            await startActiveScreen(id, { url: file_url })
+          } catch (e) {
+            error.message = e instanceof Error ? e.message : 'Tidak ada file yang di unggah'
+          }
+        },
+      }
 
-      if (id === ScreenCode.WatchYoutube || id === ScreenCode.Presentation) {
-        if (!files.length) {
-          errorMessage = 'Tidak ada berkas presentasi yang di unggah'
-        }
-
+      if (id in action) {
         target.disabled = true
         target.textContent = 'Memulai...'
 
-        if (screen.url) {
-          await startActiveScreen(id, { url: screen.url })
-        } else {
-          //
+        // Fire action
+        await action[id as keyof typeof action]()
+
+        if (error.message) {
+          toast.error(error.message)
         }
 
         target.disabled = false
-        target.textContent = prevtext
-
-        if (errorMessage) {
-          toast.error('Tidak ada berkas presentasi yang di unggah')
-        }
       } else {
         await startActiveScreen(id)
       }
@@ -167,7 +163,7 @@ export function useTabsMeeting() {
       case GroupCode.PickRandom:
         prop = {
           ...prop,
-          handle: handleTogglePickUser,
+          handle: handleTogglePickUser(),
         }
         break
       default: {

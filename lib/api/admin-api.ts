@@ -1,7 +1,7 @@
 'use server'
 
 import type { UserParams } from '@/feat/users/dto'
-import type { RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
+import type { FileResponse, RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
 import type { PollingMessage } from '@/components/PollingCard'
 import { djs, qstring } from '@/lib/utils'
 import { auth } from '@/lib/auth'
@@ -107,6 +107,13 @@ export async function getRoomListConfig(searchParams: object) {
     isEmpty: !('search' in searchParams) && !rooms.length,
     isInvalid: 'search' in searchParams && !rooms.length,
   }
+}
+
+export async function getPresentationUrl(roomId: number) {
+  return await apiRequest<FileResponse>(`/admin/presentations/${roomId}`, {
+    method: 'GET',
+    cache: 'no-store',
+  })
 }
 
 export async function leaveRoom(roomName: string) {

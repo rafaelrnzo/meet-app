@@ -21,6 +21,7 @@ export enum LiveKitAction {
   PollingVoteNow = 'POLLING_VOTE_NOW',
   Reaction = 'REACTION',
   PickUser = 'RANDOM_USER_SELECTED',
+  PickUserReset = 'RESET_USER_SELECTED',
   WaitingUpdate = 'WAITING_ROOM',
   DisconnectRoom = 'ROOM_DISCONNECT',
 }
