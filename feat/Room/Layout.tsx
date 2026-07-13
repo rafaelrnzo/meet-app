@@ -119,6 +119,12 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
     room.localParticipant.setMicrophoneEnabled(false)
     room.localParticipant.setCameraEnabled(false)
     room.disconnect()
+    alert('Host telah mengeluarkan Anda dari ruangan ini.')
+  })
+
+  useDataChannel<{ ban: boolean }>(LiveKitAction.ModerateRoom, async ({ payload }) => {
+    if (!payload?.ban) return
+    alert('Host telah memblokir Anda dari ruangan ini.')
   })
 
   return (

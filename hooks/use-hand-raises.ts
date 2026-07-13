@@ -15,19 +15,23 @@ export function useHandRaises() {
   const remoteParticipants = useParticipants()
   const isRaised = localParticipant.attributes?.[ParticipantAttribute.HandRaised] === 'true'
 
-  const setHandStatus = async (shouldRaise: boolean) => {
+  const setHandStatus = async (shouldRaise: boolean, name?: string) => {
     try {
       await localParticipant.setAttributes({
         [ParticipantAttribute.HandRaised]: String(shouldRaise),
+        [ParticipantAttribute.HandLowererName]: name ?? '',
       })
     } catch (e) {
       console.log('Failed to update hand raise attribute:', e)
     }
   }
 
-  const { send: sendLower } = useDataChannel<string>(LiveKitAction.HandRaisedLower, () => {
-    setHandStatus(false)
-  })
+  const { send: sendLower } = useDataChannel<{ identity: string; name: string }>(
+    LiveKitAction.HandRaisedLower,
+    ({ participant }) => {
+      setHandStatus(false, participant.name)
+    }
+  )
 
   const raisedHands = () => {
     const listMap = new Map<string, RaisedHandUser>()
@@ -48,9 +52,9 @@ export function useHandRaises() {
 
   const toggleHand = () => setHandStatus(!isRaised)
   const lowerHandLocal = () => setHandStatus(false)
-  const lowerHand = (identity: string) => {
+  const lowerHand = ({ identity, name }: { identity: string; name: string }) => {
     if (localParticipant) {
-      sendLower(identity, { reliable: false, destinationIdentities: [identity] })
+      sendLower({ identity, name }, { reliable: false, destinationIdentities: [identity] })
     }
   }
 
