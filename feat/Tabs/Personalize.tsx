@@ -9,6 +9,10 @@ import { BackgroundProcessor, supportsBackgroundProcessors } from '@livekit/trac
 import { useLocalParticipant } from '@livekit/components-react'
 import { Loading03FreeIcons } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
+import { useControls } from '@/hooks'
+import { defaultErrorMessage } from '@/config'
+import { toast } from '@/components/ui/sonner'
+import { default as NoData } from '@/components/ui/no-data'
 import { HugeIcon } from '@/components/HugeIcon'
 import { Button } from '@/components/Button'
 
@@ -79,6 +83,7 @@ const backgroundItems = [
 
 export const TabsPersonalize: FC = () => {
   const { localParticipant } = useLocalParticipant()
+  const { videoEnabled, setVideoEnabled } = useControls()
   const state = useRef({
     isBackgroundProcessorEnabled: false,
     backgroundProcessor: BackgroundProcessor({ mode: 'disabled' }),
@@ -106,20 +111,37 @@ export const TabsPersonalize: FC = () => {
       state.current.isBackgroundProcessorEnabled = true
       await localVideoTrack.setProcessor(state.current.backgroundProcessor)
       setActiveBackground(id)
+      toast.success('Latar belakang berhasil diganti', {
+        description: 'Berhasil mengubah latar belakang',
+      })
     } catch (error) {
       setCurrentBackground(activeBackground)
-      alert(error instanceof Error ? error.message : JSON.stringify(error))
+      toast.error('Gagal mengubah latar belakang', {
+        description: error instanceof Error ? error.message : defaultErrorMessage,
+      })
     } finally {
       setLoading(false)
     }
   }
 
-  if (!supportsBackgroundProcessors() || !localParticipant.isCameraEnabled) {
+  if (!supportsBackgroundProcessors() || !videoEnabled) {
     return (
       <div className='flex h-full items-center text-center text-sm'>
-        {!localParticipant.isCameraEnabled
-          ? 'Aktifkan kamera untuk menggunakan latar belakang virtual'
-          : 'Perangkat ini tidak mendukung pemrosesan latar belakang virtual'}
+        <NoData
+          title={
+            !videoEnabled
+              ? 'Aktifkan Kamera Terlebih Dahulu'
+              : 'Perangkat ini tidak mendukung pemrosesan latar belakang virtual'
+          }
+          desc={!videoEnabled ? 'Virtual background hanya dapat digunakan saat kamera aktif.' : ''}
+          {...(!videoEnabled && {
+            insertButton: {
+              children: 'Aktifkan Kamera',
+              onClick: () => setVideoEnabled(true),
+            },
+          })}
+          className='[&>div]:min-w-[unset]'
+        />
       </div>
     )
   }

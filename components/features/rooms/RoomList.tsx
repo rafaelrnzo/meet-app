@@ -58,6 +58,7 @@ const ButtonJoin: FC<ButtonJoinProps> = ({
   const [now, setNow] = useState(djs())
   const router = useRouter()
   const startDate = djs(dateStart)
+  const endDate = djs(dateEnd)
   const status = useMemo(() => (now.isBefore(startDate) ? 'upcoming' : 'open'), [now, startDate])
   const intervalRef = useRef<ReturnType<typeof setInterval>>(void 0)
 
@@ -65,7 +66,7 @@ const ButtonJoin: FC<ButtonJoinProps> = ({
     const now = djs()
     setNow(now)
 
-    if (djs(dateStart).isAfter(now) && now.isAfter(djs(dateEnd))) {
+    if (now.isAfter(endDate)) {
       clearInterval(intervalRef.current)
       handleCloseModal?.()
     }
@@ -220,7 +221,6 @@ const RoomList: FC<RoomListProps> = ({
                             event.stopPropagation()
                             handleShareLink(room_code)
                           }}
-                          hidden={!isAdmin}
                         >
                           <Icon type='share' />
                         </Button>
