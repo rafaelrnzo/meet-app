@@ -83,7 +83,7 @@ const backgroundItems = [
 
 export const TabsPersonalize: FC = () => {
   const { localParticipant } = useLocalParticipant()
-  const { videoEnabled, setVideoEnabled } = useControls()
+  const { videoEnabled, handleToggleVideo } = useControls()
   const state = useRef({
     isBackgroundProcessorEnabled: false,
     backgroundProcessor: BackgroundProcessor({ mode: 'disabled' }),
@@ -137,7 +137,7 @@ export const TabsPersonalize: FC = () => {
           {...(!videoEnabled && {
             insertButton: {
               children: 'Aktifkan Kamera',
-              onClick: () => setVideoEnabled(true),
+              onClick: () => handleToggleVideo(),
             },
           })}
           className='[&>div]:min-w-[unset]'
