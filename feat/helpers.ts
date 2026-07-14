@@ -115,7 +115,7 @@ export async function publishChunked(
   options: { reliable: boolean; topic: string }
 ) {
   if (data.byteLength <= ChunkSize) {
-    await participant.publishData(data, options)
+    await participant.publishData(data as never, options)
     return
   }
 

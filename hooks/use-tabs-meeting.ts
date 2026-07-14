@@ -27,7 +27,7 @@ export function useTabsMeeting() {
   const { role } = useAuth()
   const { screen, record, startRecording, stopRecording, startActiveScreen, stopActiveScreen } =
     useRoomState()
-  const { openTabsPolling, openTabsNotes, openTabsWatchYoutube } = useParamsState()
+  const { closePanel, openTabsPolling, openTabsNotes, openTabsWatchYoutube } = useParamsState()
 
   function handleTogglePickUser() {
     return async () => {
@@ -69,12 +69,9 @@ export function useTabsMeeting() {
   function handleToggleActiveScreen(id: ScreenID) {
     return async (e: MouseEvent<HTMLButtonElement>) => {
       const target = e.currentTarget
+      const prevText = target.textContent
 
       if (screen?.id === id) {
-        if (!confirm('Apakah anda yakin ingin mengakhiri sesi ini?')) {
-          return e.preventDefault()
-        }
-
         return stopActiveScreen()
       }
 
@@ -84,11 +81,11 @@ export function useTabsMeeting() {
           // Moved to screen WatchYoutube.tsx handler
         },
         [ScreenCode.Presentation]: async () => {
-          try {
-            const { file_url } = await getPresentationUrl(roomId.room_id)
+          const { data: file_url, message } = await getPresentationUrl(roomId.room_id)
+          if (file_url) {
             await startActiveScreen(id, { url: file_url })
-          } catch (e) {
-            error.message = e instanceof Error ? e.message : 'Tidak ada file yang di unggah'
+          } else {
+            error.message = message ?? 'Tidak ada file yang di unggah'
           }
         },
       }
@@ -101,13 +98,16 @@ export function useTabsMeeting() {
         await action[id as keyof typeof action]()
 
         if (error.message) {
-          toast.error(error.message)
+          toast.error(error.message, { position: 'top-center' })
+          target.textContent = prevText
         }
 
         target.disabled = false
       } else {
         await startActiveScreen(id)
       }
+
+      if (!error.message) closePanel()
     }
   }
 

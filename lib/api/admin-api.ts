@@ -110,10 +110,16 @@ export async function getRoomListConfig(searchParams: object) {
 }
 
 export async function getPresentationUrl(roomId: number) {
-  return await apiRequest<FileResponse>(`/admin/presentations/${roomId}`, {
-    method: 'GET',
-    cache: 'no-store',
-  })
+  try {
+    const { file_url } = await apiRequest<FileResponse>(`/admin/presentations/${roomId}`, {
+      method: 'GET',
+      cache: 'no-store',
+    })
+
+    return { data: file_url }
+  } catch (e) {
+    return { data: null, message: e instanceof Error ? e.message : '' }
+  }
 }
 
 export async function leaveRoom(roomName: string) {

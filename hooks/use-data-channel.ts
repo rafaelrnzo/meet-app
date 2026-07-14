@@ -7,7 +7,7 @@ import { decoder, encoder, loginfo } from '@/lib/utils'
 
 export function useDataChannel<P>(
   action: LiveKitAction,
-  onMessage: (arg: { payload?: P; participant: RemoteParticipant }) => void
+  onMessage: (arg: { payload?: P; participant?: RemoteParticipant }) => void
 ) {
   const room = useRoomContext()
   const [message, setMessage] = useState<P>()
@@ -25,8 +25,6 @@ export function useDataChannel<P>(
         action: LiveKitAction
         payload: P
       }
-
-      if (!participant) return
 
       if (current === action) {
         loginfo(`Receiving action "${action}"`, payload)

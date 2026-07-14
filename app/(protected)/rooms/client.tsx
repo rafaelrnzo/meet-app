@@ -143,13 +143,7 @@ export const RoomListClient: FC<RoomListClientProps> = ({
               },
             },
           }}
-          headerAddon={
-            isInvalid ? (
-              <span className='text-base font-semibold text-red-800'>
-                {rooms.length} Daftar Ruangan
-              </span>
-            ) : null
-          }
+          headerAddon={isInvalid ? `${rooms.length} Daftar Ruangan` : null}
         />
       </div>
 
