@@ -29,7 +29,9 @@ export function useHandRaises() {
   const { send: sendLower } = useDataChannel<{ identity: string; name: string }>(
     LiveKitAction.HandRaisedLower,
     ({ participant }) => {
-      setHandStatus(false, participant.name)
+      if (participant) {
+        setHandStatus(false, participant.name)
+      }
     }
   )
 

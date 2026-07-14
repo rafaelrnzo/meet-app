@@ -1,33 +1,21 @@
 import type { pdfjs } from 'react-pdf'
 import { useState, useRef, useEffect, useEffectEvent } from 'react'
-import { useAuth } from '@/hooks/use-auth'
-import { useDataChannel, useSnapshotEffect } from '@/hooks'
+import { useRoomContext } from '@livekit/components-react'
+import { useDataChannel } from '@/hooks'
 import { useRoomState } from '@/feat/Room'
 import { LiveKitAction } from '@/feat/enum'
 
 export function usePresentation(onReady?: () => void) {
-  const isRenderingRef = useRef(false)
-  const { role } = useAuth()
-  const isHost = role?.name === 'admin' || role?.name === 'moderator'
   const [{ page, zoom }, setState] = useState({ page: 1, zoom: 1 })
+  const { screen, isHost } = useRoomState()
   const [maxPages, setMaxPages] = useState(1)
-  const { screen } = useRoomState()
+  const room = useRoomContext()
   const onReadyRef = useRef(onReady)
   const url = screen?.url ?? ''
   const canvasElementRef = useRef<HTMLCanvasElement>(null)
   const pdfRef = useRef<typeof pdfjs | null>(null)
   const docRef = useRef<pdfjs.PDFDocumentProxy | null>(null)
-  const startTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const loopIntervalRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const { send: syncPresentation } = useDataChannel<number>(
-    LiveKitAction.PresentationUpdate,
-    ({ payload }) => {
-      if (payload && !isHost) {
-        setState((prev) => ({ ...prev, page: payload }))
-      }
-    }
-  )
+  const renderVersion = useRef(0)
 
   const loadParser = async () => {
     const pdfjs = (await import('react-pdf')).pdfjs
@@ -40,34 +28,60 @@ export function usePresentation(onReady?: () => void) {
     return pdfjs
   }
 
-  const getParser = async (url: string) => {
-    if (pdfRef.current) {
-      docRef.current = await pdfRef.current.getDocument(url).promise
-    } else {
-      const pdfjs = await loadParser()
-      docRef.current = await pdfjs.getDocument(url).promise
+  const { send: syncPresentation } = useDataChannel<number>(
+    LiveKitAction.PresentationUpdate,
+    ({ payload }) => {
+      if (payload) {
+        setState((prev) => ({ ...prev, page: payload }))
+      }
     }
+  )
 
-    if (docRef.current) {
-      setMaxPages(docRef.current.numPages)
+  const { send: replySnapshot } = useDataChannel<Record<'page' | 'zoom', number>>(
+    LiveKitAction.SnapshotReply,
+    ({ payload }) => {
+      if (payload) {
+        setState((prev) => ({ ...prev, page: payload.page }))
+      }
     }
+  )
 
-    return docRef.current
-  }
+  const { send: requestSnapshot } = useDataChannel<string>(
+    LiveKitAction.SnapshotRequest,
+    ({ payload }) => {
+      if (payload) {
+        replySnapshot(
+          { page, zoom },
+          {
+            reliable: true,
+            destinationIdentities: [payload],
+          }
+        )
+      }
+    }
+  )
+
+  const snapshot = useEffectEvent((identity: string) => {
+    requestSnapshot(room.localParticipant.identity, {
+      reliable: true,
+      destinationIdentities: [identity],
+    })
+  })
 
   const render = useEffectEvent(async (pageNumber: number, url: string, zoomCurrent: number) => {
+    const version = ++renderVersion.current
     const canvas = canvasElementRef.current
-
-    if (!canvas || isRenderingRef.current) {
-      return
-    }
-
-    // Mark first
-    isRenderingRef.current = true
+    if (!canvas) return
 
     try {
       const parser = await getParser(url)
+
+      // Skip creating the new page if version doesn't sync
+      if (version !== renderVersion.current) return
       const page = await parser.getPage(pageNumber)
+
+      // Skip creating the new viewport if version doesn't sync
+      if (version !== renderVersion.current) return
       const viewport = page.getViewport({
         scale: 1.5 * zoomCurrent,
       })
@@ -85,7 +99,11 @@ export function usePresentation(onReady?: () => void) {
         viewport,
       })
 
+      // Build content
       await task.promise
+
+      // Skip creating the new context if version doesn't sync
+      if (version !== renderVersion.current) return
 
       const ctx = canvas.getContext('2d')
       if (!ctx) return
@@ -95,13 +113,28 @@ export function usePresentation(onReady?: () => void) {
 
       ctx.drawImage(offScreenCanvas, 0, 0)
 
-      if (isHost) {
+      if (isHost && !!room.remoteParticipants.size) {
         syncPresentation(pageNumber)
       }
     } finally {
-      isRenderingRef.current = false
+      //
     }
   })
+
+  async function getParser(url: string) {
+    if (pdfRef.current) {
+      docRef.current = await pdfRef.current.getDocument(url).promise
+    } else {
+      const pdfjs = await loadParser()
+      docRef.current = await pdfjs.getDocument(url).promise
+    }
+
+    if (docRef.current) {
+      setMaxPages(docRef.current.numPages)
+    }
+
+    return docRef.current
+  }
 
   function pagePrev() {
     setState((prev) => ({ ...prev, page: Math.max(1, prev.page - 1) }))
@@ -110,67 +143,34 @@ export function usePresentation(onReady?: () => void) {
   function pageNext() {
     setState((prev) => ({ ...prev, page: Math.min(maxPages, prev.page + 1) }))
   }
+
   function zoomIn() {
-    // max 1x the original size
-    setState((prev) => ({ ...prev, zoom: Math.min(1, prev.zoom + 0.01) }))
+    setState((prev) => ({ ...prev, zoom: Math.min(1, prev.zoom + 0.1) }))
   }
 
   function zoomOut() {
-    // min 0.5x the original size
-    setState((prev) => ({ ...prev, zoom: Math.max(0.5, prev.zoom - 0.01) }))
+    setState((prev) => ({ ...prev, zoom: Math.max(0.5, prev.zoom - 0.1) }))
   }
 
-  function startHoldZoom(zoomAction: () => void) {
-    if (loopIntervalRef.current) return
-    zoomAction()
-    startTimeoutRef.current = setTimeout(() => {
-      loopIntervalRef.current = setInterval(() => {
-        zoomAction()
-      }, 100)
-    }, 350)
-  }
-
-  function stopHoldZoom() {
-    if (startTimeoutRef.current) {
-      clearTimeout(startTimeoutRef.current)
-      startTimeoutRef.current = null
-    }
-    if (loopIntervalRef.current) {
-      clearInterval(loopIntervalRef.current)
-      loopIntervalRef.current = null
-    }
-  }
-
-  // Snapshot: Sync participant initial page with latest host page
-  // Careful! This action will be effect host state during cleanup
-  useSnapshotEffect(page, (syncedPage) => {
-    if (page !== syncedPage) {
-      setState((prev) => ({ ...prev, page: syncedPage }))
-    }
-  })
+  // Get snapshot
+  useEffect(() => (screen && !isHost ? snapshot(screen.host) : void 0), [screen, isHost])
 
   // Update canvas when page/url changed
   useEffect(() => {
     if (url) {
-      void render(page, url, zoom)
+      render(page, url, zoom)
     }
   }, [page, url, zoom])
 
   return {
     canvasElementRef,
     canControl: isHost,
-    pagination: {
-      pagePrev,
-      pageNext,
-      currentPage: page,
-      maxPages,
-    },
-    zoomTrack: {
-      zoomIn,
-      zoomOut,
-      currentZoom: zoom,
-      startHoldZoom,
-      stopHoldZoom,
-    },
+    page,
+    maxPages,
+    zoom,
+    pagePrev,
+    pageNext,
+    zoomIn,
+    zoomOut,
   }
 }

@@ -115,11 +115,23 @@ const CustomToast = ({
 
   if (severity === 'pick') {
     return (
-      <div className={cn('h-[50px] min-w-[185px] rounded-md p-3 shadow-sm', config.bg)}>
+      <div
+        className={cn(
+          'flex h-[50px] w-[calc(100vw-var(--mobile-offset-left)*2)] max-w-[500px] justify-between rounded-md p-3 shadow-sm',
+          config.bg
+        )}
+      >
         <div className='flex min-w-0 items-start justify-start gap-2'>
           {config.icon && <div className='shrink-0'>{config.icon}</div>}
           <p className={cn('truncate', config.text)}>{title}</p>
         </div>
+        <Button
+          onClick={() => toastDefault.dismiss(id)}
+          variant='outline'
+          className='h-fit border border-black bg-transparent px-2 py-0.75 hover:bg-slate-100/50 active:bg-transparent active:text-black'
+        >
+          Tutup
+        </Button>
       </div>
     )
   }
@@ -138,7 +150,7 @@ const CustomToast = ({
   return (
     <div
       className={cn(
-        `relative flex items-start gap-2 rounded-lg border border-neutral-600 p-4 shadow-sm drop-shadow`,
+        `relative flex w-[calc(100vw-var(--mobile-offset-left)*2)] max-w-[500px] items-start justify-between gap-2 rounded-lg border border-neutral-600 p-4 shadow-sm drop-shadow`,
         config.bg
       )}
     >

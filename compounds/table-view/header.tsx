@@ -91,7 +91,9 @@ function TableViewHeader<TData>(props: TableViewHeaderProps<TData>) {
 
           {(!!filter || !!add || !addCustom || !!refresh || !!headerAddon) && (
             <div className='flex w-full grow justify-end gap-2 max-md:flex-col-reverse md:items-center'>
-              {headerAddon}
+              {headerAddon && (
+                <span className='text-base font-semibold text-red-800'>{headerAddon}</span>
+              )}
 
               {!!filter && (
                 <div className='max-md:hidden'>

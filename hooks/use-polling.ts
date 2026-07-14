@@ -246,10 +246,14 @@ export function usePollingQuestion(config?: { optionLength?: number }) {
       }
     }
 
+    // Init history for the first time
+    getHistory()
+
     room
       .on(RoomEvent.Connected, getHistory)
       .on(RoomEvent.Reconnected, getHistory)
       .on(RoomEvent.RoomMetadataChanged, updateHistory)
+
     return () => {
       room
         .off(RoomEvent.Connected, getHistory)
