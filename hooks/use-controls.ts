@@ -15,13 +15,13 @@ import { CameraResolutionOptions } from '@/feat/const'
 
 export const useControls = () => {
   const { localParticipant } = useLocalParticipant()
-  const { userChoices, saveVideoInputEnabled, saveAudioInputEnabled } = usePersistentUserChoices()
+  const { saveVideoInputEnabled, saveAudioInputEnabled } = usePersistentUserChoices()
   const [activeState, setActiveState] = useState<'camera' | 'reaction' | ''>('')
-  const [audioEnabled, setAudioEnabled] = useState(userChoices.audioEnabled)
-  const [videoEnabled, setVideoEnabled] = useState(userChoices.videoEnabled)
   const [shareScreenEnabled, setShareScreenEnabled] = useState(false)
   const [resolution, setResolution] = useState(VideoPresets.h720.resolution)
   const [maxResolution, setMaxResolution] = useState<number>(Infinity)
+  const audioEnabled = localParticipant.isMicrophoneEnabled
+  const videoEnabled = localParticipant.isCameraEnabled
   const room = useRoomContext()
   const state = useConnectionState(room)
   const isConnecting = state === ConnectionState.Connecting
@@ -74,32 +74,27 @@ export const useControls = () => {
 
     try {
       await localParticipant.setMicrophoneEnabled(targetState)
-      setAudioEnabled(targetState)
+      saveAudioInputEnabled(targetState)
     } catch (error) {
       console.error('Gagal mengubah status mikrofon:', error)
-      setAudioEnabled(audioEnabled)
     }
   }
 
-  // set microphone state
-  useEffect(() => {
-    localParticipant.setMicrophoneEnabled(audioEnabled)
-  }, [localParticipant, audioEnabled])
+  const handleToggleVideo = async () => {
+    const targetState = !videoEnabled
 
-  // Sync storage, for prejoin
-  useEffect(() => saveVideoInputEnabled(videoEnabled), [saveVideoInputEnabled, videoEnabled])
-  useEffect(() => saveAudioInputEnabled(audioEnabled), [saveAudioInputEnabled, audioEnabled])
+    try {
+      await localParticipant.setCameraEnabled(targetState, { resolution })
+      saveVideoInputEnabled(targetState)
+    } catch (error) {
+      console.error('Gagal mengubah status kamera:', error)
+    }
+  }
 
   // Sync active state
   useEffect(
     () => (!videoEnabled ? setActiveState((prev) => (prev === 'camera' ? '' : prev)) : void 0),
     [videoEnabled]
-  )
-
-  // Sync video camera by its resolution
-  useEffect(
-    () => void localParticipant.setCameraEnabled(videoEnabled, { resolution }),
-    [localParticipant, videoEnabled, resolution]
   )
 
   // Sync screen share track
@@ -124,25 +119,20 @@ export const useControls = () => {
 
   // Sync audio and video
   useEffect(() => {
-    if (!room) return
+    if (!room.localParticipant) return
 
     const handleTrackMutedOrUnmuted = () => {
-      const isMicEnabled = !!room.localParticipant?.isMicrophoneEnabled
-      const isCameraEnabled = !!room.localParticipant?.isCameraEnabled
-      setAudioEnabled(isMicEnabled)
-      setVideoEnabled(isCameraEnabled)
+      saveAudioInputEnabled(room.localParticipant.isMicrophoneEnabled)
     }
 
-    room.localParticipant?.on(RoomEvent.TrackMuted, handleTrackMutedOrUnmuted)
-    room.localParticipant?.on(RoomEvent.TrackUnmuted, handleTrackMutedOrUnmuted)
-    room.localParticipant?.on(RoomEvent.LocalTrackPublished, handleTrackMutedOrUnmuted)
+    room.localParticipant.on(RoomEvent.TrackMuted, handleTrackMutedOrUnmuted)
+    room.localParticipant.on(RoomEvent.TrackUnmuted, handleTrackMutedOrUnmuted)
 
     return () => {
-      room.localParticipant?.off(RoomEvent.TrackMuted, handleTrackMutedOrUnmuted)
-      room.localParticipant?.off(RoomEvent.TrackUnmuted, handleTrackMutedOrUnmuted)
-      room.localParticipant?.off(RoomEvent.LocalTrackPublished, handleTrackMutedOrUnmuted)
+      room.localParticipant.off(RoomEvent.TrackMuted, handleTrackMutedOrUnmuted)
+      room.localParticipant.off(RoomEvent.TrackUnmuted, handleTrackMutedOrUnmuted)
     }
-  }, [room])
+  }, [room, saveAudioInputEnabled])
 
   return {
     isConnecting,
@@ -158,11 +148,10 @@ export const useControls = () => {
     disconnect,
     handleResolutionChange,
     handleToggleShareScreen,
-    setAudioEnabled,
-    setVideoEnabled,
+    handleToggleAudio,
+    handleToggleVideo,
     setActiveState,
     setResolution,
     setMaxResolution,
-    handleToggleAudio,
   }
 }

@@ -152,7 +152,10 @@ export const RoomListClient: FC<RoomListClientProps> = ({
         isAdmin={isAdmin}
         canShareLink={canShareLink}
         handleDetail={handleDetail}
-        handleCloseModal={() => setOpenState('')}
+        handleCloseModal={() => {
+          setOpenState('')
+          router.refresh()
+        }}
       />
 
       <RoomDetailSheet

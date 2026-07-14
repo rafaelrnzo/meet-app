@@ -26,9 +26,9 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
     disconnect,
     handleResolutionChange,
     handleToggleShareScreen,
-    setVideoEnabled,
-    setActiveState,
     handleToggleAudio,
+    handleToggleVideo,
+    setActiveState,
   } = useControls()
 
   if (isConnecting) {
@@ -86,7 +86,7 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
             <ToggleTrack
               title={videoEnabled ? 'Tutup kamera' : 'Aktifkan kamera'}
               isActive={videoEnabled}
-              onClick={() => setVideoEnabled((prev) => !prev)}
+              onClick={handleToggleVideo}
               className='size-8 md:size-10'
             >
               {videoEnabled ? <CameraIcon /> : <CameraDisabledIcon />}
