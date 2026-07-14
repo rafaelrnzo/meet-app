@@ -26,14 +26,7 @@ export default async function HomePage(props: ResponseNext) {
           className='mt-[min(20vh,200px)]'
         />
       ) : (
-        <RoomListHeader
-          isInvalid={isInvalid}
-          headerAddon={
-            <span className='text-base font-semibold text-red-800'>
-              {rooms.length} Daftar Ruangan
-            </span>
-          }
-        />
+        <RoomListHeader isInvalid={isInvalid} headerAddon={`${rooms.length} Daftar Ruangan`} />
       )}
       <RoomList rooms={rooms} isAdmin={isAdmin} canShareLink={hasPermission('room:share')} />
     </PageContainer>

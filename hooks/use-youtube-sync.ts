@@ -1,4 +1,4 @@
-import type { default as YT } from 'youtube'
+/* eslint-disable no-undef, @typescript-eslint/no-redundant-type-constituents */
 import { useEffect, useRef, useEffectEvent } from 'react'
 import { RoomEvent } from 'livekit-client'
 import { useRoomContext } from '@livekit/components-react'

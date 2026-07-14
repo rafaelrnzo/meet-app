@@ -8,10 +8,18 @@ import { ArrowLeft01Icon, ArrowRight01Icon, HugeIcon, Minus, Plus } from '@/comp
 export const Presentation: FC<{
   onReady?: () => void
 }> = ({ onReady }) => {
-  const { canvasElementRef, canControl, pagination, zoomTrack } = usePresentation(onReady)
-  const { pageNext, pagePrev, currentPage, maxPages } = pagination
-  const { zoomIn, zoomOut, currentZoom, startHoldZoom, stopHoldZoom } = zoomTrack
-  const zoomPercentage = Math.round(currentZoom * 100)
+  const {
+    canvasElementRef,
+    canControl,
+    page,
+    maxPages,
+    zoom,
+    pagePrev,
+    pageNext,
+    zoomIn,
+    zoomOut,
+  } = usePresentation(onReady)
+  const zoomPercentage = Math.round(zoom * 100)
 
   return (
     <div className='absolute inset-0 rounded-md bg-[#3c3c3c]'>
@@ -20,42 +28,24 @@ export const Presentation: FC<{
           {canControl ? (
             <div className='flex items-center justify-between gap-4'>
               <div className='flex items-center justify-between gap-2'>
-                <Button disabled={currentPage === 1} onClick={pagePrev} variant='primary'>
+                <Button disabled={page === 1} onClick={pagePrev} variant='primary'>
                   <HugeIcon icon={ArrowLeft01Icon} />
                 </Button>
-                <Button disabled={currentPage === maxPages} onClick={pageNext} variant='primary'>
+                <Button disabled={page === maxPages} onClick={pageNext} variant='primary'>
                   <HugeIcon icon={ArrowRight01Icon} />
                 </Button>
               </div>
-              <span>{`${currentPage}/${maxPages}`}</span>
+              <span>{`${page}/${maxPages}`}</span>
             </div>
           ) : (
-            <span className='flex items-center'>{`${currentPage}/${maxPages}`}</span>
+            <span className='flex items-center'>{`${page}/${maxPages}`}</span>
           )}
           <div className='flex items-center justify-between gap-4'>
-            <Button
-              variant='destructive-light'
-              onClick={zoomOut}
-              onMouseDown={() => startHoldZoom(zoomOut)}
-              onTouchStart={() => startHoldZoom(zoomOut)} // mobile
-              onMouseUp={stopHoldZoom}
-              onMouseLeave={stopHoldZoom} // jika kursor keluar dari tombol saat menahan
-              onTouchEnd={stopHoldZoom}
-              disabled={zoomPercentage === 50}
-            >
+            <Button variant='destructive-light' onClick={zoomOut} disabled={zoomPercentage === 50}>
               <HugeIcon icon={Minus} />
             </Button>
             <span>{zoomPercentage}%</span>
-            <Button
-              variant='destructive-light'
-              onClick={zoomIn}
-              onMouseDown={() => startHoldZoom(zoomIn)}
-              onTouchStart={() => startHoldZoom(zoomIn)} // mobile
-              onMouseUp={stopHoldZoom}
-              onMouseLeave={stopHoldZoom} // jika kursor keluar dari tombol saat menahan
-              onTouchEnd={stopHoldZoom}
-              disabled={zoomPercentage === 100}
-            >
+            <Button variant='destructive-light' onClick={zoomIn} disabled={zoomPercentage === 100}>
               <HugeIcon icon={Plus} />
             </Button>
           </div>

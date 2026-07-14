@@ -150,7 +150,7 @@ const CustomToast = ({
   return (
     <div
       className={cn(
-        `relative flex items-start gap-2 rounded-lg border border-neutral-600 p-4 shadow-sm drop-shadow`,
+        `relative flex w-[calc(100vw-var(--mobile-offset-left)*2)] max-w-[500px] items-start justify-between gap-2 rounded-lg border border-neutral-600 p-4 shadow-sm drop-shadow`,
         config.bg
       )}
     >
