@@ -247,7 +247,7 @@ function ParticipantsContent({
                           onClick={() => {
                             onClose()
                             setIsOpenBlock(true)
-                            setUserIdentity(user.username)
+                            setUserIdentity(String(user.id))
                           }}
                         >
                           <Icon type='lock-open' className='text-error size-4' />

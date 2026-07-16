@@ -61,25 +61,8 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
   const room = useMemo(() => new Room(roomOptions.current()), []) // Maybe changed
   const roomEvent = useRef({
     leave: () => router.replace('/'),
-    error: (e: Error) => {
-      const failure = MediaDeviceFailure.getFailure(e)
-
-      if (
-        failure === MediaDeviceFailure.PermissionDenied ||
-        failure === MediaDeviceFailure.NotFound
-      ) {
-        toast.device(
-          'Error: Tidak dapat menemukan mikrofon dan kamera, atau pengguna menolak atas izin akses mikrofon dan kamera. Silahkan muat ulang halaman ini, atau tutup dan kembali ke halaman ini untuk mengaktifkan mikrofon dan kamera.',
-          {
-            position: 'top-center',
-          }
-        )
-      } else {
-        toast.device('Error: Terjadi kesalahan media yang tidak diketahui.', {
-          position: 'top-center',
-          description: e instanceof Error ? e.message : String(e),
-        })
-      }
+    error: () => {
+      //
     },
   })
 

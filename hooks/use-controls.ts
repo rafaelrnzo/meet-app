@@ -12,6 +12,7 @@ import {
 } from '@livekit/components-react'
 import { setupMediaToggle } from '@livekit/components-core'
 import { CameraResolutionOptions } from '@/feat/const'
+import { toast } from '@/components/ui/sonner'
 
 export const useControls = () => {
   const { localParticipant } = useLocalParticipant()
@@ -40,6 +41,15 @@ export const useControls = () => {
     disabled: !track || option.value > maxResolution,
   }))
 
+  const handleDeniedPermission = (kind: 'kamera' | 'mikrofon' | 'screen') => {
+    toast.device(
+      `Error: Tidak dapat menemukan ${kind}, atau pengguna menolak atas izin akses ` +
+        `${kind}. Silahkan muat ulang halaman ini, atau tutup dan kembali ke halaman ` +
+        `ini untuk mengaktifkan ${kind}.`,
+      { position: 'top-center', duration: 5_000 }
+    )
+  }
+
   const handleResolutionChange = async (quality: CameraResolution) => {
     const localTrack = localParticipant?.getTrackPublication(Track.Source.Camera)?.videoTrack
     const preset = VideoPresets[`h${quality}` as keyof typeof VideoPresets]
@@ -62,11 +72,14 @@ export const useControls = () => {
       { audio: true, selfBrowserSurface: 'include' },
       undefined,
       (error) => {
+        handleDeniedPermission('screen')
         console.log('Failed publishing share screen track:', error)
       }
     )
 
-    track.toggle(!shareScreenEnabled).then((result) => setShareScreenEnabled(result ?? false))
+    track.toggle(!shareScreenEnabled).then((result) => {
+      setShareScreenEnabled(result ?? false)
+    })
   }
 
   const handleToggleAudio = async () => {
@@ -76,6 +89,7 @@ export const useControls = () => {
       await localParticipant.setMicrophoneEnabled(targetState)
       saveAudioInputEnabled(targetState)
     } catch (error) {
+      handleDeniedPermission('mikrofon')
       console.error('Gagal mengubah status mikrofon:', error)
     }
   }
@@ -87,6 +101,7 @@ export const useControls = () => {
       await localParticipant.setCameraEnabled(targetState, { resolution })
       saveVideoInputEnabled(targetState)
     } catch (error) {
+      handleDeniedPermission('kamera')
       console.error('Gagal mengubah status kamera:', error)
     }
   }

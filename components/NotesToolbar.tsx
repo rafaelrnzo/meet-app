@@ -4,7 +4,9 @@ import type { FC, ReactNode } from 'react'
 import type { EditorView } from 'prosemirror-view'
 import { toggleMark } from 'prosemirror-commands'
 import { ArrowLineDownIcon, TextBolderIcon, TextItalicIcon } from '@phosphor-icons/react'
+import { cn } from '@/lib/utils'
 import { schema, useNotesToolbar } from '@/hooks/crdt/use-notes'
+import { Button } from '@/components/ui/button'
 import {
   HugeIcon,
   LeftToRightListBulletIcon,
@@ -29,15 +31,17 @@ export const NotesToolbarButton: FC<NotesToolbarButtonProps> = ({
   active,
   onMouseDown,
 }) => (
-  <button
+  <Button
+    variant={active ? 'primary' : 'secondary-outline'}
     title={title}
     onMouseDown={onMouseDown}
-    className={`rounded px-2 py-1 text-sm font-medium transition-colors ${
-      active ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
-    }`}
+    className={cn(
+      !active && 'hover:border-red-800 hover:bg-red-50 hover:text-red-800',
+      'h-9 rounded-md px-2 py-1 text-sm font-medium transition-colors'
+    )}
   >
     {label}
-  </button>
+  </Button>
 )
 
 export const NotesToolbarEditor: FC<NotesToolbarEditorProps> = ({ getView, editorEl }) => {
@@ -52,75 +56,66 @@ export const NotesToolbarEditor: FC<NotesToolbarEditorProps> = ({ getView, edito
   } = useNotesToolbar(getView, editorEl)
 
   return (
-    <div className='flex flex-wrap items-center gap-0.5 border-b border-gray-200 bg-white px-3 py-1.5 pr-2.5'>
-      {/* Bold / Italic */}
-      <NotesToolbarButton
-        label={<TextBolderIcon weight='bold' size={18} />}
-        title='Bold'
-        active={isMark(schema.marks.strong)}
-        onMouseDown={(e) => {
-          e.preventDefault()
-          run(toggleMark(schema.marks.strong))
-        }}
-      />
-      <NotesToolbarButton
-        label={<TextItalicIcon weight='bold' size={18} />}
-        title='Italic'
-        active={isMark(schema.marks.em)}
-        onMouseDown={(e) => {
-          e.preventDefault()
-          run(toggleMark(schema.marks.em))
-        }}
-      />
-
-      {/* Divider */}
-      <div className='mx-1 h-5 w-px bg-gray-200' />
-
-      {/* Headings */}
-      {([1, 2, 3] as const).map((level) => (
+    <div className='px-5'>
+      <div className='flex flex-wrap items-center gap-1 border-b border-red-800 bg-white pt-6 pb-2'>
+        {/* Bold / Italic */}
         <NotesToolbarButton
-          key={level}
-          label={`H${level}`}
-          title={`Heading ${level}`}
-          active={isHeading(level)}
-          onMouseDown={handleHeadingClosure(level)}
+          label={<TextBolderIcon weight='bold' size={18} />}
+          title='Bold'
+          active={isMark(schema.marks.strong)}
+          onMouseDown={(e) => {
+            e.preventDefault()
+            run(toggleMark(schema.marks.strong))
+          }}
         />
-      ))}
+        <NotesToolbarButton
+          label={<TextItalicIcon weight='bold' size={18} />}
+          title='Italic'
+          active={isMark(schema.marks.em)}
+          onMouseDown={(e) => {
+            e.preventDefault()
+            run(toggleMark(schema.marks.em))
+          }}
+        />
 
-      {/* Divider */}
-      <div className='mx-1 h-5 w-px bg-gray-200' />
+        {/* Divider */}
+        <div className='mx-1 h-5 w-px bg-gray-200' />
 
-      {/* Lists */}
-      <button
-        title='Unordered list'
-        onMouseDown={handleListTypeClosure('bullet_list')}
-        className={`rounded p-1.5 transition-colors ${
-          isInList('bullet_list') ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-100'
-        }`}
-      >
-        <HugeIcon icon={LeftToRightListBulletIcon} size={20} />
-      </button>
-      <button
-        title='Ordered list'
-        onMouseDown={handleListTypeClosure('ordered_list')}
-        className={`rounded p-1.5 transition-colors ${
-          isInList('ordered_list') ? 'bg-gray-800 text-white' : 'text-gray-600 hover:bg-gray-100'
-        }`}
-      >
-        <HugeIcon icon={LeftToRightListNumberIcon} size={20} />
-      </button>
+        {/* Headings */}
+        {([1, 2, 3] as const).map((level) => (
+          <NotesToolbarButton
+            key={level}
+            label={`H${level}`}
+            title={`Heading ${level}`}
+            active={isHeading(level)}
+            onMouseDown={handleHeadingClosure(level)}
+          />
+        ))}
 
-      {/* Divider */}
-      <div className='mx-1 h-5 w-px bg-gray-200' />
+        {/* Divider */}
+        <div className='mx-1 h-5 w-px bg-gray-200' />
 
-      {/* Download */}
-      <button
-        title='Download as .txt'
-        className='rounded p-1.5 text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900'
-        onMouseDown={handleDownload}
-      >
-        <ArrowLineDownIcon size={20} />
-      </button>
+        {/* Lists */}
+        <NotesToolbarButton
+          label={<HugeIcon icon={LeftToRightListBulletIcon} size={18} />}
+          title='Unordered list'
+          active={isInList('bullet_list')}
+          onMouseDown={handleListTypeClosure('bullet_list')}
+        />
+        <NotesToolbarButton
+          label={<HugeIcon icon={LeftToRightListNumberIcon} size={18} />}
+          title='Ordered list'
+          active={isInList('ordered_list')}
+          onMouseDown={handleListTypeClosure('ordered_list')}
+        />
+
+        {/* Download */}
+        <NotesToolbarButton
+          label={<ArrowLineDownIcon size={18} />}
+          title='Download as .txt'
+          onMouseDown={handleDownload}
+        />
+      </div>
     </div>
   )
 }
