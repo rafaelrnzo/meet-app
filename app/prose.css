@@ -138,6 +138,16 @@ img.ProseMirror-separator {
   padding-right: 2px;
   white-space: nowrap;
 }
+.ProseMirror-yjs-cursor .yjs-placeholder::before {
+  content: attr(data-placeholder);
+  float: left;
+  color: #a3a3a3;
+  pointer-events: none;
+  height: 0;
+  position: absolute;
+  left: 0;
+  white-space: nowrap;
+}
 
 .ProseMirror-yjs-selection {
   color: white;
