@@ -17,6 +17,7 @@ import {
   useRoomContext,
 } from '@livekit/components-react'
 import { cn, decoder } from '@/lib/utils'
+import { useParticipantWaitingList } from '@/hooks/use-participant-waiting-list'
 import { useParamsState, useConferenceRoom, useDataChannel } from '@/hooks'
 import { RoomToast, RoomPanel, RoomControl, RoomCanvas } from '@/feat/Room'
 import { LiveKitAction } from '@/feat/enum'
@@ -76,9 +77,11 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
   const { tabsCode } = useParamsState()
   const room = useRoomContext()
   const layoutContext = useCreateLayoutContext()
+  const { participantPending } = useParticipantWaitingList()
   const currentTab = RoomTabs.find(({ id }) => tabsCode === id)
   const RoomPanelContent = currentTab?.content?.() ?? (() => null)
   const toastIdRef = useRef<string | number>(0)
+  const prevCountRef = useRef(participantPending.length)
 
   useDataChannel<{ enabled: boolean }>(LiveKitAction.AllMicrophoneUpdate, ({ payload }) => {
     if (payload?.enabled) return null
@@ -104,6 +107,32 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
     if (!payload?.ban) return
     alert('Host telah memblokir Anda dari ruangan ini.')
   })
+
+  useEffect(() => {
+    const currentCount = participantPending.length
+    const prevCount = prevCountRef.current
+
+    prevCountRef.current = currentCount
+
+    if (currentCount === 0 || currentCount <= prevCount) {
+      return
+    }
+
+    const participantNames = participantPending.map((p) => p.participantName)
+    let toastMessage = ''
+
+    if (participantNames.length === 1) {
+      toastMessage = `${participantNames[0]} meminta untuk bergabung`
+    } else if (participantNames.length > 1) {
+      toastMessage = `${participantNames.length} orang meminta untuk bergabung`
+    }
+
+    toast.base(toastMessage, {
+      duration: 2500,
+      position: 'top-center',
+      id: 'participant-waiting',
+    })
+  }, [participantPending])
 
   useEffect(() => {
     const handlePickedUser = (data: Uint8Array) => {

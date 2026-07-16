@@ -4,11 +4,11 @@ import type { FC } from 'react'
 import type { HostMessage } from '@/feat/Tabs'
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
+import { HandIcon } from '@phosphor-icons/react'
 import {
   BlockGameIcon,
   DoNotTouch01Icon,
   EllipsisVertical,
-  HandIcon,
   Logout,
   Mic,
   MicOff,
@@ -25,6 +25,7 @@ import {
   TabsListItemTitle,
   TabsListGroups,
 } from '@/feat/Tabs/List'
+import { Role } from '@/feat/enum'
 import { acceptOrDeniedParticipant } from '@/feat/api'
 import { ModalDelete } from '@/components/ui/modal'
 import {
@@ -42,6 +43,7 @@ export const ListParticipantPending: FC<{
 }> = ({ participantPending, onHandleParticipant }) => {
   const { name: roomName } = useParams<{ name: string }>()
   const [loadingId, setLoadingId] = useState<string[]>([])
+  const { modalConfirm, setModalConfirm } = useTabsParticipant()
 
   async function handleParticipant(action: 'accept' | 'reject', participantId: string) {
     try {
@@ -114,7 +116,7 @@ export const ListParticipantPending: FC<{
         <div className='grid grid-cols-2 gap-2 pt-3'>
           <Button
             className='text-error flex w-full shrink-0 items-center justify-center gap-2 rounded-xl border-transparent bg-red-200 p-3 text-sm font-semibold shadow-none hover:bg-red-200/80!'
-            onClick={() => handleParticipantAll('reject')}
+            onClick={() => setModalConfirm((prev) => ({ ...prev, open: true }))}
           >
             Tolak Semua
           </Button>
@@ -125,6 +127,39 @@ export const ListParticipantPending: FC<{
             Terima Semua
           </Button>
         </div>
+
+        <ModalDelete
+          root={{
+            open: modalConfirm.open,
+            onOpenChange: (open) => setModalConfirm((prev) => ({ ...prev, open })),
+            modal: false,
+          }}
+          title={{
+            children: 'Tolak semua peserta?',
+          }}
+          submit={{
+            children: 'Ya, Tolak Semua',
+            onClick: () => handleParticipantAll('reject'),
+          }}
+          cancel={{
+            children: 'Batal',
+            onClick: () => setModalConfirm((prev) => ({ ...prev, open: false })),
+          }}
+          content={{
+            onPointerDownOutside: (e) => e.preventDefault(),
+            onInteractOutside: (e) => e.preventDefault(),
+            onCloseAutoFocus: (e) => e.preventDefault(),
+            className: 'max-w-[1170px]',
+          }}
+          close={{
+            onClick: () => setModalConfirm((prev) => ({ ...prev, open: false })),
+          }}
+        >
+          <p>
+            Tindakan ini akan menolak semua peserta yang menunggu persetujuan untuk bergabung ke
+            ruang rapat. Tindakan ini tidak dapat dibatalkan
+          </p>
+        </ModalDelete>
       </div>
     )
   )
@@ -181,7 +216,16 @@ export function ListParticipant() {
           {participantGroups.map(({ id, lists }) => (
             <TabsListGroup key={id} className='flex flex-col'>
               {lists.map(
-                ({ id: identity, name, isMuted, isLocal, isModerator, isRaised, isBanned }) => {
+                ({
+                  id: identity,
+                  name,
+                  roleName,
+                  isMuted,
+                  isLocal,
+                  isModerator,
+                  isRaised,
+                  isBanned,
+                }) => {
                   const currentUser = lists.find((p) => p.isLocal)
                   const amIModerator = currentUser?.isModerator ?? false
                   const showDropdown = amIModerator && !isLocal && !isBanned
@@ -209,12 +253,13 @@ export function ListParticipant() {
                         {isBanned ? (
                           <span className='text-error text-xs'>Diblokir</span>
                         ) : (
-                          isModerator && (
+                          isModerator &&
+                          roleName !== Role.User && (
                             <TabsListItemText
-                              className='max-w-50 truncate text-xs text-neutral-500'
+                              className='max-w-50 truncate text-xs text-neutral-500 capitalize'
                               title='Moderator'
                             >
-                              Moderator
+                              {roleName}
                             </TabsListItemText>
                           )
                         )}
@@ -248,7 +293,7 @@ export function ListParticipant() {
                               )}
                             >
                               {isRaised ? (
-                                <HugeIcon icon={HandIcon} size={20} color='#991B1B' />
+                                <HandIcon weight='fill' size={20} color='#991b1b' />
                               ) : (
                                 <HugeIcon icon={DoNotTouch01Icon} size={20} color='#A3A3A3' />
                               )}
