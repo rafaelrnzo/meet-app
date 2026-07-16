@@ -111,3 +111,10 @@ export enum CameraResolution {
   STANDART = 540,
   LOW = 360,
 }
+
+export enum Role {
+  Admin = 'admin',
+  Moderator = 'moderator',
+  User = 'user',
+  WI = 'WI',
+}

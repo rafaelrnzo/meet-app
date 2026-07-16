@@ -1,5 +1,6 @@
 import type { FC } from 'react'
 import type { LocalAudioTrack, LocalVideoTrack } from 'livekit-client'
+import type { Role } from '@/feat/enum'
 
 export interface SessionProps {
   roomName: string
@@ -45,4 +46,4 @@ export interface ResponseNext<P = object, S = object> {
   searchParams: Promise<S>
 }
 
-export type RoleName = 'admin' | 'moderator' | 'user'
+export type RoleName = Role
