@@ -4,10 +4,14 @@ import type { Doc } from 'yjs'
 import type { FC, ReactNode } from 'react'
 import type { RemoteParticipant } from 'livekit-client'
 import type { ScreenCode } from '@/feat/enum'
-import { createContext, useContext, useEffect, useState } from 'react'
-import { RoomEvent } from 'livekit-client'
+import { createContext, useCallback, useContext, useEffect, useState } from 'react'
+import { ConnectionState, RoomEvent } from 'livekit-client'
 import { useMaybeRoomContext } from '@livekit/components-react'
 import { loginfo, num } from '@/lib/utils'
+import {
+  startRecording as apiStartRecording,
+  stopRecording as apiStopRecording,
+} from '@/lib/api/admin-api'
 import { ParticipantAttribute } from '@/feat/enum'
 
 export type ScreenID = Exclude<ScreenCode, ScreenCode.Recording>
@@ -35,6 +39,11 @@ export interface StateContextProps {
   stopActiveScreen: () => Promise<void>
   startRecording: () => Promise<void>
   stopRecording: () => Promise<void>
+  recordData: {
+    egressId: string
+    startedAt?: number
+    endedAt?: number
+  } | null
 }
 
 export const StateContext = createContext<StateContextProps>(undefined!)
@@ -45,29 +54,58 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
   const [ydoc, setYdoc] = useState<Doc | null>(null)
   const [screen, setScreen] = useState<StateContextProps['screen'] | null>(null)
   const [record, setRecord] = useState<StateContextProps['record'] | null>(null)
+  const [recordData, setRecordData] = useState<StateContextProps['recordData']>(null)
   const isHost = room?.localParticipant.identity === screen?.host
 
   const startRecording = async () => {
     if (!room?.localParticipant) return
     try {
+      const response = await apiStartRecording({ room_name: room.name })
       await room.localParticipant.setAttributes({
         [ParticipantAttribute.ScreenRecord]: room.localParticipant.identity,
+      })
+
+      setRecordData({
+        egressId: response.egress_id,
+        startedAt: response.started_at,
       })
     } catch (e) {
       console.log('Failed to start recording:', e)
     }
   }
 
-  const stopRecording = async () => {
-    if (!room?.localParticipant) return
+  const stopRecording = useCallback(async () => {
+    if (
+      !room?.localParticipant ||
+      !recordData?.egressId ||
+      room.localParticipant.identity !== record
+    ) {
+      return
+    }
+
     try {
-      await room.localParticipant.setAttributes({
-        [ParticipantAttribute.ScreenRecord]: '',
+      const response = await apiStopRecording({
+        room_name: room.name,
+        egress_id: recordData.egressId,
+      })
+
+      if (room.state === ConnectionState.Connected) {
+        await room.localParticipant.setAttributes({
+          [ParticipantAttribute.ScreenRecord]: '',
+        })
+      }
+
+      setRecordData((prev) => {
+        if (!prev) return prev
+        return {
+          ...prev,
+          endedAt: response.ended_at,
+        }
       })
     } catch (e) {
       console.log('Failed to stop recording:', e)
     }
-  }
+  }, [record, recordData?.egressId, room?.localParticipant, room?.name, room?.state])
 
   const startActiveScreen = async (
     code: ScreenID,
@@ -192,6 +230,25 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
     }
   }, [room, ydoc])
 
+  // Stop recording when disconnect
+  useEffect(() => {
+    room?.on(RoomEvent.Disconnected, stopRecording)
+
+    return () => {
+      room?.off(RoomEvent.Disconnected, stopRecording)
+    }
+  }, [room, stopRecording])
+
+  // Stop recording before unload
+  useEffect(() => {
+    function handleBeforeUnload() {
+      stopRecording()
+    }
+
+    window.addEventListener('beforeunload', handleBeforeUnload)
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload)
+  }, [stopRecording])
+
   return (
     <StateContext.Provider
       value={{
@@ -203,6 +260,7 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
         stopRecording,
         startActiveScreen,
         stopActiveScreen,
+        recordData,
       }}
     >
       {children}

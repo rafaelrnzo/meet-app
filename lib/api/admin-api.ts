@@ -43,6 +43,12 @@ export async function apiRequest<T>(
     })
   }
 
+  const responseType = res.headers.get('content-type')
+  if (responseType === 'video/mp4') {
+    const data = await res.blob()
+    return data as T
+  }
+
   // Handle empty responses (like 204 No Content)
   const text = await res.text()
   const data = text ? JSON.parse(text) : null
@@ -488,11 +494,62 @@ export interface Recording {
   egress_id: string
   status: 'STARTED' | 'PROCESSING' | 'COMPLETED'
   created_at: string
+  duration: string
+  duration_seconds: number
+  started_at: number
+  ended_at: number
+  updated_at: number
 }
 
 export interface RecordingParams {
   room_id?: string
   search?: string
+}
+
+export type EgressRecordStatus = 'PROCESSING' | 'COMPLETED' | 'FAILED'
+export type LiveKitEgressStatus =
+  | 'EGRESS_STARTING'
+  | 'EGRESS_ACTIVE'
+  | 'EGRESS_ENDING'
+  | 'EGRESS_COMPLETE'
+  | 'EGRESS_FAILED'
+  | 'EGRESS_ABORTED'
+  | 'EGRESS_LIMIT_REACHED'
+
+export interface DefaultRecordingResponse {
+  message: string
+  egress_id: string
+  room_name: string
+  status: LiveKitEgressStatus
+  record_status: EgressRecordStatus
+  output_type: 'file' | 'hls' | ''
+  output_name: string
+}
+
+export interface StartRecordingResponse extends DefaultRecordingResponse {
+  started_at: number
+}
+
+export interface StopRecordingResponse extends DefaultRecordingResponse {
+  record_url: string
+  ended_at: number
+  record?: Recording
+}
+
+export async function startRecording(payload: { room_name: string }) {
+  return apiRequest<StartRecordingResponse>('/admin/livekit/recordings/start', {
+    method: 'POST',
+    cache: 'no-store',
+    body: JSON.stringify(payload),
+  })
+}
+
+export async function stopRecording(payload: { room_name: string; egress_id: string }) {
+  return apiRequest<StopRecordingResponse>('/admin/livekit/recordings/stop', {
+    method: 'POST',
+    cache: 'no-store',
+    body: JSON.stringify(payload),
+  })
 }
 
 export async function fetchRecordings(params?: RecordingParams): Promise<Recording[]> {
@@ -503,6 +560,13 @@ export async function fetchRecordings(params?: RecordingParams): Promise<Recordi
       cache: 'no-store',
     }
   )
+}
+
+export async function fetchRecordingVideo(id: number) {
+  return await apiRequest<Blob>(`/api/recordings/${id}/video`, {
+    method: 'GET',
+    cache: 'no-store',
+  })
 }
 
 export async function syncRecordings(): Promise<void> {

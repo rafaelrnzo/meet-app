@@ -136,7 +136,7 @@ export const RoomTabsTools = [
   },
 ]
 
-export const TabsContents = (role: string) => [
+export const TabsContents = (role: string, hasPermission: (name: string) => boolean) => [
   {
     id: GroupsCode.Collaboration,
     headline: 'Kolaborasi',
@@ -203,7 +203,7 @@ export const TabsContents = (role: string) => [
         icon: 'hugeicons/live-streaming-03' as const,
         title: 'Mulai rekam rapat',
         description: 'Rekam rapat sekarang',
-        hide: false,
+        hide: !hasPermission('recording:create'),
       },
       {
         id: GroupCode.PickRandom,

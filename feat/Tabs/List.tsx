@@ -1,7 +1,10 @@
 'use client'
 
 import type { ComponentProps, FC } from 'react'
-import { cn } from '@/lib/utils'
+import { useEffect, useRef, useState } from 'react'
+import { default as dayjs } from 'dayjs'
+import { cn, djs } from '@/lib/utils'
+import { useRoomState } from '@/feat/Room'
 
 export const TabsListGroups: FC<ComponentProps<'div'>> = ({ className, ...props }) => {
   return <div {...props} className={cn('flex flex-col gap-2', className)} />
@@ -106,5 +109,53 @@ export const TabsListItemActionRecord: FC<ComponentProps<'button'>> = ({
         className
       )}
     />
+  )
+}
+
+export const TabsListItemContentRecord: FC<{
+  onRecord?: boolean
+  title: string
+  description: string
+}> = ({ onRecord, title, description }) => {
+  const intervalRef = useRef<ReturnType<typeof setInterval>>(void 0)
+  const [recordDuration, setRecordDuration] = useState('')
+  const { recordData } = useRoomState()
+
+  useEffect(() => {
+    const startAt = recordData?.startedAt
+    const endedAt = recordData?.endedAt
+
+    if (!startAt) return
+
+    const updateDuration = (currentTime: number) => {
+      const diff = djs(currentTime).diff(djs(startAt / 1_000_000), 'seconds')
+      setRecordDuration(dayjs.duration(diff, 'seconds').format('HH:mm:ss'))
+    }
+
+    if (endedAt) {
+      updateDuration(endedAt / 1_000_000)
+      return
+    }
+
+    updateDuration(Date.now())
+
+    intervalRef.current = setInterval(() => {
+      updateDuration(Date.now())
+    }, 1000)
+
+    return () => clearInterval(intervalRef.current)
+  }, [recordData?.endedAt, recordData?.startedAt])
+
+  return (
+    <TabsListItemContent>
+      <TabsListItemTitle>
+        {onRecord && recordDuration
+          ? 'Perekaman dimulai'
+          : !onRecord && recordDuration
+            ? 'Perekaman dihentikan'
+            : title}
+      </TabsListItemTitle>
+      <TabsListItemText>{recordDuration || description}</TabsListItemText>
+    </TabsListItemContent>
   )
 }

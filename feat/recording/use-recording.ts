@@ -8,11 +8,18 @@ import { default as path } from 'path'
 import { mailtoHandler } from './helper'
 import { RecordingEvent } from './dto'
 import { djs, qstring } from '@/lib/utils'
-import { deleteRecording, fetchRecordings, updateRecordingName } from '@/lib/api/admin-api'
+import {
+  deleteRecording,
+  fetchRecordings,
+  fetchRecordingVideo,
+  updateRecordingName,
+} from '@/lib/api/admin-api'
 import { useEventSource } from '@/hooks/use-event-source'
 import { useAuth } from '@/hooks/use-auth'
 import { defaultErrorMessage } from '@/config'
 import { toast } from '@/components/ui/sonner'
+
+type CreateURL = { blob: Blob; isDownload?: false } | { blob: Blob; isDownload: true; name: string }
 
 export const useRecording = () => {
   const { loading: authLoading, token, publicUrl } = useAuth()
@@ -21,6 +28,7 @@ export const useRecording = () => {
   const [queryParams, setQueryParams] = useState<RecordingParams>({ search: '' })
   const [rowSelection, setRowSelection] = useState<RowSelectionState>({})
   const inputRenameRef = useRef<HTMLFormElement>(null)
+  const recordURL = useRef<string>(null)
 
   const getRecordings = async () => {
     try {
@@ -31,6 +39,40 @@ export const useRecording = () => {
       setRecordings([])
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const createURL = (props: CreateURL) => {
+    if (recordURL.current) {
+      URL.revokeObjectURL(recordURL.current)
+      recordURL.current = null
+    }
+
+    const href = URL.createObjectURL(props.blob)
+    recordURL.current = href
+    const link = document.createElement('a')
+
+    link.href = href
+
+    if (props.isDownload) {
+      link.download = `${path.basename(props.name, path.extname(props.name)) ?? 'Recording'}.mp4`
+    } else {
+      link.target = '_blank'
+    }
+
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+  }
+
+  const handleView = async (id: number) => {
+    try {
+      const blob = await fetchRecordingVideo(id)
+      createURL({ blob })
+    } catch (error) {
+      toast.error('Gagal melihat hasil rekaman', {
+        description: error instanceof Error ? error.message : defaultErrorMessage,
+      })
     }
   }
 
@@ -62,21 +104,14 @@ export const useRecording = () => {
     }
   }
 
-  const handleDownload = async (url: string, name: string) => {
+  const handleDownload = async (id: number, name: string) => {
     try {
-      const response = await fetch(url)
-      const blob = await response.blob()
-
-      const href = URL.createObjectURL(blob)
-      const link = document.createElement('a')
-
-      link.href = href
-      link.download = `${path.basename(name, path.extname(name)) ?? 'Recording'}.mp4`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
-      URL.revokeObjectURL(href)
-
+      const blob = await fetchRecordingVideo(id)
+      createURL({
+        blob,
+        isDownload: true,
+        name: `${path.basename(name, path.extname(name)) ?? 'Recording'}.mp4`,
+      })
       toast.success('Berhasil unduh rekaman', {
         description: `Rekaman “${name}” berhasil diunduh`,
       })
@@ -121,7 +156,14 @@ export const useRecording = () => {
   useEventSource<RecordingSSEDTO>({
     eventUrl: qstring(`${publicUrl}/admin/recordings/events`, { token }),
     onMessage: (event) => {
-      if (Object.values(RecordingEvent).includes(event.type)) {
+      if (
+        [
+          RecordingEvent.Created,
+          RecordingEvent.StatusUpdate,
+          RecordingEvent.Rename,
+          RecordingEvent.Delete,
+        ].includes(event.type)
+      ) {
         getRecordings()
       }
     },
@@ -176,5 +218,6 @@ export const useRecording = () => {
     handleMailto,
     handleRename,
     handleSearch,
+    handleView,
   }
 }
