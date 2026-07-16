@@ -4,16 +4,17 @@ import type { MarkType } from 'prosemirror-model'
 import type { AwarenessState } from '@/lib/livekit-yjs-provider'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import * as Y from 'yjs'
-import { ySyncPlugin, yUndoPlugin, yCursorPlugin } from 'y-prosemirror'
+import { ySyncPlugin, yUndoPlugin, yCursorPlugin, prosemirrorToYXmlFragment } from 'y-prosemirror'
 import { EditorView } from 'prosemirror-view'
 import { EditorState } from 'prosemirror-state'
 import { liftListItem, wrapInList, addListNodes } from 'prosemirror-schema-list'
 import { schema as basicSchema } from 'prosemirror-schema-basic'
-import { Schema } from 'prosemirror-model'
+import { DOMParser, DOMSerializer, Schema } from 'prosemirror-model'
 import { exampleSetup } from 'prosemirror-example-setup'
 import { setBlockType } from 'prosemirror-commands'
-import { useRoomContext } from '@livekit/components-react'
+import { useLocalParticipant, useRoomContext } from '@livekit/components-react'
 import { LiveKitYjsProvider } from '@/lib/livekit-yjs-provider'
+import { ParticipantAttribute } from '@/feat/enum'
 
 export const schema = new Schema({
   nodes: addListNodes(basicSchema.spec.nodes, 'paragraph block*', 'block'),
@@ -26,12 +27,18 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
   const viewRef = useRef<EditorView | null>(null)
   const onReadyRef = useRef(onReady)
   const providerRef = useRef<LiveKitYjsProvider | null>(null)
+  const { localParticipant } = useLocalParticipant()
+  const roleName = localParticipant.attributes[ParticipantAttribute.RoleName.toLowerCase()]
+  const isEditable = roleName !== 'user'
+
+  const truncateName = (name: string, length: number) => {
+    return name.length > length ? name.slice(0, length) + '...' : name
+  }
 
   const cursorBuilder = useEffectEvent((user: { name: string; color: string }) => {
     const id = user.name.toLowerCase().replace('user: ', '')
     const participant = providerRef.current?.awareness.states.get(+id) as
-      | Omit<AwarenessState, 'cursor'>
-      | undefined
+      Omit<AwarenessState, 'cursor'> | undefined
 
     const cursor = document.createElement('span')
     cursor.classList.add('ProseMirror-yjs-cursor')
@@ -39,7 +46,7 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
 
     const label = document.createElement('div')
     label.style.setProperty('--cursor-color', participant?.color.hex ?? user.color)
-    label.textContent = participant?.name ?? user.name
+    label.textContent = truncateName(participant?.name ?? user.name, 20)
 
     cursor.appendChild(label)
     return cursor
@@ -48,8 +55,7 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
   const selectionBuilder = useEffectEvent((user: { name: string; color: string }) => {
     const id = user.name.toLowerCase().replace('user: ', '')
     const participant = providerRef.current?.awareness.states.get(+id) as
-      | Omit<AwarenessState, 'cursor'>
-      | undefined
+      Omit<AwarenessState, 'cursor'> | undefined
 
     return {
       class: 'ProseMirror-yjs-selection',
@@ -66,6 +72,22 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
     const provider = new LiveKitYjsProvider(ydoc, room)
     providerRef.current = provider
 
+    // Only inject the preset value if the collaborative document is entirely empty
+    if (yXmlFragment.length === 0) {
+      const presetHtml = '<h2>Ketik untuk menulis ...</h2>'
+
+      // 1. Turn the template string into standard browser DOM elements
+      const browserParser = new window.DOMParser()
+      const browserDoc = browserParser.parseFromString(presetHtml, 'text/html')
+      const contentElement = browserDoc.body
+
+      // 2. Parse that DOM representation into a ProseMirror Document Node
+      const pmDocNode = DOMParser.fromSchema(schema).parse(contentElement)
+
+      // 3. Seamlessly map the ProseMirror document structure into your empty Yjs fragment
+      prosemirrorToYXmlFragment(pmDocNode, yXmlFragment)
+    }
+
     const state = EditorState.create({
       schema,
       plugins: [
@@ -76,7 +98,9 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
       ],
     })
 
-    const view = new EditorView(editor, { state })
+    const editable = () => !viewRef.current?.setProps({ editable: () => isEditable })
+
+    const view = new EditorView(editor, { state, editable })
     viewRef.current = view
     onReadyRef.current?.()
 
@@ -84,9 +108,9 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
       view.destroy()
       provider.destroy()
     }
-  }, [room, editor])
+  }, [room, isEditable, editor])
 
-  return { viewRef, editor, setEditor }
+  return { viewRef, editor, isEditable, setEditor }
 }
 
 export const useNotesToolbar = (getView: () => EditorView | null, editorEl: HTMLElement | null) => {
@@ -149,7 +173,24 @@ export const useNotesToolbar = (getView: () => EditorView | null, editorEl: HTML
     if (isHeading(level)) {
       run(setBlockType(schema.nodes.paragraph))
     } else {
-      run(setBlockType(schema.nodes.heading, { level }))
+      run((state, dispatch) => {
+        if (!dispatch) return false
+        let tr = state.tr
+
+        // from inside list to out of list while active heading
+        liftListItem(schema.nodes.list_item)(state, (liftedTr) => {
+          tr = liftedTr
+        })
+
+        // set text to heading
+        const { $from, $to } = tr.selection
+        tr.setBlockType($from.before($from.depth), $to.after($to.depth), schema.nodes.heading, {
+          level,
+        })
+
+        dispatch(tr)
+        return true
+      })
     }
   }
 
@@ -157,18 +198,75 @@ export const useNotesToolbar = (getView: () => EditorView | null, editorEl: HTML
     (type: 'bullet_list' | 'ordered_list') => (e: MouseEvent<Element>) => {
       e.preventDefault()
 
+      const targetListType = schema.nodes[type]
+      const replaceType = type === 'bullet_list' ? 'ordered_list' : 'bullet_list'
+      const replaceTarget = schema.nodes[replaceType]
+
+      // from inside list to be out of list
       if (isInList(type)) {
-        run(liftListItem(schema.nodes.list_item))
-      } else {
-        run(wrapInList(schema.nodes[type]))
+        return run(liftListItem(schema.nodes.list_item))
       }
+
+      //inside list but changed type ordered_list or bullet_list
+      if (isInList(replaceType)) {
+        run((state, dispatch) => {
+          const tr = state.tr
+          const { $from, $to } = state.selection
+          tr.doc.nodesBetween($from.pos, $to.pos, (node, pos) => {
+            if (node.type === replaceTarget) {
+              tr.setNodeMarkup(pos, targetListType)
+            }
+          })
+          if (dispatch) dispatch(tr)
+          return true
+        })
+      }
+
+      // non active heading while activated the list item
+      if (isHeading(1) || isHeading(2) || isHeading(3)) {
+        run((state, dispatch) => {
+          if (dispatch) {
+            const tr = state.tr
+            const { $from, $to } = state.selection
+
+            // set heading to paragraph
+            tr.setBlockType($from.before($from.depth), $to.after($to.depth), schema.nodes.paragraph)
+
+            //get range of paragraph
+            const range = tr.selection.$from.blockRange(tr.selection.$to)
+
+            //wrapping the paragraph to list item
+            if (range) {
+              const wrappers = [{ type: targetListType }, { type: schema.nodes.list_item }]
+              tr.wrap(range, wrappers)
+            }
+
+            dispatch(tr)
+            return true
+          }
+          return false
+        })
+      }
+
+      // from out of list to be inside list only paragraph
+      run(wrapInList(schema.nodes[type]))
     }
 
   const handleDownload = async (e: MouseEvent<Element>) => {
     e.preventDefault()
 
     console.log(editorEl)
-    if (!editorEl) return
+    if (!editorEl || !state) return
+
+    const serializer = DOMSerializer.fromSchema(state?.schema)
+    const fragment = serializer.serializeFragment(state.doc.content)
+
+    const cleanContainer = document.createElement('div')
+    cleanContainer.appendChild(fragment)
+
+    if (editorEl) {
+      cleanContainer.className = editorEl.className
+    }
 
     const style = document.createElement('style')
     style.textContent = `
@@ -185,7 +283,7 @@ export const useNotesToolbar = (getView: () => EditorView | null, editorEl: HTML
       const { default: jsPDF } = await import('jspdf')
       const pdf = new jsPDF('p', 'mm', 'a4')
 
-      await pdf.html(editorEl, {
+      await pdf.html(cleanContainer, {
         callback: function (doc) {
           doc.save('dokumen.pdf')
         },
