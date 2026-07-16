@@ -1,6 +1,6 @@
 {
   "name": "meet-fe-custom",
-  "version": "0.5.8",
+  "version": "0.5.7",
   "private": true,
   "scripts": {
     "dev": "next dev",
