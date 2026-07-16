@@ -2,7 +2,6 @@ import type { ColumnDef, Getter, Row } from '@tanstack/react-table'
 import type { Recording as RecordingDto } from '@/lib/api/admin-api'
 import type { ActionButtonProps } from '@/compounds/action-button'
 import { useState } from 'react'
-import { default as Link } from 'next/link'
 import { djs } from '@/lib/utils'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { default as ActionButton } from '@/compounds/action-button'
@@ -14,7 +13,7 @@ import { Badge } from '@/components/ui/badge'
 
 type ActionCompProps = Pick<
   RecordingColumnProps,
-  'isAdmin' | 'canManage' | 'handleDownload' | 'handleDelete' | 'handleMailto'
+  'isAdmin' | 'canManage' | 'handleDownload' | 'handleDelete' | 'handleMailto' | 'handleView'
 > & { recordingData: RecordingDto }
 
 type RenameRecordCompProps = Row<RecordingDto> &
@@ -27,14 +26,23 @@ interface RecordingColumnProps {
   isAdmin: boolean
   canManage: boolean
   handleRename: (id: number, oldName: string, newName: string) => Promise<void>
-  handleDownload: (url: string, name: string) => Promise<void>
+  handleDownload: (id: number, name: string) => Promise<void>
   handleDelete: (id: number, name: string) => Promise<void>
   handleMailto: (data: RecordingDto) => Promise<void>
+  handleView: (id: number) => Promise<void>
 }
 
 const ActionComp = (props: ActionCompProps) => {
-  const { isAdmin, canManage, recordingData, handleDownload, handleDelete, handleMailto } = props
-  const { id, name, link } = recordingData
+  const {
+    isAdmin,
+    canManage,
+    recordingData,
+    handleDownload,
+    handleDelete,
+    handleMailto,
+    handleView,
+  } = props
+  const { id, name } = recordingData
   const [openDelete, setOpenDelete] = useState(false)
   const deleteComp: ActionButtonProps['deleteComp'] = {
     root: {
@@ -68,16 +76,13 @@ const ActionComp = (props: ActionCompProps) => {
       text: 'Unduh rekaman',
       variant: 'secondary-light',
       icon: <Icon type='download' />,
-      onClick: async () => await handleDownload(link, name),
+      onClick: async () => await handleDownload(id, name),
     },
     {
+      text: 'Lihat rekaman',
       variant: 'secondary-light',
-      children: (
-        <Link href={link} target='_blank' className='flex items-center gap-2'>
-          <Icon type='detail' />
-          <span className='md:hidden'>Lihat rekaman</span>
-        </Link>
-      ),
+      icon: <Icon type='detail' />,
+      onClick: async () => await handleView(id),
     },
     {
       text: 'Bagikan rekaman',
@@ -173,7 +178,7 @@ const RenameRecordComp = (props: RenameRecordCompProps) => {
         const data = new FormData(event.currentTarget)
         const newName = data.get('name')
         if (!newName || typeof newName !== 'string') return
-        await handleRename(id, name, newName)
+        await handleRename(id, name, newName.trim())
       }}
     >
       <InputGroup>
@@ -200,6 +205,7 @@ export const recordingColumn = ({
   handleDownload,
   handleDelete,
   handleMailto,
+  handleView,
 }: RecordingColumnProps): ColumnDef<RecordingDto>[] => [
   {
     accessorKey: 'name',
@@ -244,7 +250,7 @@ export const recordingColumn = ({
       }
       return (
         <ActionComp
-          {...{ isAdmin, canManage, handleDelete, handleDownload, handleMailto }}
+          {...{ isAdmin, canManage, handleDelete, handleDownload, handleMailto, handleView }}
           recordingData={row.original}
         />
       )

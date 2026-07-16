@@ -12,7 +12,7 @@ import {
   X,
   HandIcon,
 } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, omit } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Alert01Icon, HugeIcon } from '@/components/HugeIcon'
 
@@ -21,7 +21,8 @@ interface ToastProps extends ToasterProps {
   duration?: number
 }
 
-type Severity = 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick' | 'device' | 'base'
+type Severity =
+  'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick' | 'device' | 'base' | 'record'
 
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
@@ -99,6 +100,10 @@ const CustomToast = ({
       bg: 'bg-red-200',
       text: 'text-error font-medium text-base',
     },
+    record: {
+      bg: 'bg-red-200',
+      text: 'text-red-800 font-medium text-base',
+    },
   }
 
   const config: { icon?: React.ReactNode; bg: string; text: string } = config_template[severity]
@@ -168,6 +173,17 @@ const CustomToast = ({
     )
   }
 
+  if (severity === 'record') {
+    return (
+      <div className='flex w-[calc(100vw-var(--mobile-offset-left)*2)] max-w-[500px] justify-center'>
+        <div className={cn('h-full w-[234px] rounded-md p-3 text-center shadow-sm', config.bg)}>
+          <p className={config.text}>{title}</p>
+          <p className='text-xs text-neutral-950'>{description}</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div
       className={cn(
@@ -207,8 +223,7 @@ const createToast = (severity: Severity) => (title: string, props?: ToastProps) 
       />
     ),
     {
-      ...props,
-      ...(props?.duration && { duration: props.duration }),
+      ...omit(props ?? {}, ['description']),
     }
   )
 
@@ -222,6 +237,7 @@ const toast = {
   raise: createToast('raise'),
   pick: createToast('pick'),
   device: createToast('device'),
+  record: createToast('record'),
 }
 
 export { Toaster, toast }

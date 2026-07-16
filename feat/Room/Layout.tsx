@@ -19,7 +19,7 @@ import {
 import { cn, decoder } from '@/lib/utils'
 import { useParticipantWaitingList } from '@/hooks/use-participant-waiting-list'
 import { useParamsState, useConferenceRoom, useDataChannel } from '@/hooks'
-import { RoomToast, RoomPanel, RoomControl, RoomCanvas } from '@/feat/Room'
+import { RoomToast, RoomPanel, RoomControl, RoomCanvas, useRoomState } from '@/feat/Room'
 import { LiveKitAction } from '@/feat/enum'
 import { RoomTabs } from '@/feat/const'
 import { toast } from '@/components/ui/sonner'
@@ -27,6 +27,22 @@ import { HandRaiseToast } from '@/components/HandRaised'
 
 export const RoomGrid: FC<{ context: LayoutContextType }> = ({ context: layoutContext }) => {
   const { tracks, focusTrack, carouselTracks } = useConferenceRoom({ layoutContext })
+  const { record } = useRoomState()
+  const toastIdRef = useRef<string | number | null>(null)
+
+  useEffect(() => {
+    if (toastIdRef.current) {
+      toast.dismiss(toastIdRef.current)
+      toastIdRef.current = null
+    }
+
+    if (record) {
+      toastIdRef.current = toast.record('Perekaman telah dimulai', {
+        description: 'Rapat ini sekarang sedang direkam.',
+        position: 'top-center',
+      })
+    }
+  }, [record])
 
   return (
     <div className='absolute inset-0 *:h-full *:w-full'>

@@ -20,6 +20,7 @@ export default function RecordingsPage() {
     handleMailto,
     handleRename,
     handleSearch,
+    handleView,
   } = useRecording()
   const { isAdmin, hasPermission } = useAuth({ requirePermission: 'module:recordings:access' })
   const canManage = hasPermission('recording:manage')
@@ -31,6 +32,7 @@ export default function RecordingsPage() {
     handleDownload,
     handleDelete,
     handleMailto,
+    handleView,
   })
 
   return (
