@@ -1,9 +1,7 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useParams } from 'next/navigation'
-import { useSession } from 'next-auth/react'
-import { qstring } from '@/lib/utils'
+import { useTabsParticipant } from '@/hooks/use-tabs-participant'
+import { useParticipantWaitingList } from '@/hooks/use-participant-waiting-list'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListParticipant, ListParticipantPending } from '@/components/ListParticipant'
 
@@ -14,28 +12,8 @@ export interface HostMessage {
 }
 
 export const TabsParticipant = () => {
-  const { name: roomName } = useParams<{ name: string }>()
-  const [pending, setPending] = useState<HostMessage['participants']>([])
-  const { data: session } = useSession()
-
-  useEffect(() => {
-    const url = (process.env.NEXT_PUBLIC_BACKEND_URL ?? '') + '/api/waiting-rooms/hosts'
-    const es = new EventSource(
-      qstring(url, { room_code: roomName, token: session?.access_token }, { skipEmpty: true })
-    )
-
-    es.onmessage = (e: MessageEvent<string>) => {
-      const { status, participants: pending }: HostMessage = JSON.parse(e.data)
-      const triggerEvents = ['initial-waiting', 'waiting', 'waiting-updated']
-
-      if (!triggerEvents.includes(status)) {
-        return
-      }
-      setPending(pending)
-    }
-
-    return () => es.close()
-  }, [roomName, session?.access_token])
+  const { isModerator } = useTabsParticipant()
+  const { participantPending, setParticipantPending } = useParticipantWaitingList()
 
   return (
     <div className='mx-auto w-full max-w-2xl bg-white p-4'>
@@ -51,10 +29,11 @@ export const TabsParticipant = () => {
           <TabsTrigger
             value='waiting'
             className='flex items-center gap-2 rounded-none border-b-2 border-transparent bg-transparent p-0 pb-2 text-sm text-gray-400 shadow-none transition-all hover:text-gray-600 data-[state=active]:border-b-2 data-[state=active]:border-transparent data-[state=active]:border-b-red-800 data-[state=active]:bg-transparent data-[state=active]:text-red-800 data-[state=active]:shadow-none!'
+            hidden={!isModerator}
           >
             <span>Peserta menunggu</span>
             <span className='bg-error flex h-5 min-w-[20px] items-center justify-center rounded-full px-1 text-xs font-bold text-white'>
-              {pending.length}
+              {participantPending.length}
             </span>
           </TabsTrigger>
         </TabsList>
@@ -65,9 +44,9 @@ export const TabsParticipant = () => {
           </TabsContent>
           <TabsContent value='waiting' className='mt-0'>
             <ListParticipantPending
-              participantPending={pending}
+              participantPending={participantPending}
               onHandleParticipant={(handledParticipantid) =>
-                setPending((prev) =>
+                setParticipantPending((prev) =>
                   prev.filter(({ participantId }) => participantId !== handledParticipantid)
                 )
               }

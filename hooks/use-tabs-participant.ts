@@ -9,7 +9,7 @@ import {
   useRoomInfo,
 } from '@livekit/components-react'
 import { useDataChannel } from '@/hooks'
-import { LiveKitAction, ParticipantAttribute } from '@/feat/enum'
+import { LiveKitAction, ParticipantAttribute, Role } from '@/feat/enum'
 import { moderateParticipant } from '@/feat/api'
 
 export interface ParticipantAttributes {
@@ -23,6 +23,7 @@ export interface ParticipantAttributes {
 export interface ParticipantList {
   id: string
   name: string
+  roleName: string
   isMuted?: boolean
   isLocal?: boolean
   isRaised?: boolean
@@ -65,11 +66,12 @@ export function useTabsParticipant() {
   const remoteParticipants = useParticipants()
   const { localParticipant } = useLocalParticipant()
 
-  const userRole = localParticipant?.attributes?.[ParticipantAttribute.RoleName.toLowerCase()] ?? ''
-  const isModerator = ['moderator', 'admin'].includes(userRole)
+  const roleName =
+    (localParticipant?.attributes?.[ParticipantAttribute.RoleName.toLowerCase()] as Role) ?? ''
+  const isModerator = [Role.Moderator, Role.Admin, Role.WI].includes(roleName)
 
   const [modalConfirm, setModalConfirm] = useState<{
-    id: 'mute-all' | 'dismiss-participant' | 'banned-participant'
+    id: 'mute-all' | 'dismiss-participant' | 'banned-participant' | 'reject-all'
     open: boolean
     title?: string
     description?: string
@@ -88,7 +90,7 @@ export function useTabsParticipant() {
     }
 
     try {
-      return JSON.parse(roomInfo.metadata) satisfies MetadataInfo
+      return JSON.parse(roomInfo.metadata) as MetadataInfo
     } catch {
       return defaultMetadata
     }
@@ -118,9 +120,10 @@ export function useTabsParticipant() {
           })
           .map((participant) => {
             const isMuted = !participant.isMicrophoneEnabled
-            const isModerator = ['moderator', 'admin'].includes(
-              participant.attributes[ParticipantAttribute.RoleName.toLowerCase()] ?? ''
+            const isModerator = Object.values(Role).includes(
+              (participant.attributes[ParticipantAttribute.RoleName.toLowerCase()] as Role) ?? ''
             )
+            const roleName = participant.attributes[ParticipantAttribute.RoleName.toLowerCase()]
 
             return {
               id: participant.identity,
@@ -128,6 +131,7 @@ export function useTabsParticipant() {
               attributes: participant.attributes as any,
               isRaised: participant.attributes?.[ParticipantAttribute.HandRaised] === 'true',
               isModerator,
+              roleName,
               isLocal: participant.isLocal,
               isMuted,
               hide: false,
@@ -141,6 +145,7 @@ export function useTabsParticipant() {
           name: name,
           attributes: {} as any,
           isRaised: false,
+          roleName,
           isModerator: false,
           isLocal: false,
           isMuted: true,

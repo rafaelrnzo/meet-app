@@ -21,6 +21,8 @@ interface ToastProps extends ToasterProps {
   duration?: number
 }
 
+type Severity = 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick' | 'device' | 'base'
+
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
@@ -54,11 +56,15 @@ const CustomToast = ({
   description,
 }: {
   id: number | string
-  severity: 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick' | 'device'
+  severity: Severity
   title?: string
   description: React.ReactNode
 }) => {
   const config_template = {
+    base: {
+      bg: 'bg-rose-50 border border-neutral-300',
+      text: 'text-neutral-800 font-medium text-sm',
+    },
     success: {
       icon: <Check className='text-success size-5' />,
       bg: 'bg-green-50',
@@ -96,6 +102,21 @@ const CustomToast = ({
   }
 
   const config: { icon?: React.ReactNode; bg: string; text: string } = config_template[severity]
+
+  if (severity === 'base') {
+    return (
+      <div
+        className={cn(
+          'relative flex w-[320px] items-center justify-between gap-3 rounded-xl p-3 shadow-sm md:w-[360px]',
+          config.bg
+        )}
+      >
+        <div className='flex min-w-0 items-center gap-2'>
+          <p className={cn('truncate', config.text)}>{title}</p>
+        </div>
+      </div>
+    )
+  }
 
   if (severity === 'raise') {
     return (
@@ -175,26 +196,25 @@ const CustomToast = ({
   )
 }
 
-const createToast =
-  (severity: 'success' | 'info' | 'error' | 'warning' | 'raise' | 'pick' | 'device') =>
-  (title: string, props?: ToastProps) =>
-    toastDefault.custom(
-      (id) => (
-        <CustomToast
-          id={id}
-          severity={severity}
-          title={title}
-          description={props?.description ?? ''}
-        />
-      ),
-      {
-        ...props,
-        ...(props?.duration && { duration: props.duration }),
-      }
-    )
+const createToast = (severity: Severity) => (title: string, props?: ToastProps) =>
+  toastDefault.custom(
+    (id) => (
+      <CustomToast
+        id={id}
+        severity={severity}
+        title={title}
+        description={props?.description ?? ''}
+      />
+    ),
+    {
+      ...props,
+      ...(props?.duration && { duration: props.duration }),
+    }
+  )
 
 const toast = {
   ...toastDefault,
+  base: createToast('base'),
   success: createToast('success'),
   error: createToast('error'),
   info: createToast('info'),
