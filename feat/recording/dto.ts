@@ -9,25 +9,31 @@ interface RecordingData {
 }
 
 enum RecordingEvent {
+  Started = 'recording_started',
+  Stopped = 'recording_stopped',
+  Created = 'recording_created',
   StatusUpdate = 'recording_status_updated',
+  Rename = 'recording_renamed',
   Delete = 'recording_deleted',
 }
 
-interface RecordingStatusUpdatedDTO {
-  type: RecordingEvent.StatusUpdate
-  data: RecordingData & {
-    status: 'COMPLETED' | 'IN_PROGRESS' | 'FAILED'
-  }
-}
-
-interface RecordingDeletedDTO {
-  type: RecordingEvent.Delete
-  data: RecordingData & {
-    status: 'DELETED'
-  }
-}
-
-type RecordingSSEDTO = RecordingStatusUpdatedDTO | RecordingDeletedDTO
+type RecordingSSEDTO =
+  | {
+      type: RecordingEvent.Started | RecordingEvent.Stopped
+      data: { room_id: string; egress_id: string }
+    }
+  | {
+      type: RecordingEvent.StatusUpdate | RecordingEvent.Rename
+      data: RecordingData & {
+        status: 'COMPLETED' | 'PROCESSING' | 'FAILED'
+      }
+    }
+  | {
+      type: RecordingEvent.Delete
+      data: RecordingData & {
+        status: 'DELETED'
+      }
+    }
 
 export type { RecordingSSEDTO }
 export { RecordingEvent }

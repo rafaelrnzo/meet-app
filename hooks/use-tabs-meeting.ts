@@ -14,7 +14,7 @@ import { TabsContents } from '@/feat/const'
 import { toast } from '@/components/ui/sonner'
 
 export interface ImperativeContent {
-  code: 0 | ScreenCode
+  code: -1 | 0 | ScreenCode
   onRecord?: boolean
   handle: (e: MouseEvent<HTMLButtonElement>) => void
 }
@@ -24,7 +24,7 @@ export function useTabsMeeting() {
   const roomInfo = useRoomInfo()
   const roomId: { room_id: number } = roomInfo.metadata ? JSON.parse(roomInfo.metadata) : ''
   const remoteParticipants = useRemoteParticipants()
-  const { role } = useAuth()
+  const { role, hasPermission } = useAuth()
   const { screen, record, startRecording, stopRecording, startActiveScreen, stopActiveScreen } =
     useRoomState()
   const { closePanel, openTabsPolling, openTabsNotes, openTabsWatchYoutube } = useParamsState()
@@ -155,6 +155,7 @@ export function useTabsMeeting() {
       case GroupCode.PickRandom:
         prop = {
           ...prop,
+          code: -1,
           handle: handleTogglePickUser(),
         }
         break
@@ -171,7 +172,7 @@ export function useTabsMeeting() {
     activeScreen: screen?.id,
     isHostScreen: room.localParticipant.identity === screen?.host,
     isHostRecord: room.localParticipant.identity === record,
-    items: TabsContents(role ? role.name : '')
+    items: TabsContents(role ? role.name : '', hasPermission)
       .filter(({ hide }) => !hide)
       .map((content) => ({
         ...content,
