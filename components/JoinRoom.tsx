@@ -3,7 +3,7 @@
 import type { FC } from 'react'
 import type { DbRoom } from '@/lib/api/admin-api'
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useJoinRoom } from '@/hooks'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -13,7 +13,7 @@ export interface JoinRoomProps {
 
 export const JoinRoom: FC<JoinRoomProps> = ({ rooms }) => {
   const [queryRoom, setQueryRoom] = useState('')
-  const router = useRouter()
+  const { joinRoom } = useJoinRoom()
   const encodedQuery = encodeURIComponent(queryRoom.trim())
   const room = rooms.find((room) => `${room.room_code}` === encodedQuery)
   const disabled = !room || !queryRoom.trim().length
@@ -28,7 +28,7 @@ export const JoinRoom: FC<JoinRoomProps> = ({ rooms }) => {
       />
       <Button
         className='max-md:w-full'
-        onClick={() => router.push(`/rooms/${encodedQuery}`)}
+        onClick={() => joinRoom(queryRoom.trim())}
         variant='primary'
         disabled={disabled}
       >

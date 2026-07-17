@@ -10,11 +10,11 @@ import type {
 import type { LocalUserChoices } from '@livekit/components-react'
 import type { ConnectionDetails } from '@/feat/types'
 import { useEffect, useMemo, useRef } from 'react'
-import { ConnectionState, MediaDeviceFailure, Room, RoomEvent, VideoPresets } from 'livekit-client'
+import { ConnectionState, Room, RoomEvent, VideoPresets } from 'livekit-client'
 import { RoomContext } from '@livekit/components-react'
 import { useParamsState } from '@/hooks'
 import { RoomState, RoomLayout } from '@/feat/Room'
-import { toast } from '@/components/ui/sonner'
+import { SearchParamsKey } from '@/feat/enum'
 
 export interface RoomConferenceProps {
   children?: ReactNode
@@ -57,10 +57,10 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
     }
   })
 
-  const { router } = useParamsState<{ name: string }>()
+  const { router, searchParams } = useParamsState<{ name: string }>()
   const room = useMemo(() => new Room(roomOptions.current()), []) // Maybe changed
   const roomEvent = useRef({
-    leave: () => router.replace('/'),
+    leave: () => router.replace(`/${searchParams.get(SearchParamsKey.FromCode) ?? ''}`),
     error: () => {
       //
     },

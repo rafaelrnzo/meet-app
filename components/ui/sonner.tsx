@@ -112,7 +112,7 @@ const CustomToast = ({
     return (
       <div
         className={cn(
-          'relative flex w-[320px] items-center justify-between gap-3 rounded-xl p-3 shadow-sm md:w-[360px]',
+          'relative flex w-[calc(100vw-var(--mobile-offset-left)*2)] max-w-[500px] items-center justify-between gap-3 rounded-xl p-3 shadow-sm',
           config.bg
         )}
       >
@@ -127,7 +127,7 @@ const CustomToast = ({
     return (
       <div
         className={cn(
-          'relative flex w-[320px] items-center justify-between gap-3 rounded-xl p-3 shadow-sm md:w-[360px]',
+          'relative flex w-[calc(100vw-var(--mobile-offset-left)*2)] max-w-[500px] items-center justify-between gap-3 rounded-xl p-3 shadow-sm',
           config.bg
         )}
       >

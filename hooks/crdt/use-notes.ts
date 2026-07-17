@@ -12,6 +12,7 @@ import { schema as basicSchema } from 'prosemirror-schema-basic'
 import { DOMParser, DOMSerializer, Schema } from 'prosemirror-model'
 import { exampleSetup } from 'prosemirror-example-setup'
 import { setBlockType } from 'prosemirror-commands'
+import { ConnectionState } from 'livekit-client'
 import { useLocalParticipant, useRoomContext } from '@livekit/components-react'
 import { LiveKitYjsProvider } from '@/lib/livekit-yjs-provider'
 import { ParticipantAttribute } from '@/feat/enum'
@@ -70,10 +71,11 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
     const yXmlFragment = ydoc.getXmlFragment('prosemirror')
 
     const provider = new LiveKitYjsProvider(ydoc, room)
+    const isFirstParticipant = !yXmlFragment.length && !room.remoteParticipants.size
     providerRef.current = provider
 
     // Only inject the preset value if the collaborative document is entirely empty
-    if (yXmlFragment.length === 0) {
+    if (isFirstParticipant && room.state === ConnectionState.Connected) {
       const presetHtml = '<h2>Ketik untuk menulis ...</h2>'
 
       // 1. Turn the template string into standard browser DOM elements
@@ -255,7 +257,6 @@ export const useNotesToolbar = (getView: () => EditorView | null, editorEl: HTML
   const handleDownload = async (e: MouseEvent<Element>) => {
     e.preventDefault()
 
-    console.log(editorEl)
     if (!editorEl || !state) return
 
     const serializer = DOMSerializer.fromSchema(state?.schema)
