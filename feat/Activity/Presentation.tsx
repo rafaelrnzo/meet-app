@@ -45,7 +45,7 @@ export const Presentation: FC<{
               <HugeIcon icon={Minus} />
             </Button>
             <span>{zoomPercentage}%</span>
-            <Button variant='destructive-light' onClick={zoomIn} disabled={zoomPercentage === 100}>
+            <Button variant='destructive-light' onClick={zoomIn} disabled={zoomPercentage === 150}>
               <HugeIcon icon={Plus} />
             </Button>
           </div>

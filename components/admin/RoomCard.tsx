@@ -1,19 +1,18 @@
 'use client'
 
-import type { DbRoom, ActiveRoom } from '@/lib/api/admin-api'
+import type { DbRoom } from '@/lib/api/admin-api'
 import { Users, Calendar, MoreVertical } from 'lucide-react'
 import { motion } from 'framer-motion'
 import { cn } from '@/lib/utils'
 
 interface RoomCardProps {
   room: DbRoom
-  activeRoom?: ActiveRoom
   onClick: () => void
   onDelete: (e: React.MouseEvent) => void
 }
 
-export function RoomCard({ room, activeRoom, onClick, onDelete }: RoomCardProps) {
-  const isActive = !!activeRoom
+export function RoomCard({ room, onClick, onDelete }: RoomCardProps) {
+  const isActive = !!room.participants
 
   return (
     <motion.div
@@ -56,9 +55,7 @@ export function RoomCard({ room, activeRoom, onClick, onDelete }: RoomCardProps)
         <div className='grid grid-cols-2 gap-2 text-sm'>
           <div className='text-muted-foreground bg-muted/50 flex items-center gap-2 rounded-lg p-2'>
             <Users className='h-4 w-4' />
-            <span className='text-foreground font-medium'>
-              {isActive ? activeRoom.num_participants : 0}
-            </span>
+            <span className='text-foreground font-medium'>{isActive ? room.participants : 0}</span>
             <span className='text-xs'>/ {room.max_participants}</span>
           </div>
           <div className='text-muted-foreground bg-muted/50 flex items-center gap-2 rounded-lg p-2'>

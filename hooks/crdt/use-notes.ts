@@ -9,7 +9,7 @@ import { EditorView } from 'prosemirror-view'
 import { EditorState } from 'prosemirror-state'
 import { liftListItem, wrapInList, addListNodes } from 'prosemirror-schema-list'
 import { schema as basicSchema } from 'prosemirror-schema-basic'
-import { DOMParser, DOMSerializer, Schema } from 'prosemirror-model'
+import { DOMParser, Schema } from 'prosemirror-model'
 import { exampleSetup } from 'prosemirror-example-setup'
 import { setBlockType } from 'prosemirror-commands'
 import { ConnectionState } from 'livekit-client'
@@ -259,23 +259,19 @@ export const useNotesToolbar = (getView: () => EditorView | null, editorEl: HTML
 
     if (!editorEl || !state) return
 
-    const serializer = DOMSerializer.fromSchema(state?.schema)
-    const fragment = serializer.serializeFragment(state.doc.content)
-
-    const cleanContainer = document.createElement('div')
-    cleanContainer.appendChild(fragment)
-
-    if (editorEl) {
-      cleanContainer.className = editorEl.className
-    }
-
     const style = document.createElement('style')
     style.textContent = `
         * {
-          color: revert !important;
-          background-color: revert !important;
-          border-color: revert !important;
-        }
+            color: revert !important;
+            background-color: revert !important;
+            border-color: revert !important;
+          }
+          .ProseMirror-yjs-cursor {
+            display: none !important;
+          }
+          .ProseMirror-yjs-cursor > div {
+            display: none !important;
+          }
       `
 
     document.head.appendChild(style)
@@ -284,7 +280,7 @@ export const useNotesToolbar = (getView: () => EditorView | null, editorEl: HTML
       const { default: jsPDF } = await import('jspdf')
       const pdf = new jsPDF('p', 'mm', 'a4')
 
-      await pdf.html(cleanContainer, {
+      await pdf.html(editorEl, {
         callback: function (doc) {
           doc.save('dokumen.pdf')
         },
