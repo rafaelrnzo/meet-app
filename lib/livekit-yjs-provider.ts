@@ -69,6 +69,7 @@ export class LiveKitYjsProvider<T extends object = TLDrawCursor> {
     }
 
     this._handleAwareness = (_, origin) => {
+      if (room.state !== ConnectionState.Connected) return
       if (origin === 'local') {
         const state = this.awareness.getLocalState() as AwarenessState<T>
         const payload = new TextEncoder().encode(

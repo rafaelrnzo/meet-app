@@ -56,6 +56,7 @@ export enum SearchParamsKey {
   TabsCode = 'tc',
   PanelCode = 'pc',
   ScreenCode = 'sc',
+  FromCode = 'fc',
 }
 
 export enum PanelCode {

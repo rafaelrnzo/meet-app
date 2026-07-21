@@ -1,12 +1,11 @@
 'use client'
 
-import type { FC } from 'react'
+import type { FC, MouseEvent } from 'react'
 import type { DbRoom } from '@/lib/api/admin-api'
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { cn, djs, copyHandler } from '@/lib/utils'
 import { generateCode } from '@/lib/api/admin-api'
-import { useSourceEventRooms } from '@/hooks'
+import { useJoinRoom, useSourceEventRooms } from '@/hooks'
 import { shareLinkHandler } from '@/feat/rooms/helper'
 import { defaultErrorMessage } from '@/config'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -37,10 +36,10 @@ interface RoomListProps {
 interface ButtonJoinProps {
   isFull: boolean
   isAdmin: boolean
-  roomCode: string
   dateStart: string
   dateEnd: string
   handleCloseModal?: () => void
+  onClick?: (e: MouseEvent<HTMLButtonElement>) => void
 }
 
 const CARD_PERPAGE = 12
@@ -50,13 +49,12 @@ const CARD_COPY_SECOND = 1_000
 const ButtonJoin: FC<ButtonJoinProps> = ({
   isFull,
   isAdmin,
-  roomCode,
   dateStart,
   dateEnd,
+  onClick,
   handleCloseModal,
 }) => {
   const [now, setNow] = useState(djs())
-  const router = useRouter()
   const startDate = djs(dateStart)
   const endDate = djs(dateEnd)
   const status = useMemo(() => (now.isBefore(startDate) ? 'upcoming' : 'open'), [now, startDate])
@@ -83,10 +81,7 @@ const ButtonJoin: FC<ButtonJoinProps> = ({
       className='w-full p-0'
       variant={!isAdmin && (status !== 'open' || isFull) ? 'secondary' : 'primary'}
       disabled={!isAdmin && (status !== 'open' || isFull)}
-      onClick={(e) => {
-        e.stopPropagation()
-        router.push(`/rooms/${encodeURIComponent(roomCode)}`)
-      }}
+      onClick={onClick}
     >
       {!isAdmin && status === 'upcoming'
         ? `Mulai di ${djs(dateStart).format('DD MMMM YYYY, HH.mm')} WIB`
@@ -107,8 +102,8 @@ const RoomList: FC<RoomListProps> = ({
 }) => {
   const [stack, setStack] = useState(1 * CARD_PERPAGE)
   const [copiedRoomName, setCopiedRoomName] = useState('')
+  const { router, joinRoom } = useJoinRoom()
   const visibleRooms = rooms.slice(0, stack)
-  const router = useRouter()
   const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout>>(void 0)
 
   function participantLength(roomCode: string) {
@@ -156,6 +151,14 @@ const RoomList: FC<RoomListProps> = ({
     shareLinkHandler(data)
       .then(() => handleShowTooltip(`share:${roomName}`))
       .catch(() => toast.error('Gagal bagikan kode', { description: defaultErrorMessage }))
+  }
+
+  function handleJoinRoom(roomCode: string) {
+    return (e: MouseEvent<HTMLButtonElement>) => {
+      e.stopPropagation()
+
+      joinRoom(roomCode)
+    }
   }
 
   useSourceEventRooms(
@@ -288,10 +291,10 @@ const RoomList: FC<RoomListProps> = ({
               <ButtonJoin
                 isFull={participantLength(room_code) >= room.max_participants}
                 isAdmin={isAdmin}
-                roomCode={room_code}
                 dateStart={room.start_date}
                 handleCloseModal={handleCloseModal}
                 dateEnd={room.end_date}
+                onClick={handleJoinRoom(room_code)}
               />
             </CardFooter>
           </Card>

@@ -44,7 +44,7 @@ export const useControls = () => {
   const handleDeniedPermission = (kind: 'kamera' | 'mikrofon' | 'screen') => {
     toast.device(
       `Error: Tidak dapat menemukan ${kind}, atau pengguna menolak atas izin akses ` +
-        `${kind}. Silahkan muat ulang halaman ini, atau tutup dan kembali ke halaman ` +
+        `${kind}. Silahkan coba lagi, atau muat ulang halaman ini, atau tutup dan kembali ke halaman ` +
         `ini untuk mengaktifkan ${kind}.`,
       { position: 'top-center', duration: 5_000 }
     )

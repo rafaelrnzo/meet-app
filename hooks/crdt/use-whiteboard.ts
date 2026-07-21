@@ -1,35 +1,31 @@
-import type * as Y from 'yjs'
 import type { ExcalidrawImperativeAPI, ExcalidrawProps } from '@excalidraw/excalidraw/types'
 import type { AwarenessState } from '@/lib/livekit-yjs-provider'
-import { useRef, useEffect, useState, useMemo } from 'react'
+import { useRef, useEffect, useState } from 'react'
+import * as Y from 'yjs'
 import { ExcalidrawBinding, yjsToExcalidraw } from '@mizuka-wu/y-excalidraw'
 import { useRoomContext } from '@livekit/components-react'
 import { LiveKitYjsProvider } from '@/lib/livekit-yjs-provider'
-import { useRoomState } from '@/feat/Room'
 
 export function useWhiteboard(onReady?: () => void) {
-  const { ydoc } = useRoomState()
   const [api, setApi] = useState<ExcalidrawImperativeAPI | null>(null)
   const excalidrawRef = useRef<HTMLDivElement | null>(null)
   const room = useRoomContext()
   const onReadyRef = useRef(onReady)
-  const yElements = ydoc?.getArray<Y.Map<unknown>>('elements')
   const bindingRef = useRef<ExcalidrawBinding | null>(null)
-
-  // Memo required due to module ydoc is deferred.
-  const provider = useMemo(
-    () => (!ydoc || !room ? null : new LiveKitYjsProvider(ydoc, room)),
-    [room, ydoc]
-  )
+  const yElementRef = useRef<Y.Array<Y.Map<unknown>> | null>(null)
 
   useEffect(() => {
-    if (!api || !provider || !yElements) return
+    if (!api) return
 
+    const ydoc = new Y.Doc()
+    const yElements = ydoc?.getArray<Y.Map<unknown>>('elements')
+    const provider = new LiveKitYjsProvider(ydoc, room)
     const { name } = provider.awareness.getLocalState() as AwarenessState
 
     provider.awareness.setLocalStateField('user', { name })
     const excalidrawApi = new ExcalidrawBinding(yElements, null, api, provider.awareness)
 
+    yElementRef.current = yElements
     bindingRef.current = excalidrawApi
     onReadyRef.current?.()
 
@@ -37,7 +33,7 @@ export function useWhiteboard(onReady?: () => void) {
       excalidrawApi.destroy()
       provider.destroy()
     }
-  }, [api, provider, yElements])
+  }, [api, room])
 
   return {
     binding: bindingRef.current,
@@ -55,7 +51,7 @@ export function useWhiteboard(onReady?: () => void) {
           },
         },
       },
-      elements: yElements ? yjsToExcalidraw(yElements) : null,
+      elements: yElementRef.current ? yjsToExcalidraw(yElementRef.current) : null,
     } satisfies ExcalidrawProps['initialData'],
   }
 }

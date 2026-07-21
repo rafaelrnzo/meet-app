@@ -93,11 +93,12 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
   const { tabsCode } = useParamsState()
   const room = useRoomContext()
   const layoutContext = useCreateLayoutContext()
-  const { participantPending } = useParticipantWaitingList()
   const currentTab = RoomTabs.find(({ id }) => tabsCode === id)
   const RoomPanelContent = currentTab?.content?.() ?? (() => null)
   const toastIdRef = useRef<string | number>(0)
-  const prevCountRef = useRef(participantPending.length)
+
+  // Toast effect
+  useParticipantWaitingList(true)
 
   useDataChannel<{ enabled: boolean }>(LiveKitAction.AllMicrophoneUpdate, ({ payload }) => {
     if (payload?.enabled) return null
@@ -125,36 +126,13 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
   })
 
   useEffect(() => {
-    const currentCount = participantPending.length
-    const prevCount = prevCountRef.current
-
-    prevCountRef.current = currentCount
-
-    if (currentCount === 0 || currentCount <= prevCount) {
-      return
-    }
-
-    const participantNames = participantPending.map((p) => p.participantName)
-    let toastMessage = ''
-
-    if (participantNames.length === 1) {
-      toastMessage = `${participantNames[0]} meminta untuk bergabung`
-    } else if (participantNames.length > 1) {
-      toastMessage = `${participantNames.length} orang meminta untuk bergabung`
-    }
-
-    toast.base(toastMessage, {
-      duration: 2500,
-      position: 'top-center',
-      id: 'participant-waiting',
-    })
-  }, [participantPending])
-
-  useEffect(() => {
     const handlePickedUser = (data: Uint8Array) => {
       try {
         const rawString = decoder.decode(data)
-        const option = { position: 'top-center', duration: Infinity } as const
+        const option = {
+          duration: 60 * 5 * 1000, // 5 min
+          position: 'top-center',
+        } as const
 
         // Invalid json parse
         if (!rawString.trim().startsWith('{')) {
@@ -182,6 +160,7 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
 
       // Clean persistent toast
       toast.dismiss(toastIdRef.current)
+      toast.dismiss('participant-waiting')
     }
   }, [room])
 

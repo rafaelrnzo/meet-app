@@ -6,7 +6,7 @@ import { useRef, useEffect, useMemo, useState } from 'react'
 import { Send } from 'lucide-react'
 import { RoomEvent } from 'livekit-client'
 import { useChat, useMaybeLayoutContext, useRoomContext } from '@livekit/components-react'
-import { cn } from '@/lib/utils'
+import { cn, decoder } from '@/lib/utils'
 import { useParamsState } from '@/hooks'
 import { cloneSingleChild } from '@/feat/helpers'
 import { ChatEntry } from '@/components/ChatEntry'
@@ -43,10 +43,14 @@ export const Chat: FC<ChatProps> = ({
   useEffect(() => {
     const handleDataReceived = (payload: Uint8Array) => {
       try {
-        const decoder = new TextDecoder()
-        const jsonString = decoder.decode(payload)
-        const data = JSON.parse(jsonString) as { action?: string; targetId?: string }
+        const rawString = decoder.decode(payload)
 
+        // Invalid json parse
+        if (!rawString.trim().startsWith('{')) {
+          return
+        }
+
+        const data = JSON.parse(rawString) as { action?: string; targetId?: string }
         if (data.action === 'DELETE_MESSAGE' && data.targetId) {
           setDeletedIds((prev) => [...prev, data.targetId!])
         }
