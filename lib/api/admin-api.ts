@@ -1,7 +1,13 @@
 'use server'
 
 import type { UserParams } from '@/feat/users/dto'
-import type { FileResponse, RoomPayload, SortRoomType, StatusOption } from '@/feat/rooms/dto'
+import type {
+  FileResponse,
+  RoomMetadata,
+  RoomPayload,
+  SortRoomType,
+  StatusOption,
+} from '@/feat/rooms/dto'
 import type { PollingMessage } from '@/components/PollingCard'
 import { djs, qstring } from '@/lib/utils'
 import { auth } from '@/lib/auth'
@@ -75,6 +81,8 @@ export interface DbRoom {
   is_mute_on_start: boolean
   participants?: number
   enable_start_room: boolean
+  metadata?: RoomMetadata
+  max_upload_size: number
 }
 
 export interface MemberRoom {

@@ -6,6 +6,7 @@
   font-variant-ligatures: none;
   font-feature-settings: 'liga' 0; /* the above doesn't seem to work in Edge */
   position: relative;
+  height: 100%;
 }
 
 .ProseMirror:focus {
@@ -136,16 +137,6 @@ img.ProseMirror-separator {
   color: white;
   padding-left: 2px;
   padding-right: 2px;
-  white-space: nowrap;
-}
-.ProseMirror-yjs-cursor .yjs-placeholder::before {
-  content: attr(data-placeholder);
-  float: left;
-  color: #a3a3a3;
-  pointer-events: none;
-  height: 0;
-  position: absolute;
-  left: 0;
   white-space: nowrap;
 }
 

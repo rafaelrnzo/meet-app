@@ -145,7 +145,7 @@ export function usePresentation(onReady?: () => void) {
   }
 
   function zoomIn() {
-    setState((prev) => ({ ...prev, zoom: Math.min(1, prev.zoom + 0.1) }))
+    setState((prev) => ({ ...prev, zoom: Math.min(1.5, prev.zoom + 0.1) }))
   }
 
   function zoomOut() {

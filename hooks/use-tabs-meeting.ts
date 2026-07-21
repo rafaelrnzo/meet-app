@@ -3,13 +3,18 @@
 import type { MouseEvent } from 'react'
 import type { ScreenID } from '@/feat/Room'
 import type { TabsContentList } from '@/feat/const'
-import { useRemoteParticipants, useRoomContext, useRoomInfo } from '@livekit/components-react'
+import {
+  useLocalParticipant,
+  useRemoteParticipants,
+  useRoomContext,
+  useRoomInfo,
+} from '@livekit/components-react'
 import { encoder } from '@/lib/utils'
 import { getPresentationUrl } from '@/lib/api/admin-api'
 import { useAuth } from '@/hooks/use-auth'
 import { useParamsState } from '@/hooks'
 import { useRoomState } from '@/feat/Room'
-import { GroupCode, LiveKitAction, ScreenCode } from '@/feat/enum'
+import { GroupCode, LiveKitAction, ParticipantAttribute, ScreenCode } from '@/feat/enum'
 import { TabsContents } from '@/feat/const'
 import { toast } from '@/components/ui/sonner'
 
@@ -22,9 +27,11 @@ export interface ImperativeContent {
 export function useTabsMeeting() {
   const room = useRoomContext()
   const roomInfo = useRoomInfo()
+  const { localParticipant } = useLocalParticipant()
+  const role = localParticipant.attributes[ParticipantAttribute.RoleName.toLowerCase()]
   const roomId: { room_id: number } = roomInfo.metadata ? JSON.parse(roomInfo.metadata) : ''
   const remoteParticipants = useRemoteParticipants()
-  const { role, hasPermission } = useAuth()
+  const { hasPermission } = useAuth()
   const { screen, record, startRecording, stopRecording, startActiveScreen, stopActiveScreen } =
     useRoomState()
   const { closePanel, openTabsPolling, openTabsNotes, openTabsWatchYoutube } = useParamsState()
@@ -33,10 +40,15 @@ export function useTabsMeeting() {
     return async () => {
       if (!room) return
 
-      const participants = remoteParticipants.map((participant) => ({
-        name: participant.name ?? 'Unknown',
-        identity: participant.identity,
-      }))
+      const participants = remoteParticipants
+        .filter(({ attributes }) => {
+          const attributesRole = attributes[ParticipantAttribute.RoleName.toLowerCase()]
+          return attributesRole === 'user'
+        })
+        .map((member) => ({
+          name: member.name ?? 'Unknown',
+          identity: member.identity,
+        }))
 
       if (!participants.length) {
         return toast.pick('Tidak ada peserta', { position: 'top-center' })
@@ -98,7 +110,10 @@ export function useTabsMeeting() {
           if (file_url) {
             await startActiveScreen(id, { url: file_url })
           } else {
-            error.message = message ?? 'Tidak ada file yang di unggah'
+            error.message =
+              message === 'no presentation uploaded'
+                ? 'Tidak ada file yang di unggah'
+                : (message ?? '')
           }
         },
       }
@@ -184,7 +199,7 @@ export function useTabsMeeting() {
     activeScreen: screen?.id,
     isHostScreen: room.localParticipant.identity === screen?.host,
     isHostRecord: room.localParticipant.identity === record,
-    items: TabsContents(role ? role.name : '', hasPermission)
+    items: TabsContents(role ?? '', hasPermission)
       .filter(({ hide }) => !hide)
       .map((content) => ({
         ...content,

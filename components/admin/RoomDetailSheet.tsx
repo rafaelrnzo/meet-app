@@ -1,6 +1,6 @@
 'use client'
 
-import type { DbRoom, ActiveRoom, MemberRoom, RoomParams } from '@/lib/api/admin-api'
+import type { DbRoom, MemberRoom, RoomParams } from '@/lib/api/admin-api'
 import type { FileResponse, StatusOption, TabsValue } from '@/feat/rooms/dto'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -27,7 +27,6 @@ import { default as RoomDetailModal } from '@/components/features/rooms/RoomDeta
 // Using native HTML/Tailwind for maximum flexibility as requested for "Premium UI"
 interface RoomDetailSheetProps {
   room: DbRoom | null
-  activeRoom?: ActiveRoom
   isOpen: boolean
   onClose: () => void
   canDelete: boolean
@@ -39,7 +38,6 @@ interface RoomDetailSheetProps {
 }
 export function RoomDetailSheet({
   room,
-  activeRoom,
   isOpen,
   onClose,
   onDelete,
@@ -61,11 +59,11 @@ export function RoomDetailSheet({
   const [userIdentity, setUserIdentity] = useState('')
   const [files, setFiles] = useState<FileResponse[]>([])
 
-  const canManage = hasPermission('room:manage') && !activeRoom?.num_participants
+  const canManage = hasPermission('room:manage') && !room?.participants
 
   const ROLE_USER = 'user'
   const params = useRef<RoomParams>({})
-  const MAX_FILE = 5
+  const MAX_FILE = room?.max_upload_size ?? 5
 
   const handleCopyLink = async () => {
     const { success } = await copyHandler(room?.room_code ?? '')
@@ -128,9 +126,9 @@ export function RoomDetailSheet({
       toast.loading('Sedang mengunggah...')
       const { path } = await uploadRoomPresentation(room?.id ?? 0, files[0])
       // If room is active, update metadata to sync immediately
-      if (activeRoom) {
+      if (room?.participants) {
         try {
-          const currentMeta = activeRoom.metadata ? JSON.parse(activeRoom.metadata) : {}
+          const currentMeta = room.metadata ?? {}
           const newMeta = {
             ...currentMeta,
             presentation: {
@@ -278,7 +276,6 @@ export function RoomDetailSheet({
                       activeTab,
                       overview: {
                         room,
-                        activeRoom,
                         setFiles,
                         files,
                         maxFile: MAX_FILE,
@@ -308,6 +305,7 @@ export function RoomDetailSheet({
                         setUserIdentity,
                       },
                       settings: {
+                        room,
                         setIsOpenDelete,
                         onClose,
                       },
@@ -432,7 +430,6 @@ export function RoomDetailSheet({
           {...{
             overview: {
               room,
-              activeRoom,
               files,
               maxFile: MAX_FILE,
               handleUploadFile,
@@ -458,6 +455,7 @@ export function RoomDetailSheet({
               setUserIdentity,
             },
             settings: {
+              room,
               setIsOpenDelete,
               onClose: () => setModalDetail?.(false),
             },

@@ -1,6 +1,6 @@
 'use client'
 
-import type { ActiveRoom, DbRoom, MemberRoom } from '@/lib/api/admin-api'
+import type { DbRoom, MemberRoom } from '@/lib/api/admin-api'
 import type { FileResponse, StatusOption } from '@/feat/rooms/dto'
 import type { Input } from '@/components/ui/input'
 import { cn, djs } from '@/lib/utils'
@@ -21,7 +21,6 @@ import { Button } from '@/components/ui/button'
 export interface RoomContentsProps {
   overview: {
     room: DbRoom | null
-    activeRoom?: ActiveRoom
     setFiles?: (e: FileResponse[]) => void
     files: FileResponse[]
     maxFile: number
@@ -43,13 +42,12 @@ export interface RoomContentsProps {
     setUserIdentity: (val: string) => void
   }
   settings: Pick<RoomContentsProps['participants'], 'onClose'> &
-    Pick<RoomContentsProps['overview'], 'activeRoom'> & {
+    Pick<RoomContentsProps['overview'], 'room'> & {
       setIsOpenDelete: (val: boolean) => void
     }
 }
 
 function OverviewContent({
-  activeRoom,
   room,
   files,
   maxFile: MAX_FILE,
@@ -58,17 +56,19 @@ function OverviewContent({
 }: RoomContentsProps['overview']) {
   const { hasPermission } = useAuth()
   const canManage = hasPermission('room:manage')
+  const isLive = !files.length || room?.participants === 0
+
   return (
     <div className='animate-in fade-in slide-in-from-bottom-4 mt-4 duration-300'>
       <div
         className={cn(
-          activeRoom
+          room?.participants
             ? 'border-red-800 bg-transparent px-5 text-red-800'
             : 'text-error border-red-200 bg-red-200 px-5',
           'my-2 w-full rounded-md border py-3'
         )}
       >
-        {activeRoom ? (
+        {room?.participants ? (
           <div className='flex items-center gap-2 font-medium'>
             <div className='rounded-md border border-red-800 bg-red-50 p-2.5'>
               <Icon type='door' className='text-red-800' />
@@ -103,24 +103,26 @@ function OverviewContent({
             {room?.description || '-'}
           </div>
         </div>
-        <div className='my-2'>
-          <p className='pb-2'>Unggah berkas presentasi</p>
-          <DropFile
-            canUpload={canManage}
-            files={
-              files.map((item) => ({
-                name: item.file_name,
-                url: item.file_url,
-                size: item.size,
-              })) || []
-            }
-            maxFilesSizeInMB={MAX_FILE}
-            onUploadFile={(files) => {
-              handleUploadFile(files)
-            }}
-            onRemoveFile={handleRemoveFile}
-          />
-        </div>
+        {canManage && (
+          <div className='my-2'>
+            <p className='pb-2'>Unggah berkas presentasi</p>
+            <DropFile
+              canManage={isLive}
+              files={
+                files.map((item) => ({
+                  name: item.file_name,
+                  url: item.file_url,
+                  size: item.size,
+                })) || []
+              }
+              maxFilesSizeInMB={MAX_FILE}
+              onUploadFile={(files) => {
+                handleUploadFile(files)
+              }}
+              onRemoveFile={handleRemoveFile}
+            />
+          </div>
+        )}
       </div>
     </div>
   )
@@ -266,7 +268,7 @@ function ParticipantsContent({
   )
 }
 
-function SettingsContent({ onClose, setIsOpenDelete, activeRoom }: RoomContentsProps['settings']) {
+function SettingsContent({ onClose, setIsOpenDelete, room }: RoomContentsProps['settings']) {
   return (
     <div className='animate-in fade-in slide-in-from-bottom-4 space-y-6 duration-300'>
       <div className='border-destructive/20 bg-destructive/5 space-y-4 rounded-xl border p-4'>
@@ -282,10 +284,10 @@ function SettingsContent({ onClose, setIsOpenDelete, activeRoom }: RoomContentsP
             onClose()
             setIsOpenDelete(true)
           }}
-          disabled={!!activeRoom}
+          disabled={!!room?.participants}
         >
           <Icon type='trash' />
-          {activeRoom ? 'Rapat Sedang Berlangsung' : 'Hapus Ruangan'}
+          {room?.participants ? 'Rapat Sedang Berlangsung' : 'Hapus Ruangan'}
         </Button>
       </div>
     </div>

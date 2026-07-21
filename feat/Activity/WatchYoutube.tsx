@@ -2,19 +2,28 @@
 
 import type { FC } from 'react'
 import { cn } from '@/lib/utils'
-import { useYoutubeSync } from '@/hooks'
+import { useTabsYoutube, useYoutubeSync } from '@/hooks'
+import { Button } from '@/components/ui/button'
 
 export const WatchYoutube: FC<{ onReady?: () => void }> = ({ onReady }) => {
   const { hasControl, iframeContainerRef } = useYoutubeSync(onReady)
+  const { preventUpdate, match, isStartSharingRef, setIsPlayed } = useTabsYoutube()
 
   return (
     <div className='absolute inset-0 bg-black'>
-      <div
-        className={cn(
-          'absolute inset-0 flex items-center justify-center',
-          hasControl && 'inset-bs-11'
-        )}
-      >
+      <div className='flex w-full items-center border border-neutral-200 bg-white px-5 py-3'>
+        <Button
+          variant='destructive'
+          onClick={() => {
+            isStartSharingRef.current = true
+            setIsPlayed((prev) => !prev)
+          }}
+          disabled={preventUpdate || !match}
+        >
+          Berhenti
+        </Button>
+      </div>
+      <div className={cn('absolute inset-0 inset-bs-11 my-10 flex items-center justify-center')}>
         <div
           ref={iframeContainerRef}
           tabIndex={hasControl ? void 0 : -1}
