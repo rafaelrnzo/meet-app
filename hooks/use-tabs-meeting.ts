@@ -14,7 +14,7 @@ import { TabsContents } from '@/feat/const'
 import { toast } from '@/components/ui/sonner'
 
 export interface ImperativeContent {
-  code: -1 | 0 | ScreenCode
+  code: 0 | ScreenCode
   onRecord?: boolean
   handle: (e: MouseEvent<HTMLButtonElement>) => void
 }
@@ -61,8 +61,21 @@ export function useTabsMeeting() {
         }
       )
 
-      toast.dismiss()
-      toast.pick(`${overflowName} telah dipilih`, { position: 'top-center', duration: Infinity })
+      const histories = toast.getHistory()
+      histories.forEach((hist) => {
+        if (
+          ('duration' in hist && hist.duration === Infinity) ||
+          (hist.id + '').startsWith(`partcipant-${identity}`)
+        ) {
+          toast.dismiss(hist.id)
+        }
+      })
+
+      toast.pick(`${overflowName} telah dipilih`, {
+        id: `partcipant-${identity}-${Date.now()}`,
+        position: 'top-center',
+        duration: Infinity,
+      })
     }
   }
 
@@ -155,7 +168,6 @@ export function useTabsMeeting() {
       case GroupCode.PickRandom:
         prop = {
           ...prop,
-          code: -1,
           handle: handleTogglePickUser(),
         }
         break

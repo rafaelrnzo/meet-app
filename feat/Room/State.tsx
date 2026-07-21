@@ -1,6 +1,5 @@
 'use client'
 
-import type { Doc } from 'yjs'
 import type { FC, ReactNode } from 'react'
 import type { RemoteParticipant } from 'livekit-client'
 import type { ScreenCode } from '@/feat/enum'
@@ -13,6 +12,7 @@ import {
   stopRecording as apiStopRecording,
 } from '@/lib/api/admin-api'
 import { ParticipantAttribute } from '@/feat/enum'
+import { toast } from '@/components/ui/sonner'
 
 export type ScreenID = Exclude<ScreenCode, ScreenCode.Recording>
 
@@ -34,7 +34,6 @@ export interface StateContextProps {
   screen: ScreenMessage | null
   record: string | null
   isHost: boolean
-  ydoc: Doc | null
   startActiveScreen: (code: ScreenID, payload?: ScreenPayload) => Promise<void>
   stopActiveScreen: () => Promise<void>
   startRecording: () => Promise<void>
@@ -51,7 +50,6 @@ export const useRoomState = () => useContext(StateContext)
 
 export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
   const room = useMaybeRoomContext()
-  const [ydoc, setYdoc] = useState<Doc | null>(null)
   const [screen, setScreen] = useState<StateContextProps['screen'] | null>(null)
   const [record, setRecord] = useState<StateContextProps['record'] | null>(null)
   const [recordData, setRecordData] = useState<StateContextProps['recordData']>(null)
@@ -202,33 +200,27 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
       if (wasScreenHost || wasRecordHost) {
         syncRoomState()
       }
+
+      const histories = toast.getHistory()
+      histories.forEach((hist) => {
+        if ((hist.id + '').startsWith(`partcipant-${identity}`)) {
+          toast.dismiss(hist.id)
+        }
+      })
     }
 
-    const loadYdoc = async () => {
-      if (ydoc) return
-
-      try {
-        const { Doc } = await import('yjs')
-        setYdoc(new Doc())
-      } catch (e) {
-        console.log('Failed to load yDoc:', e)
-      }
-    }
-
-    loadYdoc()
     room.on(RoomEvent.Connected, syncRoomState)
     room.on(RoomEvent.LocalTrackPublished, syncRoomState)
     room.on(RoomEvent.ParticipantAttributesChanged, syncRoomState)
     room.on(RoomEvent.ParticipantDisconnected, handleLeavingHost)
 
     return () => {
-      ydoc?.destroy()
       room.off(RoomEvent.Connected, syncRoomState)
       room.off(RoomEvent.LocalTrackPublished, syncRoomState)
       room.off(RoomEvent.ParticipantAttributesChanged, syncRoomState)
       room.off(RoomEvent.ParticipantDisconnected, handleLeavingHost)
     }
-  }, [room, ydoc])
+  }, [room])
 
   // Stop recording when disconnect
   useEffect(() => {
@@ -255,7 +247,6 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
         screen,
         record,
         isHost,
-        ydoc,
         startRecording,
         stopRecording,
         startActiveScreen,
