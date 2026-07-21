@@ -21,18 +21,16 @@ interface DropFileProps {
   maxFilesSizeInMB?: number
   onUploadFile?: (e: File[]) => void
   onRemoveFile?: () => void
-  multiple?: boolean
   files: FileOption[]
-  canUpload?: boolean
+  canManage?: boolean
 }
 
 export default function DropFile({
   onUploadFile,
   onRemoveFile,
   maxFilesSizeInMB = 5,
-  multiple = false,
   files: existingFile,
-  canUpload,
+  canManage,
 }: DropFileProps) {
   const MAX_FILE = maxFilesSizeInMB * 1_000_000
 
@@ -50,7 +48,7 @@ export default function DropFile({
   const handleFiles = (selectedFiles: FileList | null) => {
     if (!selectedFiles?.length) return
 
-    const fileArray = multiple ? Array.from(selectedFiles) : [selectedFiles[0]]
+    const fileArray = [selectedFiles[0]]
     const notPdfFiles = fileArray.filter((file) => file.type !== 'application/pdf')
     const limitExceedFiles = fileArray.filter((file) => file.size > MAX_FILE)
 
@@ -86,7 +84,7 @@ export default function DropFile({
 
   return (
     <div>
-      {canUpload && (
+      {
         <div
           className={cn(
             isUpload
@@ -140,16 +138,16 @@ export default function DropFile({
           </div>
           <Input
             type='file'
-            multiple={multiple}
             accept='application/pdf'
             className={cn(
               failedFile ? 'h-[182px] max-h-[182px]' : 'h-[238px] max-h-[238px]',
               'absolute top-0 right-0 bottom-0 left-0 w-full cursor-pointer border-dashed p-0 text-transparent file:hidden hover:bg-transparent'
             )}
             onChange={(e) => handleFiles(e.target.files)}
+            disabled={!canManage}
           />
         </div>
-      )}
+      }
       {!failedFile && displayedFiles.length > 0 && (
         <a
           href={displayedFiles[0].url}
@@ -168,7 +166,7 @@ export default function DropFile({
               </p>
             </div>
           </div>
-          {canUpload && (
+          {canManage && (
             <div
               onClick={(e) => {
                 e.preventDefault()

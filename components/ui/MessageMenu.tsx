@@ -4,7 +4,6 @@ import { Check, ChevronDown, Copy, Trash } from 'lucide-react'
 import { useLocalParticipant } from '@livekit/components-react'
 import { cn, copyHandler } from '@/lib/utils'
 import { ParticipantAttribute, Role } from '@/feat/enum'
-import { LOCAL_MESSAGE_DELETED_EVENT } from '@/feat/Activity/Chat'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,7 +11,13 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 
-export function MessageMenu({ entry }: { entry: ReceivedChatMessage }) {
+export function MessageMenu({
+  entry,
+  setModalConfirm,
+}: {
+  entry: ReceivedChatMessage
+  setModalConfirm: React.Dispatch<React.SetStateAction<boolean>>
+}) {
   const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const { localParticipant } = useLocalParticipant()
@@ -32,19 +37,6 @@ export function MessageMenu({ entry }: { entry: ReceivedChatMessage }) {
     } catch (err) {
       console.error('Failed to copy message', err)
     }
-  }
-
-  const deleteMessageById = async () => {
-    const payload = {
-      action: 'DELETE_MESSAGE',
-      targetId: entry.id,
-    }
-    const encoder = new TextEncoder()
-    const data = encoder.encode(JSON.stringify(payload))
-
-    await localParticipant.publishData(data, { reliable: true })
-
-    window.dispatchEvent(new CustomEvent(LOCAL_MESSAGE_DELETED_EVENT, { detail: entry.id }))
   }
 
   return (
@@ -81,7 +73,7 @@ export function MessageMenu({ entry }: { entry: ReceivedChatMessage }) {
         </DropdownMenuItem>
 
         <DropdownMenuItem
-          onClick={deleteMessageById}
+          onClick={() => setModalConfirm(true)}
           className='text-destructive focus:text-destructive cursor-pointer'
           hidden={!isModerator}
         >

@@ -16,8 +16,7 @@ export default function RoomTabs({
   participants,
   settings,
 }: { activeTab: TabsValue } & RoomContentsProps) {
-  const { activeRoom, room, files, setFiles, maxFile, handleUploadFile, handleRemoveFile } =
-    overview
+  const { room, files, setFiles, maxFile, handleUploadFile, handleRemoveFile } = overview
   const {
     allParticipants,
     searchParticipants,
@@ -46,11 +45,7 @@ export default function RoomTabs({
   const type = () => {
     switch (activeTab) {
       case 'overview':
-        return (
-          <OverviewContent
-            {...{ room, activeRoom, files, maxFile, handleUploadFile, handleRemoveFile }}
-          />
-        )
+        return <OverviewContent {...{ room, files, maxFile, handleUploadFile, handleRemoveFile }} />
       case 'participants':
         return (
           <ParticipantsContent
@@ -65,7 +60,7 @@ export default function RoomTabs({
           />
         )
       case 'settings':
-        return <SettingsContent {...{ onClose, setIsOpenDelete }} />
+        return <SettingsContent {...{ onClose, setIsOpenDelete, room }} />
     }
   }
   return type()

@@ -51,13 +51,9 @@ export interface RoomCanvasProps extends ComponentProps<'div'> {
 
 const config = {
   [ScreenCode.Whiteboard]: {
-    border: cn('border-blue-500'),
-    background: cn('bg-blue-500'),
     comp: Whiteboard,
   },
   [ScreenCode.WatchYoutube]: {
-    border: cn('border-green-500'),
-    background: cn('bg-green-500'),
     comp: WatchYoutube,
   },
   [ScreenCode.Presentation]: {
@@ -160,7 +156,9 @@ export const RoomCanvas: FC<ComponentProps<'div'>> = ({ className, ...props }) =
             </div>
           )}
           {screen ? (
-            screen?.id === ScreenCode.Presentation ? (
+            screen.id === ScreenCode.Presentation ||
+            screen.id === ScreenCode.WatchYoutube ||
+            screen.id === ScreenCode.Whiteboard ? (
               <Button
                 className='-translate-x-5! translate-y-4!'
                 variant='destructive-light'

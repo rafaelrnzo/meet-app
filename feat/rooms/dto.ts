@@ -115,6 +115,9 @@ interface RoomMetadata {
   banned_users_name: any[]
   polling: PollingMessage[]
   room_id: number
+  has_presentation: boolean
+  is_mute_on_start: boolean
+  presentation_path: string
 }
 
 export type {

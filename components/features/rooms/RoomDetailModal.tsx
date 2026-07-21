@@ -13,14 +13,7 @@ import {
 import { OverviewContent, ParticipantsContent } from '@/components/features/rooms/RoomContents'
 
 export default function RoomDetailModal({ overview, participants, settings }: RoomContentsProps) {
-  const {
-    activeRoom,
-    room,
-    files,
-    maxFile: MAX_FILE,
-    handleUploadFile,
-    handleRemoveFile,
-  } = overview
+  const { room, files, maxFile: MAX_FILE, handleUploadFile, handleRemoveFile } = overview
   const {
     allParticipants,
     searchParticipants,
@@ -48,7 +41,6 @@ export default function RoomDetailModal({ overview, participants, settings }: Ro
           <OverviewContent
             {...{
               room,
-              activeRoom,
               files,
               maxFile: MAX_FILE,
               handleUploadFile,
