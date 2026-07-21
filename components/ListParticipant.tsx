@@ -2,14 +2,13 @@
 
 import type { FC } from 'react'
 import type { HostMessage } from '@/feat/Tabs'
+import type { ICON_NAMES } from '@/components/ui/icon'
 import { useState } from 'react'
 import { useParams } from 'next/navigation'
 import { HandIcon } from '@phosphor-icons/react'
 import {
-  BlockGameIcon,
   DoNotTouch01Icon,
   EllipsisVertical,
-  Logout,
   Mic,
   MicOff,
   Unlocked,
@@ -28,6 +27,7 @@ import {
 import { Role } from '@/feat/enum'
 import { acceptOrDeniedParticipant } from '@/feat/api'
 import { ModalDelete } from '@/components/ui/modal'
+import { Icon } from '@/components/ui/icon'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -340,10 +340,7 @@ export function ListParticipant() {
                                       {[
                                         {
                                           label: 'Keluarkan peserta',
-                                          icon: Logout,
-                                          iconColor: '#dc2626',
-                                          className:
-                                            'text-red-600 focus:bg-red-50 focus:text-red-700',
+                                          icon: 'user-out',
                                           onClick: () =>
                                             setModalConfirm({
                                               open: true,
@@ -353,9 +350,7 @@ export function ListParticipant() {
                                         },
                                         {
                                           label: 'Blokir peserta',
-                                          icon: BlockGameIcon,
-                                          iconColor: '#A3A3A3',
-                                          className: 'text-neutral-700 focus:bg-neutral-100',
+                                          icon: 'block',
                                           onClick: () =>
                                             setModalConfirm({
                                               open: true,
@@ -368,14 +363,12 @@ export function ListParticipant() {
                                           key={index}
                                           onClick={item.onClick}
                                           className={cn(
-                                            'text-md my-1 flex cursor-pointer items-center gap-2 rounded-lg p-3 transition-colors',
-                                            item.className
+                                            'text-md text-error hover:text-error! my-1 flex cursor-pointer items-center gap-2 rounded-lg bg-red-200 p-3 transition-colors hover:bg-red-200/80!'
                                           )}
                                         >
-                                          <HugeIcon
-                                            icon={item.icon}
-                                            size={20}
-                                            color={item.iconColor}
+                                          <Icon
+                                            type={item.icon as (typeof ICON_NAMES)[number]}
+                                            className='text-error size-4 stroke-[1.2]'
                                           />
                                           <span>{item.label}</span>
                                         </DropdownMenuItem>

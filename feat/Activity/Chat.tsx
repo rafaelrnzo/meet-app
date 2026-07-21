@@ -38,7 +38,6 @@ export const Chat: FC<ChatProps> = ({
   const lastReadMsgAt = useRef<ChatMessage['timestamp']>(0)
   const room = useRoomContext()
   const [deletedIds, setDeletedIds] = useState<string[]>([])
-  const visibleMessages = chatMessages.filter((msg) => !deletedIds.includes(msg.id))
 
   useEffect(() => {
     const handleDataReceived = (payload: Uint8Array) => {
@@ -92,23 +91,21 @@ export const Chat: FC<ChatProps> = ({
     if (ulRef) {
       ulRef.current?.scrollTo({ top: ulRef.current.scrollHeight })
     }
-  }, [ulRef, visibleMessages])
+  }, [ulRef, chatMessages])
 
   useEffect(() => {
-    if (!layoutContext || visibleMessages.length === 0) {
-      return
-    }
+    if (!layoutContext || chatMessages.length === 0) return
 
     if (
       layoutContext.widget.state?.showChat &&
-      visibleMessages.length > 0 &&
-      lastReadMsgAt.current !== visibleMessages[visibleMessages.length - 1]?.timestamp
+      chatMessages.length > 0 &&
+      lastReadMsgAt.current !== chatMessages[chatMessages.length - 1]?.timestamp
     ) {
-      lastReadMsgAt.current = visibleMessages[visibleMessages.length - 1]?.timestamp
+      lastReadMsgAt.current = chatMessages[chatMessages.length - 1]?.timestamp
       return
     }
 
-    const unreadMessageCount = visibleMessages.filter(
+    const unreadMessageCount = chatMessages.filter(
       (msg) => !lastReadMsgAt.current || msg.timestamp > lastReadMsgAt.current
     ).length
 
@@ -116,7 +113,7 @@ export const Chat: FC<ChatProps> = ({
     if (unreadMessageCount > 0 && widget.state?.unreadMessages !== unreadMessageCount) {
       widget.dispatch?.({ msg: 'unread_msg', count: unreadMessageCount })
     }
-  }, [visibleMessages, layoutContext])
+  }, [chatMessages, layoutContext])
 
   return (
     <div {...props} className='grid h-full w-full grid-rows-[1fr_auto] p-5'>
@@ -138,16 +135,18 @@ export const Chat: FC<ChatProps> = ({
         }
       >
         {props.children
-          ? visibleMessages.map((msg, idx) =>
+          ? chatMessages.map((msg, idx) =>
               cloneSingleChild(props.children, {
                 entry: msg,
                 key: msg.id ?? idx,
                 messageFormatter,
+                isDeleted: deletedIds.includes(msg.id),
               })
             )
-          : visibleMessages.map((msg, idx, allMsg) => {
+          : chatMessages.map((msg, idx, allMsg) => {
               const hideName = idx >= 1 && allMsg[idx - 1].from === msg.from
               const hideTimestamp = idx >= 1 && msg.timestamp - allMsg[idx - 1].timestamp < 60_000
+              const isDeleted = deletedIds.includes(msg.id)
 
               return (
                 <ChatEntry
@@ -156,10 +155,12 @@ export const Chat: FC<ChatProps> = ({
                   hideTimestamp={hideName === false ? false : hideTimestamp}
                   entry={msg}
                   messageFormatter={messageFormatter}
+                  isDeleted={isDeleted}
                 />
               )
             })}
       </ul>
+
       <form
         className='bg-background text-foreground sticky bottom-0 z-[100] flex gap-3 shadow-[0_-4px_8px_rgba(255,255,255,255.02)]'
         onSubmit={handleSubmit}

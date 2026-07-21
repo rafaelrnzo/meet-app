@@ -8,6 +8,7 @@ import {
   useRoomContext,
   useRoomInfo,
 } from '@livekit/components-react'
+import { getRoleLabel } from '@/lib/helpers'
 import { useDataChannel } from '@/hooks'
 import { LiveKitAction, ParticipantAttribute, Role } from '@/feat/enum'
 import { moderateParticipant } from '@/feat/api'
@@ -120,10 +121,11 @@ export function useTabsParticipant() {
           })
           .map((participant) => {
             const isMuted = !participant.isMicrophoneEnabled
-            const isModerator = Object.values(Role).includes(
+            const role =
               (participant.attributes[ParticipantAttribute.RoleName.toLowerCase()] as Role) ?? ''
-            )
+
             const roleName = participant.attributes[ParticipantAttribute.RoleName.toLowerCase()]
+            const isModerator = role !== Role.User
 
             return {
               id: participant.identity,
@@ -131,7 +133,7 @@ export function useTabsParticipant() {
               attributes: participant.attributes as any,
               isRaised: participant.attributes?.[ParticipantAttribute.HandRaised] === 'true',
               isModerator,
-              roleName,
+              roleName: getRoleLabel(roleName),
               isLocal: participant.isLocal,
               isMuted,
               hide: false,

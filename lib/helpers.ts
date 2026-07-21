@@ -1,3 +1,5 @@
+import { Role } from "@/feat/enum"
+
 interface FieldOption {
   value: string
   label: string
@@ -25,4 +27,19 @@ export function filterByQuery<T extends FieldOption>(query: string, array: T[]) 
 
     return startsAtBeginning || startsAtWordBoundary || includesQuery
   })
+}
+
+export const getRoleLabel = (role?: string): string => {
+  switch (role) {
+    case Role.Admin:
+      return 'superadmin'
+    case Role.Moderator:
+      return 'moderator'
+    case Role.User:
+      return 'user'
+    case Role.WI:
+      return 'WI'
+    default:
+      return role ?? '-'
+  }
 }
