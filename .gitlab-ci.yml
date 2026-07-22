@@ -9,8 +9,106 @@ variables:
   BUILDKIT_NO_CLIENT_TOKEN: "1"
 
 stages:
+  - init
   - build
   - deploy
+
+# ==========================================
+# TEMPLATE NOTIFIKASI
+# ==========================================
+.notify_base:
+  image: alpine:latest
+  before_script:
+    - apk add --no-cache curl jq git coreutils
+  script:
+    - |
+      set -e
+
+      format_duration() {
+        total_seconds="${1:-0}"
+        hours=$((total_seconds / 3600))
+        minutes=$(((total_seconds % 3600) / 60))
+        seconds=$((total_seconds % 60))
+
+        if [ "$hours" -gt 0 ]; then
+          printf "%dh %dm %ds" "$hours" "$minutes" "$seconds"
+        elif [ "$minutes" -gt 0 ]; then
+          printf "%dm %ds" "$minutes" "$seconds"
+        else
+          printf "%ds" "$seconds"
+        fi
+      }
+
+      if [ "$INCLUDE_LATEST_COMMITS" = "true" ]; then
+        LATEST_COMMITS="$(git log -3 --pretty=format:'• %h - %an: %s')"
+        NOTIFY_MESSAGE="$(printf "%b\n\n*Latest 3 Commits:*\n%s" "$NOTIFY_MESSAGE" "$LATEST_COMMITS")"
+      else
+        NOTIFY_MESSAGE="$(printf "%b" "$NOTIFY_MESSAGE")"
+      fi
+
+      if [ "$INCLUDE_BUILD_DURATION" = "true" ] && [ -n "$BUILD_DURATION_SECONDS" ]; then
+        BUILD_DURATION="$(format_duration "$BUILD_DURATION_SECONDS")"
+        NOTIFY_MESSAGE="$(printf "%b\n*Build Duration:* %s" "$NOTIFY_MESSAGE" "$BUILD_DURATION")"
+      fi
+
+      if [ "$INCLUDE_PIPELINE_DURATION" = "true" ] && [ -n "$CI_PIPELINE_CREATED_AT" ]; then
+        PIPELINE_STARTED_AT="$(date -d "$CI_PIPELINE_CREATED_AT" +%s)"
+        PIPELINE_FINISHED_AT="$(date +%s)"
+        PIPELINE_DURATION_SECONDS=$((PIPELINE_FINISHED_AT - PIPELINE_STARTED_AT))
+        PIPELINE_DURATION="$(format_duration "$PIPELINE_DURATION_SECONDS")"
+        NOTIFY_MESSAGE="$(printf "%b\n*Pipeline Duration:* %s" "$NOTIFY_MESSAGE" "$PIPELINE_DURATION")"
+      fi
+
+      JSON_PAYLOAD="$(jq -n \
+        --arg gn "$NOTIFICATION_GROUP" \
+        --arg msg "$NOTIFY_MESSAGE" \
+        '{
+          groupName: $gn,
+          message: $msg,
+          mentionsUsers: []
+        }')"
+
+      echo "Payload yang dikirim:"
+      echo "$JSON_PAYLOAD"
+
+      curl --fail --silent --show-error \
+        -X POST "$NOTIFICATION_API/send" \
+        -H "Content-Type: application/json" \
+        -d "$JSON_PAYLOAD"
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "staging"'
+  retry: 1
+
+# ==========================================
+# NOTIFIKASI PIPELINE DIMULAI
+# ==========================================
+notify_start:
+  stage: init
+  extends: .notify_base
+  variables:
+    INCLUDE_LATEST_COMMITS: "true"
+    NOTIFY_MESSAGE: |-
+      🚀 *PIPELINE STARTED* 🚀
+
+      *Project:* ${CI_PROJECT_NAME}
+      *Environment:* Staging
+      *Branch:* ${CI_COMMIT_REF_NAME}
+      *Triggered by:* ${GITLAB_USER_NAME}
+
+notify_start_prod:
+  stage: init
+  extends: .notify_base
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "production"'
+  variables:
+    INCLUDE_LATEST_COMMITS: "true"
+    NOTIFY_MESSAGE: |-
+      🚀 *PIPELINE STARTED* 🚀
+
+      *Project:* ${CI_PROJECT_NAME}
+      *Environment:* Production
+      *Branch:* ${CI_COMMIT_REF_NAME}
+      *Triggered by:* ${GITLAB_USER_NAME}
 
 build:
   stage: build
@@ -36,9 +134,21 @@ build:
     - printf "%s" "$ENV_STAGING" > .env.production
     - chmod 600 .env.production
     - |
+      set -e
+      BUILD_STARTED_AT="$(date +%s)"
+
+      write_build_duration() {
+        status=$?
+        BUILD_FINISHED_AT="$(date +%s)"
+        BUILD_DURATION_SECONDS=$((BUILD_FINISHED_AT - BUILD_STARTED_AT))
+        echo "BUILD_DURATION_SECONDS=${BUILD_DURATION_SECONDS}" > build.env
+        exit "$status"
+      }
+
+      trap write_build_duration EXIT
+
       echo "Using BuildKit service: $BUILDKIT_SERVICE"
-    - buildctl --addr "$BUILDKIT_SERVICE" debug workers
-    - |
+      buildctl --addr "$BUILDKIT_SERVICE" debug workers
       buildctl --addr "$BUILDKIT_SERVICE" build \
         --frontend dockerfile.v0 \
         --local context=. \
@@ -48,11 +158,52 @@ build:
         --import-cache type=registry,ref=${TAG_CACHE} \
         --output type=image,name=${TAG_COMMIT},push=true \
         --output type=image,name=${TAG_LATEST},push=true
+  artifacts:
+    when: always
+    reports:
+      dotenv: build.env
   environment:
     name: staging
   only:
     - staging
   retry: 1
+
+# ==========================================
+# NOTIFIKASI BUILD STAGING
+# ==========================================
+notify_build_success:
+  stage: build
+  extends: .notify_base
+  needs:
+    - job: build
+      artifacts: true
+  when: on_success
+  variables:
+    INCLUDE_BUILD_DURATION: "true"
+    NOTIFY_MESSAGE: |-
+      📦 *BUILD & PUSH SUCCESS* 📦
+
+      *Project:* ${CI_PROJECT_NAME}
+      *Commit Hash:* ${CI_COMMIT_SHORT_SHA}
+      *Image:* ${TAG_COMMIT}
+
+notify_build_failure:
+  stage: build
+  extends: .notify_base
+  needs:
+    - job: build
+      artifacts: true
+  when: on_failure
+  variables:
+    INCLUDE_BUILD_DURATION: "true"
+    NOTIFY_MESSAGE: |-
+      ❌ *BUILD & PUSH FAILED* ❌
+
+      *Project:* ${CI_PROJECT_NAME}
+      *Commit Hash:* ${CI_COMMIT_SHORT_SHA}
+      *Triggered by:* ${GITLAB_USER_NAME}
+
+      *Pipeline URL:* ${CI_PIPELINE_URL}
 
 build_prod:
   stage: build
@@ -78,9 +229,21 @@ build_prod:
     - printf "%s" "$ENV_PRODUCTION" > .env.production
     - chmod 600 .env.production
     - |
+      set -e
+      BUILD_STARTED_AT="$(date +%s)"
+
+      write_build_duration() {
+        status=$?
+        BUILD_FINISHED_AT="$(date +%s)"
+        BUILD_DURATION_SECONDS=$((BUILD_FINISHED_AT - BUILD_STARTED_AT))
+        echo "BUILD_DURATION_SECONDS=${BUILD_DURATION_SECONDS}" > build-prod.env
+        exit "$status"
+      }
+
+      trap write_build_duration EXIT
+
       echo "Using BuildKit service: $BUILDKIT_SERVICE"
-    - buildctl --addr "$BUILDKIT_SERVICE" debug workers
-    - |
+      buildctl --addr "$BUILDKIT_SERVICE" debug workers
       buildctl --addr "$BUILDKIT_SERVICE" build \
         --frontend dockerfile.v0 \
         --local context=. \
@@ -90,11 +253,58 @@ build_prod:
         --import-cache type=registry,ref=${TAG_CACHE} \
         --output type=image,name=${TAG_COMMIT},push=true \
         --output type=image,name=${TAG_PROD_LATEST},push=true
+  artifacts:
+    when: always
+    reports:
+      dotenv: build-prod.env
   environment:
     name: production
   only:
     - production
   retry: 1
+
+# ==========================================
+# NOTIFIKASI BUILD PRODUCTION
+# ==========================================
+notify_build_prod_success:
+  stage: build
+  extends: .notify_base
+  needs:
+    - job: build_prod
+      artifacts: true
+  when: on_success
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "production"'
+  variables:
+    INCLUDE_BUILD_DURATION: "true"
+    NOTIFY_MESSAGE: |-
+      📦 *BUILD & PUSH SUCCESS* 📦
+
+      *Project:* ${CI_PROJECT_NAME}
+      *Environment:* Production
+      *Commit Hash:* ${CI_COMMIT_SHORT_SHA}
+      *Image:* ${TAG_COMMIT}
+
+notify_build_prod_failure:
+  stage: build
+  extends: .notify_base
+  needs:
+    - job: build_prod
+      artifacts: true
+  when: on_failure
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "production"'
+  variables:
+    INCLUDE_BUILD_DURATION: "true"
+    NOTIFY_MESSAGE: |-
+      ❌ *BUILD & PUSH FAILED* ❌
+
+      *Project:* ${CI_PROJECT_NAME}
+      *Environment:* Production
+      *Commit Hash:* ${CI_COMMIT_SHORT_SHA}
+      *Triggered by:* ${GITLAB_USER_NAME}
+
+      *Pipeline URL:* ${CI_PIPELINE_URL}
 
 deploy:
   stage: deploy
@@ -122,3 +332,44 @@ deploy:
     git push
   only:
     - staging
+
+# ==========================================
+# NOTIFIKASI DEPLOY STAGING
+# ==========================================
+notify_deploy_success:
+  stage: deploy
+  extends: .notify_base
+  needs:
+    - job: deploy
+  when: on_success
+  variables:
+    INCLUDE_PIPELINE_DURATION: "true"
+    NOTIFY_MESSAGE: |-
+      ✅ *DEPLOYMENT SUCCESS* ✅
+
+      *Project:* ${CI_PROJECT_NAME}
+      *Environment:* Staging
+      *Branch:* ${CI_COMMIT_REF_NAME}
+      *Triggered by:* ${GITLAB_USER_NAME}
+      *Image:* ${TAG_COMMIT}
+
+      *Pipeline URL:* ${CI_PIPELINE_URL}
+
+notify_deploy_failure:
+  stage: deploy
+  extends: .notify_base
+  needs:
+    - job: deploy
+  when: on_failure
+  variables:
+    INCLUDE_PIPELINE_DURATION: "true"
+    NOTIFY_MESSAGE: |-
+      ❌ *DEPLOYMENT FAILED* ❌
+
+      *Project:* ${CI_PROJECT_NAME}
+      *Environment:* Staging
+      *Branch:* ${CI_COMMIT_REF_NAME}
+      *Triggered by:* ${GITLAB_USER_NAME}
+      *Image:* ${TAG_COMMIT}
+
+      *Pipeline URL:* ${CI_PIPELINE_URL}
