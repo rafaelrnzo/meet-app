@@ -2,6 +2,8 @@
 
 import type { ColumnDef } from '@tanstack/react-table'
 import type { User } from '@/lib/api/admin-api'
+import type { Role } from '@/feat/enum'
+import { getRoleLabel } from '@/lib/helpers'
 import { UserPrensence } from '@/feat/users/dto'
 import { Tooltip as TooltipBase, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { Badge } from '@/components/ui/badge'
@@ -82,20 +84,15 @@ export const usersColumn = (): ColumnDef<User>[] => {
       minSize: 200,
       maxSize: 200,
       cell: ({ row }) => {
-        const role = (row.original.role?.name as keyof typeof roles) ?? 'user'
-        const roles = {
-          admin: 'Admin',
-          user: 'Peserta',
-          moderator: 'Moderator',
-        }
+        const role = (row.original.role?.name as Role) ?? 'user'
+        const roles = getRoleLabel(role)
 
         return (
           <Badge
             variant='outline'
             className='rounded border-red-800 bg-red-50 px-3 py-2 text-sm text-red-800 capitalize not-italic'
           >
-            {' '}
-            {roles[role] ?? role}
+            {roles}
           </Badge>
         )
       },
