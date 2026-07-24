@@ -4,7 +4,7 @@ variables:
   TAG_COMMIT: "$REPOSITORY/$SERVICE_NAME:$CI_COMMIT_SHORT_SHA"
   TAG_LATEST: "$REPOSITORY/$SERVICE_NAME:latest"
   TAG_PROD_LATEST: "$REPOSITORY/$SERVICE_NAME:prod-latest"
-  TAG_CACHE: "$REPOSITORY/$SERVICE_NAME:buildcache"
+  #TAG_CACHE: "$REPOSITORY/$SERVICE_NAME:buildcache"
   FLUX_HTTPS_URL: "https://wush:$GIT_TOKEN@git.falahtech.com/wush/staging.git"
   BUILDKIT_NO_CLIENT_TOKEN: "1"
 
@@ -154,8 +154,6 @@ build:
         --local context=. \
         --local dockerfile=. \
         --opt filename=Dockerfile \
-        --export-cache type=registry,ref=${TAG_CACHE},mode=max \
-        --import-cache type=registry,ref=${TAG_CACHE} \
         --output type=image,name=${TAG_COMMIT},push=true \
         --output type=image,name=${TAG_LATEST},push=true
   artifacts:
@@ -249,8 +247,6 @@ build_prod:
         --local context=. \
         --local dockerfile=. \
         --opt filename=Dockerfile \
-        --export-cache type=registry,ref=${TAG_CACHE},mode=max \
-        --import-cache type=registry,ref=${TAG_CACHE} \
         --output type=image,name=${TAG_COMMIT},push=true \
         --output type=image,name=${TAG_PROD_LATEST},push=true
   artifacts:
