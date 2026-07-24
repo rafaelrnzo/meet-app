@@ -1,4 +1,4 @@
-import { Role } from "@/feat/enum"
+import { Role } from '@/feat/enum'
 
 interface FieldOption {
   value: string
@@ -36,7 +36,7 @@ export const getRoleLabel = (role?: string): string => {
     case Role.Moderator:
       return 'moderator'
     case Role.User:
-      return 'user'
+      return 'peserta'
     case Role.WI:
       return 'WI'
     default:
