@@ -384,7 +384,7 @@ export function RoomForm({
               const isInvalid = isTouched && errors.length > 0
 
               return (
-                <FormField label='Maksimal anggota' required {...{ name, isInvalid, errors }}>
+                <FormField label='Maksimal peserta' required {...{ name, isInvalid, errors }}>
                   <Input
                     id={name}
                     type='number'
@@ -424,18 +424,18 @@ export function RoomForm({
 
             return (
               <FormField
-                label='Pilih anggota untuk dimasukkan ke ruang rapat'
+                label='Pilih peserta untuk dimasukkan ke ruang rapat'
                 {...{ name, isInvalid, errors }}
                 className='gap-4'
               >
                 <TableViewSearch
-                  placeholder='Cari anggota ...'
+                  placeholder='Cari peserta ...'
                   onSearch={(search) => setQueryParams((prev) => ({ ...prev, search }))}
                 />
                 <Card className='rounded-md border-neutral-400'>
                   <CardContent className='flex min-h-[113px] flex-col px-2 pt-1 pb-3.5'>
                     {!users.length ? (
-                      <NoData title='Tidak Ada Anggota' className='mt-2.5' />
+                      <NoData title='Tidak Ada peserta' className='mt-2.5' />
                     ) : (
                       <>
                         <Field orientation='horizontal'>
@@ -514,7 +514,7 @@ export function RoomForm({
 
             return (
               <FormField
-                label='Semua anggota tidak dapat menggunakan mikrofon di dalam ruangan'
+                label='Semua peserta tidak dapat menggunakan mikrofon di dalam ruangan'
                 {...{ name, isInvalid, errors }}
                 className='sm:w-[calc(50%-4px)]'
               >
@@ -530,7 +530,7 @@ export function RoomForm({
                     />
                     <FieldContent>
                       <FieldTitle className='font-normal'>
-                        Bisukan mikrofon semua anggota
+                        Bisukan mikrofon semua peserta
                       </FieldTitle>
                     </FieldContent>
                   </Field>

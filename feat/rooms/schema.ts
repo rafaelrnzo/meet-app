@@ -63,14 +63,14 @@ const roomSchema = (props?: { activeParticipant?: number; isEdit?: boolean }) =>
       .number()
       .default(null)
       .nullable()
-      .test('isRequired', 'Maksimal Anggota wajib diisi', (value) => !!value)
+      .test('isRequired', 'Maksimal Peserta wajib diisi', (value) => !!value)
       .when([], (_, schema) => {
         return props?.activeParticipant
           ? schema.min(
               props.activeParticipant,
               `✕ Jumlah peserta rapat saat ini ${props?.activeParticipant} orang`
             )
-          : schema.min(1, 'Maksimal Anggota minimal 1')
+          : schema.min(1, 'Maksimal Peserta minimal 1')
       }),
     assignedTo: yup
       .array()
