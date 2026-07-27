@@ -20,18 +20,15 @@ const ActionColumn = (props: ActionButtonProps) => {
   const isEditable = roleName === 'moderator' || roleName === 'user'
   return (
     <ActionButton
-      buttonComp={
-        isEditable
-          ? [
-              {
-                text: 'Kelola Kelompok',
-                variant: 'secondary-light',
-                icon: <Icon type='settings' />,
-                onClick: () => openManage(row.original),
-              },
-            ]
-          : []
-      }
+      buttonComp={[
+        {
+          text: 'Kelola Kelompok',
+          variant: 'secondary-light',
+          icon: <Icon type='settings' />,
+          onClick: () => openManage(row.original),
+          hide: !isEditable,
+        },
+      ]}
     />
   )
 }

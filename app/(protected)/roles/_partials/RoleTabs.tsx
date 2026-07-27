@@ -11,7 +11,9 @@ export default function RoleTabs({
   activeTab,
   groupedPermissions,
   formApi,
-}: RoleContentsProps & { activeTab: RoleTabsValue }) {
+}: RoleContentsProps & {
+  activeTab: RoleTabsValue
+}) {
   const type = () => {
     switch (activeTab) {
       case 'control_dashboard':
