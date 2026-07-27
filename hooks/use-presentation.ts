@@ -75,6 +75,7 @@ export function usePresentation(onReady?: () => void) {
 
     try {
       const parser = await getParser(url)
+      if (!parser) return
 
       // Skip creating the new page if version doesn't sync
       if (version !== renderVersion.current) return
@@ -122,17 +123,17 @@ export function usePresentation(onReady?: () => void) {
   })
 
   async function getParser(url: string) {
-    if (pdfRef.current) {
-      docRef.current = await pdfRef.current.getDocument(url).promise
-    } else {
-      const pdfjs = await loadParser()
-      docRef.current = await pdfjs.getDocument(url).promise
+    if (!docRef.current) {
+      if (!url) return null
+      if (pdfRef.current) {
+        docRef.current = await pdfRef.current.getDocument(url).promise
+      } else {
+        const pdfjs = await loadParser()
+        docRef.current = await pdfjs.getDocument(url).promise
+      }
     }
 
-    if (docRef.current) {
-      setMaxPages(docRef.current.numPages)
-    }
-
+    setMaxPages(docRef.current.numPages)
     return docRef.current
   }
 

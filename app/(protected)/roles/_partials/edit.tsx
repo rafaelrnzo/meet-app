@@ -5,10 +5,12 @@ import type { Role } from '@/lib/api/admin-api'
 import type { RoleContentsProps } from '@/app/(protected)/roles/_partials/RoleContents'
 import { useEffect, useState } from 'react'
 import { useForm } from '@tanstack/react-form'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Modal } from '@/components/ui/modal'
 import { default as RoleTabs } from '@/app/(protected)/roles/_partials/RoleTabs'
-import { default as RoleCheckbox } from '@/app/(protected)/roles/_partials/RoleCheckbox'
+import { RoleParentAccor } from '@/app/(protected)/roles/_partials/RoleMobile'
+import { ControlMeetContents } from '@/app/(protected)/roles/_partials/RoleContents'
 
 export type RoleTabsValue = 'control_dashboard' | 'control_meet'
 
@@ -26,6 +28,7 @@ export default function EditRoles({
   groupedPermissions,
   handleAddPermissions,
 }: EditRolesProps) {
+  const isMobile = useIsMobile()
   const [activeTab, setActiveTab] = useState<RoleTabsValue>('control_dashboard')
   const roleName = selectedRole?.name
   const rename = roleName
@@ -37,14 +40,6 @@ export default function EditRoles({
     : ''
 
   const tabsTrigger: RoleTabsValue[] = ['control_dashboard', 'control_meet']
-  const keyMeetScreen = 'ui:manage_screen'
-  const groupCheckbox = [
-    {
-      label: 'Manajemen layar rapat',
-      permissions: groupedPermissions.meet_screen.filter(({ key }) => key === keyMeetScreen),
-    },
-  ]
-
   const form = useForm({
     defaultValues: {
       permissions: selectedRole?.permissions?.map(({ ID }) => ID) ?? [],
@@ -85,7 +80,15 @@ export default function EditRoles({
         onClick: () => form.reset(),
       }}
     >
-      {selectedRole?.name === 'moderator' ? (
+      {isMobile ? (
+        <RoleParentAccor
+          {...{
+            groupedPermissions,
+            formApi: form,
+            isUser: selectedRole?.name === 'user',
+          }}
+        />
+      ) : selectedRole?.name === 'moderator' ? (
         <Tabs
           defaultValue={activeTab}
           className='h-full overflow-auto'
@@ -105,15 +108,20 @@ export default function EditRoles({
             ))}
           </TabsList>
           <TabsContent value={activeTab}>
-            <RoleTabs {...{ activeTab, groupedPermissions, selectedRole, formApi: form }} />
+            <RoleTabs
+              {...{
+                activeTab,
+                groupedPermissions,
+                selectedRole,
+                formApi: form,
+              }}
+            />
           </TabsContent>
         </Tabs>
       ) : (
-        <form.Field name='permissions'>
-          {(field) => {
-            return <RoleCheckbox {...{ data: groupCheckbox, field }} />
-          }}
-        </form.Field>
+        <ControlMeetContents
+          {...{ groupedPermissions, formApi: form, isUser: selectedRole?.name === 'user' }}
+        />
       )}
     </Modal>
   )

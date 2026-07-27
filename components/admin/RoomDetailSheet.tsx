@@ -13,6 +13,7 @@ import {
   uploadRoomPresentation,
 } from '@/lib/api/admin-api'
 import { useAuth } from '@/hooks/use-auth'
+import { useSourceEventRooms } from '@/hooks'
 import { defaultErrorMessage } from '@/config'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
@@ -175,6 +176,11 @@ export function RoomDetailSheet({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [room?.id])
+
+  useSourceEventRooms(() => {
+    loadUsers()
+    loadAdmin()
+  }, ['room_members_updated'])
 
   return (
     <AnimatePresence>

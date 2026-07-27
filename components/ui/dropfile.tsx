@@ -73,9 +73,9 @@ export default function DropFile({
   const handleRemoveFiles = () => {
     if (onRemoveFile?.()) {
       onRemoveFile?.()
-      setFiles([])
-      setExist([])
     }
+    setFiles([])
+    setExist([])
   }
 
   useEffect(() => {
