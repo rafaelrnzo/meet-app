@@ -42,6 +42,7 @@ const ActionColumn = (props: ActionButtonProps) => {
             'Tindakan ini akan menghapus grup ini dan semua data terkait secara permanen. Tindakan ini tidak dapat dibatalkan.',
         },
         trigger: {
+          text: 'Hapus Kelompok',
           disabled: !is_editable,
         },
       }}

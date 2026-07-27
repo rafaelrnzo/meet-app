@@ -4,16 +4,17 @@ import type { AnyFormApi, useForm } from '@tanstack/react-form'
 import type { Permission } from '@/lib/api/admin-api'
 import { default as RoleCheckbox } from '@/app/(protected)/roles/_partials/RoleCheckbox'
 
+export interface GroupedPermission {
+  room: Permission[]
+  groups: Permission[]
+  users: Permission[]
+  roles: Permission[]
+  recordings: Permission[]
+  meet_screen: Permission[]
+  other: Permission[]
+}
 export interface RoleContentsProps {
-  groupedPermissions: {
-    room: Permission[]
-    groups: Permission[]
-    users: Permission[]
-    roles: Permission[]
-    recordings: Permission[]
-    meet_screen: Permission[]
-    other: Permission[]
-  }
+  groupedPermissions: GroupedPermission
   formApi: AnyFormApi
 }
 
@@ -53,15 +54,22 @@ function ControlDashboardContents({ groupedPermissions, formApi }: RoleContentsP
     <>
       <form.Field name='permissions'>
         {(field) => {
-          return <RoleCheckbox {...{ data: groupCheckbox, field }} />
+          return <RoleCheckbox {...{ allPermissions: groupedPermissions, groupCheckbox, field }} />
         }}
       </form.Field>
     </>
   )
 }
 
-function ControlMeetContents({ groupedPermissions, formApi }: RoleContentsProps) {
+function ControlMeetContents({
+  groupedPermissions,
+  formApi,
+  isUser,
+}: RoleContentsProps & { isUser?: boolean }) {
   const form = formApi as unknown as ReturnType<typeof useForm>
+
+  const keyMeetScreen = 'ui:manage_screen'
+  const keyTableUsers = 'room:read_participants'
 
   const groupCheckbox = [
     {
@@ -79,7 +87,19 @@ function ControlMeetContents({ groupedPermissions, formApi }: RoleContentsProps)
     },
     {
       label: 'Manajemen akses rapat',
-      permissions: groupedPermissions.room.filter(({ label }) => label === 'Manajemen Akses Rapat'),
+      permissions: [
+        ...groupedPermissions.room.filter(
+          ({ label, key }) => label === 'Manajemen Akses Rapat' && key !== keyTableUsers
+        ),
+        ...groupedPermissions.recordings.filter(({ label }) => label === 'Manajemen Akses Rapat'),
+      ],
+    },
+  ]
+
+  const groupCheckboxUser = [
+    {
+      label: 'Manajemen layar rapat',
+      permissions: groupedPermissions.meet_screen.filter(({ key }) => key === keyMeetScreen),
     },
   ]
 
@@ -87,7 +107,15 @@ function ControlMeetContents({ groupedPermissions, formApi }: RoleContentsProps)
     <>
       <form.Field name='permissions'>
         {(field) => {
-          return <RoleCheckbox {...{ data: groupCheckbox, field }} />
+          return (
+            <RoleCheckbox
+              {...{
+                allPermissions: groupedPermissions,
+                groupCheckbox: isUser ? groupCheckboxUser : groupCheckbox,
+                field,
+              }}
+            />
+          )
         }}
       </form.Field>
     </>
