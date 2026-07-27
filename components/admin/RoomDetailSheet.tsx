@@ -114,7 +114,7 @@ export function RoomDetailSheet({
     try {
       await unbanParticipant(roomCode, identity)
       toast.success(`Berhasil buka blokir peserta`, {
-        description: `Blokir peserta ${identity} berhasil dibuka`,
+        description: `Blokir peserta berhasil dibuka`,
       })
     } catch (error) {
       displayedError(error, 'Gagal buka blokir peserta')
