@@ -1,14 +1,15 @@
 'use client'
 
 import type { ComponentProps, FC, ReactNode } from 'react'
+import { useCallback, useEffect } from 'react'
 import { ConnectionState } from 'livekit-client'
 import { ArrowLeftIcon, XIcon } from '@phosphor-icons/react'
 import { useConnectionState, useRoomContext } from '@livekit/components-react'
-import { cn } from '@/lib/utils'
-import { useParamsState } from '@/hooks'
+import { cn, omit, qstring } from '@/lib/utils'
+import { useRoomsAuth, useParamsState } from '@/hooks'
 import { TabsNotes } from '@/feat/Tabs/Notes'
 import { TabsChat } from '@/feat/Tabs'
-import { TabsCode } from '@/feat/enum'
+import { SearchParamsKey, TabsCode } from '@/feat/enum'
 import { RoomTabsTools, RoomTabs } from '@/feat/const'
 
 const RoomPanelComponent: FC<{ children?: ReactNode }> = ({ children }) => {
@@ -38,7 +39,8 @@ const RoomPanelComponent: FC<{ children?: ReactNode }> = ({ children }) => {
 
 const RoomPanelHeader: FC = () => {
   const { tabsCode, openTab, closePanel } = useParamsState()
-  const title = RoomTabsTools.find((copy) => copy.tabIds.includes(tabsCode))?.title ?? ''
+  const { role } = useRoomsAuth()
+  const title = RoomTabsTools(role).find((copy) => copy.tabIds.includes(tabsCode))?.title ?? ''
   const currentTab = RoomTabs.find(({ id }) => id === tabsCode)
   const parentId = currentTab?.parentId
   const hasChild = !!parentId
@@ -76,6 +78,44 @@ export const RoomPanel: FC<ComponentProps<'aside'>> = ({ className, children, ..
   const room = useRoomContext()
   const state = useConnectionState(room)
   const isConnecting = state === ConnectionState.Connecting
+  const {
+    isTabsSettings,
+    isTabsSettingsParticipants,
+    isTabsSettingsRecordings,
+    isTabsSettingsRooms,
+  } = useParamsState()
+  const { router, pathname, currentParams, openTab } = useParamsState()
+  const { role, hasPermissionInMeeting } = useRoomsAuth()
+  const shouldClosePanelSettings =
+    role === 'user' &&
+    (isTabsSettings ||
+      isTabsSettingsParticipants ||
+      isTabsSettingsRecordings ||
+      isTabsSettingsRooms)
+  const shouldCloseTabsSettings =
+    (isTabsSettingsRooms && !hasPermissionInMeeting('room:search_other')) ||
+    (isTabsSettingsParticipants && !hasPermissionInMeeting('room:view_member_list')) ||
+    (isTabsSettingsRecordings && !hasPermissionInMeeting('module:recordings:access'))
+
+  const closePanelTabs = useCallback(
+    () =>
+      router.replace(
+        qstring(pathname, {
+          ...omit(currentParams, [SearchParamsKey.PanelCode, SearchParamsKey.TabsCode]),
+        })
+      ),
+    [currentParams, pathname, router]
+  )
+
+  useEffect(() => {
+    if (shouldClosePanelSettings) {
+      closePanelTabs()
+    }
+
+    if (shouldCloseTabsSettings) {
+      openTab(TabsCode.TabsSettings)
+    }
+  }, [closePanelTabs, openTab, shouldClosePanelSettings, shouldCloseTabsSettings])
 
   return (
     <aside

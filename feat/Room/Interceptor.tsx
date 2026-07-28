@@ -39,6 +39,11 @@ export const InterceptorRoom: FC<InterceptorRoomProps> = ({
       description: 'Silakan hubungi admin untuk bergabung ke rapat ini.',
       back: 'Kembali',
     },
+    [ConnectionInterceptor.Locked]: {
+      title: 'Ruangan terkunci',
+      description: 'Harap hubungi admin untuk konfirmasi ruang rapat',
+      back: 'Kembali',
+    },
   }
 
   const { title, description, back } =
