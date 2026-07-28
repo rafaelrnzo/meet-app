@@ -10,7 +10,7 @@ const nextConfig: NextConfig = {
       '@hugeicons/core-free-icons',
     ],
     serverActions: {
-      bodySizeLimit: '5mb',
+      bodySizeLimit: '20mb',
     },
   },
 }
