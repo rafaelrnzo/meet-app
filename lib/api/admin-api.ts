@@ -75,14 +75,14 @@ export interface DbRoom {
   createdAt?: string
   updated_at?: string
   banned_users?: string[]
+  max_upload_size: number
   presentation_path?: string
   createdById?: number
   password?: string
-  is_mute_on_start: boolean
   participants?: number
   enable_start_room: boolean
-  metadata?: RoomMetadata
-  max_upload_size: number
+  metadata: RoomMetadata
+  enable_waiting_room: boolean
 }
 
 export interface MemberRoom {
@@ -209,12 +209,6 @@ export async function updateDbRoom(id: number, payload: RoomPayload): Promise<Db
   })
 }
 
-export async function generatePassword(id: number): Promise<{ password: string }> {
-  return apiRequest<{ password: string }>(`/admin/rooms/${id}/regenerate-password?length=10`, {
-    method: 'POST',
-  })
-}
-
 export async function deleteDbRoom(id: number): Promise<void> {
   await apiRequest(`/admin/rooms/${id}`, {
     method: 'DELETE',
@@ -268,11 +262,31 @@ export async function deleteRoomPresentation(roomId: number) {
 }
 
 export async function fetchRoomToken(roomCode: string): Promise<DbRoom[]> {
-  // TODO: cek lagi, sedang direfactor BE
   return apiRequest('/api/livekit/token', {
     method: 'POST',
     cache: 'no-store',
     body: JSON.stringify({ room_code: roomCode }),
+  })
+}
+
+interface ChangeToModeratorPayload {
+  room_code: string
+  promote: boolean
+}
+
+interface ChangeToModeratorResponse {
+  message: string
+  promote: boolean
+  room_code: string
+}
+
+export async function changeEveryoneToModerator(
+  payload: ChangeToModeratorPayload
+): Promise<ChangeToModeratorResponse> {
+  return apiRequest('/admin/livekit/rooms/promote-all', {
+    method: 'POST',
+    cache: 'no-store',
+    body: JSON.stringify(payload),
   })
 }
 

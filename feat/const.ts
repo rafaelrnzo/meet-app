@@ -102,7 +102,7 @@ export const RoomTabs = [
   },
 ] satisfies TabProps[]
 
-export const RoomTabsTools = [
+export const RoomTabsTools = (role: string) => [
   {
     id: 1,
     title: 'Perangkat rapat',
@@ -132,10 +132,11 @@ export const RoomTabsTools = [
     title: 'Alat pengaturan',
     icon: 'settings' as const,
     tabIds: [5, 51, 52, 53],
+    hide: role === 'user',
   },
 ]
 
-export const TabsContents = (role: string, hasPermission: (name: string) => boolean) => [
+export const TabsContents = (role: string, hasPermissionInMeeting: (name: string) => boolean) => [
   {
     id: GroupsCode.Collaboration,
     headline: 'Kolaborasi',
@@ -202,7 +203,7 @@ export const TabsContents = (role: string, hasPermission: (name: string) => bool
         icon: 'hugeicons/live-streaming-03' as const,
         title: 'Mulai rekam rapat',
         description: 'Rekam rapat sekarang',
-        hide: !hasPermission('recording:create'),
+        hide: !hasPermissionInMeeting('recording:create'),
       },
       {
         id: GroupCode.PickRandom,
@@ -224,7 +225,7 @@ export const CameraResolutionOptions = [
   { label: 'Data Saver (360p)', value: CameraResolution.LOW },
 ]
 
-export type TabsRoomToolsIconKey = (typeof RoomTabsTools)[number]['icon']
+export type TabsRoomToolsIconKey = ReturnType<typeof RoomTabsTools>[number]['icon']
 
 export type TabsContentIconKey = ReturnType<typeof TabsContents>[number]['lists'][number]['icon']
 

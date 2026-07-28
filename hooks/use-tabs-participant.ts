@@ -57,7 +57,7 @@ export interface ParticipantGroup {
 
 export interface MetadataInfo {
   banned_users: string[]
-  banned_users_name: { name: string; identity: string }[]
+  banned_users_name: { name: string; identity: string; role: string }[]
   room_id: string
 }
 
@@ -142,12 +142,12 @@ export function useTabsParticipant() {
           }),
 
         // 2. List Participant Banned
-        ...bannedIds.map(({ identity, name }) => ({
+        ...bannedIds.map(({ identity, name, role }) => ({
           id: identity,
           name: name,
           attributes: {} as any,
           isRaised: false,
-          roleName,
+          roleName: role,
           isModerator: false,
           isLocal: false,
           isMuted: true,

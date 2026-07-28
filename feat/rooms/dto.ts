@@ -27,6 +27,8 @@ interface RoomPayload {
   password: string
   is_mute_on_start: boolean
   enable_start_room: boolean
+  max_upload_size?: number
+  enable_waiting_room: boolean
 }
 
 interface SelectOptions {
@@ -54,9 +56,10 @@ const getRoomDefaultValue = (data: DbRoom): RoomSchemaValue => {
     startDate: djs(data.start_date).toDate(),
     endDate: djs(data.end_date).toDate(),
     password: data.password || '',
-    isMuteOnStart: data.is_mute_on_start,
+    isMuteOnStart: data.metadata.is_mute_on_start,
     totalGroupMember: 0,
     enableStartRoom: data.enable_start_room,
+    enableWaitingRoom: data.enable_waiting_room,
   }
 }
 
@@ -72,6 +75,7 @@ const getRoomPayload = (data: RoomSchemaValue): RoomPayload => {
     password: data.password,
     is_mute_on_start: data.isMuteOnStart,
     enable_start_room: data.enableStartRoom,
+    enable_waiting_room: data.enableWaitingRoom,
   }
 }
 
@@ -112,12 +116,13 @@ type RoomSSEDTO = RoomEventUpdated | RoomEventParticipant
 
 interface RoomMetadata {
   banned_users: string[]
-  banned_users_name: any[]
+  banned_users_name: { name: string; identity: string; role: string }[]
   polling: PollingMessage[]
   room_id: number
   has_presentation: boolean
   is_mute_on_start: boolean
   presentation_path: string
+  all_moderators?: boolean
 }
 
 export type {

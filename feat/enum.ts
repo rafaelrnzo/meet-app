@@ -45,11 +45,12 @@ export enum EventBus {
 
 export enum ConnectionInterceptor {
   Unknown = 'unknown',
-  Blocked = 'blocked',
+  Blocked = 'banned',
   Pending = 'pending',
   Limit = 'limit',
   Unauthorized = 'unauthorized',
   WrongPassword = 'wrong_password',
+  Locked = 'locked',
 }
 
 export enum SearchParamsKey {

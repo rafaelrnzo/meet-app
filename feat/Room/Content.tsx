@@ -4,7 +4,7 @@ import type { FC, MouseEvent } from 'react'
 import { useEffect, useRef, useState } from 'react'
 import { CopyIcon } from '@phosphor-icons/react'
 import { cn, qstring } from '@/lib/utils'
-import { useParamsState } from '@/hooks'
+import { useRoomsAuth, useParamsState } from '@/hooks'
 import { TabsRoomIcon } from '@/feat/Tabs'
 import { copyHandler } from '@/feat/helpers'
 import { SearchParamsKey } from '@/feat/enum'
@@ -22,6 +22,7 @@ export const RoomContent: FC = () => {
   }>()
   const tooltipTimeoutRef = useRef<ReturnType<typeof setTimeout>>(void 0)
   const [openTooltip, setOpenTooltip] = useState<'mobile' | 'desktop' | null>(null)
+  const { role } = useRoomsAuth()
 
   const handleShowTooltip = (trigger: typeof openTooltip) => {
     clearTimeout(tooltipTimeoutRef.current)
@@ -104,35 +105,37 @@ export const RoomContent: FC = () => {
           !mobileOpen && 'hidden'
         )}
       >
-        {RoomTabsTools.map(({ id, icon, tabIds }) => (
-          <ButtonTab
-            key={id}
-            isActive={tabIds.includes(tabsCode) && isPanelActive}
-            className='w-full xl:w-10'
-            onClick={() => {
-              const selectedTab = RoomTabs.find((tabs) => tabIds.includes(tabs.id))?.id ?? null
-              const togglePanel = isPanelActive ? (tabIds.includes(tabsCode) ? null : 1) : 1
+        {RoomTabsTools(role)
+          .filter(({ hide }) => !hide)
+          .map(({ id, icon, tabIds }) => (
+            <ButtonTab
+              key={id}
+              isActive={tabIds.includes(tabsCode) && isPanelActive}
+              className='w-full xl:w-10'
+              onClick={() => {
+                const selectedTab = RoomTabs.find((tabs) => tabIds.includes(tabs.id))?.id ?? null
+                const togglePanel = isPanelActive ? (tabIds.includes(tabsCode) ? null : 1) : 1
 
-              router.replace(
-                qstring(
-                  pathname,
-                  {
-                    ...currentParams,
-                    [SearchParamsKey.PanelCode]: togglePanel,
-                    [SearchParamsKey.TabsCode]: tabsCode
-                      ? tabIds.includes(tabsCode)
-                        ? tabsCode
-                        : selectedTab
-                      : selectedTab,
-                  },
-                  { skipNulls: true }
+                router.replace(
+                  qstring(
+                    pathname,
+                    {
+                      ...currentParams,
+                      [SearchParamsKey.PanelCode]: togglePanel,
+                      [SearchParamsKey.TabsCode]: tabsCode
+                        ? tabIds.includes(tabsCode)
+                          ? tabsCode
+                          : selectedTab
+                        : selectedTab,
+                    },
+                    { skipNulls: true }
+                  )
                 )
-              )
-            }}
-          >
-            <TabsRoomIcon name={icon} />
-          </ButtonTab>
-        ))}
+              }}
+            >
+              <TabsRoomIcon name={icon} />
+            </ButtonTab>
+          ))}
       </div>
     </div>
   )

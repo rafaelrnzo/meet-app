@@ -11,8 +11,8 @@ import { rolesColumn } from '@/column/roles'
 import { default as EditRoles } from '@/app/(protected)/roles/_partials/edit'
 import { useAuth } from '../../../hooks/use-auth'
 
-enum RolesEventSSE {
-  RolesUpdated = 'role_update',
+export enum RolesEventSSE {
+  RolesUpdated = 'role_updated',
 }
 
 export default function RolesPage() {
