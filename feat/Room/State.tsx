@@ -2,16 +2,21 @@
 
 import type { FC, ReactNode } from 'react'
 import type { RemoteParticipant } from 'livekit-client'
+import type { RecordingSSEDTO } from '@/feat/recording/dto'
 import type { ScreenCode } from '@/feat/enum'
 import { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { ConnectionState, RoomEvent } from 'livekit-client'
 import { useMaybeRoomContext } from '@livekit/components-react'
-import { loginfo, num } from '@/lib/utils'
+import { loginfo, num, qstring } from '@/lib/utils'
 import {
   startRecording as apiStartRecording,
   stopRecording as apiStopRecording,
 } from '@/lib/api/admin-api'
+import { useEventSource } from '@/hooks/use-event-source'
+import { useAuth } from '@/hooks/use-auth'
+import { RecordingEvent } from '@/feat/recording/dto'
 import { ParticipantAttribute } from '@/feat/enum'
+import { defaultErrorMessage } from '@/config'
 import { toast } from '@/components/ui/sonner'
 
 export type ScreenID = Exclude<ScreenCode, ScreenCode.Recording>
@@ -30,6 +35,18 @@ export interface ScreenMessage {
 
 export type ScreenPayload = Partial<Record<'url' | 'polling', string>>
 
+export type RecordData = {
+  egressId: string
+  startedAt?: number
+  endedAt?: number
+} | null
+
+export enum RecordStatus {
+  Starting = 'starting',
+  Recording = 'recording',
+  Idle = 'idle',
+}
+
 export interface StateContextProps {
   screen: ScreenMessage | null
   record: string | null
@@ -38,11 +55,9 @@ export interface StateContextProps {
   stopActiveScreen: () => Promise<void>
   startRecording: () => Promise<void>
   stopRecording: () => Promise<void>
-  recordData: {
-    egressId: string
-    startedAt?: number
-    endedAt?: number
-  } | null
+  recordData: RecordData
+  setRecordData: React.Dispatch<RecordData>
+  recordStatus: RecordStatus
 }
 
 export const StateContext = createContext<StateContextProps>(undefined!)
@@ -52,23 +67,33 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
   const room = useMaybeRoomContext()
   const [screen, setScreen] = useState<StateContextProps['screen'] | null>(null)
   const [record, setRecord] = useState<StateContextProps['record'] | null>(null)
+  const [recordStatus, setRecordStatus] = useState<StateContextProps['recordStatus']>(
+    RecordStatus.Idle
+  )
   const [recordData, setRecordData] = useState<StateContextProps['recordData']>(null)
   const isHost = room?.localParticipant.identity === screen?.host
+  const { publicUrl, token } = useAuth()
 
   const startRecording = async () => {
     if (!room?.localParticipant) return
+
     try {
-      const response = await apiStartRecording({ room_name: room.name })
       await room.localParticipant.setAttributes({
+        [ParticipantAttribute.RecordStatus]: RecordStatus.Starting,
+      })
+      await apiStartRecording({ room_name: room.name })
+      await room.localParticipant.setAttributes({
+        [ParticipantAttribute.RecordStatus]: RecordStatus.Recording,
         [ParticipantAttribute.ScreenRecord]: room.localParticipant.identity,
       })
-
-      setRecordData({
-        egressId: response.egress_id,
-        startedAt: response.started_at,
-      })
     } catch (e) {
-      console.log('Failed to start recording:', e)
+      await room.localParticipant.setAttributes({
+        [ParticipantAttribute.RecordStatus]: RecordStatus.Idle,
+      })
+
+      toast.error('Gagal rekam rapat', {
+        description: e instanceof Error ? e.message : defaultErrorMessage,
+      })
     }
   }
 
@@ -82,7 +107,7 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
     }
 
     try {
-      const response = await apiStopRecording({
+      await apiStopRecording({
         room_name: room.name,
         egress_id: recordData.egressId,
       })
@@ -90,18 +115,15 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
       if (room.state === ConnectionState.Connected) {
         await room.localParticipant.setAttributes({
           [ParticipantAttribute.ScreenRecord]: '',
+          [ParticipantAttribute.RecordStatus]: RecordStatus.Idle,
         })
       }
 
-      setRecordData((prev) => {
-        if (!prev) return prev
-        return {
-          ...prev,
-          endedAt: response.ended_at,
-        }
-      })
+      toast.record('Rapat berhasil direkam', { position: 'top-center' })
     } catch (e) {
-      console.log('Failed to stop recording:', e)
+      toast.error('Gagal hentikan rekam rapat', {
+        description: e instanceof Error ? e.message : defaultErrorMessage,
+      })
     }
   }, [record, recordData?.egressId, room?.localParticipant, room?.name, room?.state])
 
@@ -139,12 +161,18 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
     }
   }
 
+  function isRecordStatus(value: string): value is RecordStatus {
+    const recordValidStatus: readonly string[] = Object.values(RecordStatus)
+    return recordValidStatus.includes(value)
+  }
+
   useEffect(() => {
     if (!room) return
 
     const syncRoomState = () => {
       let newScreen: StateContextProps['screen'] = null
       let newRecord: StateContextProps['record'] = null
+      let newRecordStatus: StateContextProps['recordStatus'] = RecordStatus.Idle
 
       // REMEMBER TO SCAN BOTH LOCALPARTICIPANT + REMOTEPARTICIPAN
       const allParticipants = [
@@ -164,8 +192,14 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
         }
 
         const hostId = participant.attributes?.[ParticipantAttribute.ScreenRecord]
+        const recordStatus = participant.attributes?.[ParticipantAttribute.RecordStatus]
+
         if (hostId) {
           newRecord = hostId
+        }
+
+        if (isRecordStatus(recordStatus) && recordStatus !== RecordStatus.Idle) {
+          newRecordStatus = recordStatus
         }
       })
 
@@ -186,6 +220,8 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
         }
         return newRecord
       })
+
+      setRecordStatus(newRecordStatus)
     }
 
     const handleLeavingHost = ({ attributes, identity }: RemoteParticipant) => {
@@ -241,6 +277,20 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
     return () => window.removeEventListener('beforeunload', handleBeforeUnload)
   }, [stopRecording])
 
+  useEventSource<RecordingSSEDTO>({
+    eventUrl: qstring(`${publicUrl}/admin/recordings/events`, { token, room_code: room?.name }),
+    onMessage: async (event) => {
+      if (event.type === RecordingEvent.Started) {
+        setRecordData({ egressId: event.data.egress_id, startedAt: Date.now() })
+      }
+      if (event.type === RecordingEvent.Stopped) {
+        setRecordData((prev) =>
+          !prev ? prev : { ...prev, egressId: event.data.egress_id, endedAt: Date.now() }
+        )
+      }
+    },
+  })
+
   return (
     <StateContext.Provider
       value={{
@@ -252,6 +302,8 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
         startActiveScreen,
         stopActiveScreen,
         recordData,
+        setRecordData,
+        recordStatus,
       }}
     >
       {children}

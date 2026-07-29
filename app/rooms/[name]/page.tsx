@@ -42,6 +42,7 @@ export default async function RoomsDetailPage(props: RoomsDetailPageProps) {
 
   return (
     <RoomsDetail
+      metadata={room.metadata}
       roomName={params.name}
       region={searchParams.region}
       hq={searchParams.hq === 'true'}

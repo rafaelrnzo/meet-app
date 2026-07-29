@@ -163,7 +163,7 @@ const RoomList: FC<RoomListProps> = ({
 
   useSourceEventRooms(
     () => router.refresh(),
-    ['room_updated', 'participant_joined', 'participant_left']
+    ['room_updated', 'user_updated', 'participant_joined', 'participant_left']
   )
 
   if (isLoading) {

@@ -93,7 +93,7 @@ export function useTabsSettings() {
     hasPermissionInMeeting('room:set_file_size'),
     roomContext.localParticipant.attributes[ParticipantAttribute.RoleName.toLowerCase()] ===
       'admin',
-    hasPermissionInMeeting('module:recordings:access'),
+    hasPermissionInMeeting('recording:read'),
   ]
   const disableUploadSize =
     !draftRoom?.max_upload_size ||
