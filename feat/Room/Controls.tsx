@@ -4,8 +4,8 @@ import type { FC, ReactNode } from 'react'
 import { CheckIcon, PhoneSlashIcon, MonitorPlayIcon } from '@phosphor-icons/react'
 import { CameraIcon, CameraDisabledIcon, MicDisabledIcon, MicIcon } from '@livekit/components-react'
 import { cn } from '@/lib/utils'
-import { leaveRoom } from '@/lib/api/admin-api'
-import { useControls } from '@/hooks'
+import { useControls, useParamsState } from '@/hooks'
+import { SearchParamsKey } from '@/feat/enum'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ToggleTrack } from '@/components/ToggleTrack'
 import { ReactionIcon } from '@/components/ReactionIcon'
@@ -14,8 +14,8 @@ import { HandRaisedIcon } from '@/components/HandRaised'
 import { ButtonIcon } from '@/components/Button'
 
 export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
+  const { router, searchParams } = useParamsState()
   const {
-    roomName,
     isConnecting,
     audioEnabled,
     videoEnabled,
@@ -25,7 +25,6 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
     resolutionOptions,
     isCameraActive,
     isReactionActive,
-    disconnect,
     handleResolutionChange,
     handleToggleShareScreen,
     handleToggleAudio,
@@ -128,7 +127,7 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
       {children}
       <ButtonIcon
         className='text-error bg-red-200 hover:bg-red-200!'
-        onClick={() => leaveRoom(roomName).finally(() => disconnect())}
+        onClick={() => router.replace(`/${searchParams.get(SearchParamsKey.FromCode) ?? ''}`)}
       >
         <PhoneSlashIcon weight='fill' size={20} />
       </ButtonIcon>

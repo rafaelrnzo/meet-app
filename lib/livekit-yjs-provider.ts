@@ -297,16 +297,30 @@ export class LiveKitYjsProvider {
         topic: LiveKitKey.YJSAwareness,
         destinationIdentities: options.destinationIdentities,
       })
-      .catch(console.log)
+      .catch((error: unknown) => {
+        // Suppress expected abort errors during disconnect/channel teardown
+        const isAbort =
+          error instanceof Error &&
+          (error.message.includes('User-Initiated Abort') || error.name === 'AbortError')
+        if (!isAbort) console.warn('Failed to publish awareness:', error)
+      })
   }
 
   destroy() {
     if (this._destroyed) return
     this._destroyed = true
 
-    // Let peers clear our cursor immediately instead of waiting for
-    // ParticipantDisconnected to propagate.
-    this._broadcastAwarenessState(null)
+    // Only broadcast cursor-clear if the data channel is still open.
+    // During disconnect, the lossy channel closes before room.state updates,
+    // which causes "User-Initiated Abort" errors on unreliable sends.
+    const isChannelOpen =
+      this.room.state === ConnectionState.Connected &&
+      // @ts-expect-error: engine is internal but stable across livekit-client versions
+      this.room.engine?.publisher?.dc?.readyState === 'open'
+
+    if (isChannelOpen) {
+      this._broadcastAwarenessState(null)
+    }
 
     clearInterval(this._cleanupInterval)
     this._chunkBuffer.clear()

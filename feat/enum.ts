@@ -37,6 +37,7 @@ export enum ParticipantAttribute {
   HandRaised = 'HAND_RAISED',
   HandLowererName = 'HAND_LOWERER_NAME',
   RoleName = 'ROLE_NAME',
+  RecordStatus = 'RECORD_STATUS',
 }
 
 export enum EventBus {

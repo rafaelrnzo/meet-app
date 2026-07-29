@@ -4,6 +4,7 @@ import type { FC } from 'react'
 import type { VideoCodec } from 'livekit-client'
 import type { LocalUserChoices } from '@livekit/components-react'
 import type { ConnectionDetails } from '@/feat/types'
+import type { RoomMetadata } from '@/feat/rooms/dto'
 import type { LocalUserChoicesPassword } from '@/feat/Room'
 import { useEffect, useRef, useState } from 'react'
 import { useSession } from 'next-auth/react'
@@ -26,6 +27,7 @@ export interface RoomDetailProps {
   singlePeerConnection: boolean
   isTesting?: boolean
   withPassword?: boolean
+  metadata: RoomMetadata
 }
 
 export const RoomDetail: FC<RoomDetailProps> = (props) => {
@@ -150,6 +152,7 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
 
   return isReady && isCSSLoaded ? (
     <RoomConference
+      metadata={props.metadata}
       connectionDetails={connectionDetails}
       userChoices={preJoinChoices}
       options={{
@@ -171,6 +174,7 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
       roleName={roleName === 'admin' ? 'super admin' : roleName === 'user' ? 'peserta' : roleName}
       isWrongPassword={isWrongPassword}
       setIsWrongPassword={setIsWrongPassword}
+      metadata={props.metadata}
     />
   )
 }
