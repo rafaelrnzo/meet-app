@@ -2,6 +2,7 @@
 
 import type { CameraResolution } from '@/feat/enum'
 import { useEffect, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { ConnectionState, RoomEvent, Track, VideoPresets } from 'livekit-client'
 import {
   useRoomContext,
@@ -21,6 +22,7 @@ export const useControls = () => {
   const [shareScreenEnabled, setShareScreenEnabled] = useState(false)
   const [resolution, setResolution] = useState(VideoPresets.h720.resolution)
   const [maxResolution, setMaxResolution] = useState<number>(Infinity)
+  const { name: roomName } = useParams<{ name: string }>()
   const audioEnabled = localParticipant.isMicrophoneEnabled
   const videoEnabled = localParticipant.isCameraEnabled
   const room = useRoomContext()
@@ -53,7 +55,10 @@ export const useControls = () => {
   const handleResolutionChange = async (quality: CameraResolution) => {
     const localTrack = localParticipant?.getTrackPublication(Track.Source.Camera)?.videoTrack
     const preset = VideoPresets[`h${quality}` as keyof typeof VideoPresets]
-    if (!localTrack || !preset) return
+
+    if (!localTrack || !preset || localTrack.dimensions?.height === quality) {
+      return
+    }
 
     try {
       await localTrack.restartTrack({ resolution: preset.resolution })
@@ -121,16 +126,17 @@ export const useControls = () => {
 
   // Sync max resolution by media stream video
   useEffect(() => {
-    const stream = track?.publication.track?.mediaStreamTrack
-    if (stream?.id) {
-      const max = Math.max(
-        stream.getCapabilities().height?.max ?? -1,
-        stream.getSettings().height ?? -1
-      )
-
-      if (max > 0) setMaxResolution(max)
+    // already captured a real value, don't overwrite
+    if (maxResolution !== Infinity || !track?.publication.track?.mediaStreamTrack?.id) {
+      return
     }
-  }, [track])
+    const stream = track.publication.track.mediaStreamTrack
+    const capabilityHeight = stream.getCapabilities?.()?.height?.max ?? -1
+    const settingHeight = stream.getSettings?.()?.height ?? -1
+    const max = Math.max(capabilityHeight, settingHeight)
+
+    if (max > 0) setMaxResolution(max)
+  }, [track, maxResolution])
 
   // Sync audio and video
   useEffect(() => {
@@ -150,6 +156,7 @@ export const useControls = () => {
   }, [room, saveAudioInputEnabled])
 
   return {
+    roomName,
     isConnecting,
     isCameraActive,
     isReactionActive,

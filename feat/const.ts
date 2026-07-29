@@ -14,20 +14,19 @@ import { CameraResolution, GroupCode, GroupsCode, TabsCode } from '@/feat/enum'
 
 export const ChunkSize = 60_000
 
-// prettier-ignore
 export const ColorPalette: { tldraw: string; hex: string }[] = [
-  { tldraw: 'black',        hex: 'rgb(29, 29, 29)' },
-  { tldraw: 'grey',         hex: 'rgb(159, 168, 178)' },
-  { tldraw: 'light-violet', hex: 'rgb(224, 133, 244)' },
-  { tldraw: 'violet',       hex: 'rgb(174, 62, 201)' },
-  { tldraw: 'blue',         hex: 'rgb(68, 101, 233)' },
-  { tldraw: 'light-blue',   hex: 'rgb(75, 161, 241)' },
-  { tldraw: 'yellow',       hex: 'rgb(241, 172, 75)' },
-  { tldraw: 'orange',       hex: 'rgb(225, 105, 25)' },
-  { tldraw: 'green',        hex: 'rgb(9, 146, 104)' },
-  { tldraw: 'light-green',  hex: 'rgb(76, 176, 94)' },
-  { tldraw: 'light-red',    hex: 'rgb(248, 119, 119)' },
-  { tldraw: 'red',          hex: 'rgb(224, 49, 49)' },
+  { tldraw: 'black', hex: '#1D1D1D' },
+  { tldraw: 'grey', hex: '#9FA8B2' },
+  { tldraw: 'light-violet', hex: '#E085F4' },
+  { tldraw: 'violet', hex: '#AE3EC9' },
+  { tldraw: 'blue', hex: '#4465E9' },
+  { tldraw: 'light-blue', hex: '#4BA1F1' },
+  { tldraw: 'yellow', hex: '#F1AC4B' },
+  { tldraw: 'orange', hex: '#E16919' },
+  { tldraw: 'green', hex: '#099268' },
+  { tldraw: 'light-green', hex: '#4CB05E' },
+  { tldraw: 'light-red', hex: '#F87777' },
+  { tldraw: 'red', hex: '#E03131' },
 ]
 
 export const RoomTabs = [

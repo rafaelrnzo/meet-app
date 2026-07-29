@@ -9,7 +9,7 @@ import type {
   StatusOption,
 } from '@/feat/rooms/dto'
 import type { PollingMessage } from '@/components/PollingCard'
-import { djs, qstring } from '@/lib/utils'
+import { qstring } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 
 const API_BASE = process.env.APP_API_VIDEO_CONFERENCE
@@ -99,28 +99,6 @@ export interface MemberRoom {
 export interface RoomParams {
   search?: string
   sort?: SortRoomType
-}
-
-export async function getRoomListConfig(searchParams: object) {
-  const session = await auth()
-  const initialRooms = await fetchUserDbRooms(searchParams)
-  const isAdmin = session?.roles.name === 'admin'
-
-  const hasPermission = (key: string) => {
-    return !!session?.roles?.permissions?.some((perm) => perm.key.endsWith(key))
-  }
-
-  // Only show if room end date is AFTER today's milisecond
-  const rooms = initialRooms.filter((room) => djs(room.end_date).isAfter(djs()))
-
-  return {
-    isAdmin,
-    hasPermission,
-    initialRooms,
-    rooms,
-    isEmpty: !('search' in searchParams) && !rooms.length,
-    isInvalid: 'search' in searchParams && !rooms.length,
-  }
 }
 
 export async function getPresentationUrl(roomId: number) {
