@@ -119,7 +119,7 @@ export const TabsListItemContentRecord: FC<{
 }> = ({ onRecord, title, description }) => {
   const intervalRef = useRef<ReturnType<typeof setInterval>>(void 0)
   const [recordDuration, setRecordDuration] = useState('')
-  const { recordData } = useRoomState()
+  const { recordData, setRecordData } = useRoomState()
 
   useEffect(() => {
     const startAt = recordData?.startedAt
@@ -128,12 +128,13 @@ export const TabsListItemContentRecord: FC<{
     if (!startAt) return
 
     const updateDuration = (currentTime: number) => {
-      const diff = djs(currentTime).diff(djs(startAt / 1_000_000), 'seconds')
-      setRecordDuration(dayjs.duration(diff, 'seconds').format('HH:mm:ss'))
+      const diffMs = djs(currentTime).diff(djs(startAt), 'milliseconds')
+      setRecordDuration(dayjs.duration(diffMs, 'milliseconds').format('HH:mm:ss'))
     }
 
     if (endedAt) {
-      updateDuration(endedAt / 1_000_000)
+      updateDuration(endedAt)
+      setRecordData(null)
       return
     }
 
@@ -144,18 +145,14 @@ export const TabsListItemContentRecord: FC<{
     }, 1000)
 
     return () => clearInterval(intervalRef.current)
-  }, [recordData?.endedAt, recordData?.startedAt])
+  }, [recordData?.endedAt, recordData?.startedAt, setRecordData])
 
   return (
     <TabsListItemContent>
       <TabsListItemTitle>
-        {onRecord && recordDuration
-          ? 'Perekaman dimulai'
-          : !onRecord && recordDuration
-            ? 'Perekaman dihentikan'
-            : title}
+        {onRecord && recordDuration ? 'Perekaman dimulai' : title}
       </TabsListItemTitle>
-      <TabsListItemText>{recordDuration || description}</TabsListItemText>
+      <TabsListItemText>{onRecord ? recordDuration : description}</TabsListItemText>
     </TabsListItemContent>
   )
 }

@@ -9,6 +9,7 @@ import type {
 } from 'livekit-client'
 import type { LocalUserChoices } from '@livekit/components-react'
 import type { ConnectionDetails } from '@/feat/types'
+import type { RoomMetadata } from '@/feat/rooms/dto'
 import { useEffect, useMemo, useRef } from 'react'
 import { ConnectionState, Room, RoomEvent, VideoPresets } from 'livekit-client'
 import { RoomContext } from '@livekit/components-react'
@@ -21,6 +22,7 @@ export interface RoomConferenceProps {
   children?: ReactNode
   userChoices: LocalUserChoices
   connectionDetails: ConnectionDetails
+  metadata: RoomMetadata
   options: {
     hq: boolean
     codec: VideoCodec
@@ -69,9 +71,9 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
 
   useEffect(() => {
     const { serverUrl, participantToken } = propsRef.current.connectionDetails
-    const { leave, error } = roomEvent.current
+    const { error } = roomEvent.current
 
-    room.on(RoomEvent.Disconnected, leave)
+    // room.on(RoomEvent.Disconnected, leave)
     room.on(RoomEvent.MediaDevicesError, error)
 
     let mounted = true
@@ -101,7 +103,7 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
     return () => {
       mounted = false
 
-      room.off(RoomEvent.Disconnected, leave)
+      // room.off(RoomEvent.Disconnected, leave)
       room.off(RoomEvent.MediaDevicesError, error)
 
       if (
@@ -109,8 +111,7 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
         room.state === ConnectionState.Connecting ||
         room.state === ConnectionState.Reconnecting
       ) {
-        leaveRoom(room.name)
-        room.disconnect()
+        room.disconnect().finally(() => leaveRoom(room.name))
       }
     }
   }, [room])

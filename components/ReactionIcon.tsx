@@ -8,8 +8,8 @@ export const ReactionIcon = ({ isOpen, onClick }: { isOpen: boolean; onClick?: (
   const { sendReaction, truncateName, reactions, reactionElementRef } = useReaction()
 
   return (
-    <div className='relative'>
-      <ButtonIcon isActive={!isOpen} className='relative' onClick={onClick}>
+    <div className='relative size-10 md:size-12'>
+      <ButtonIcon isActive={!isOpen} className='h-full w-full' onClick={onClick}>
         <SmileyIcon weight='fill' size={24} />
       </ButtonIcon>
       {isOpen && (

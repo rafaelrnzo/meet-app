@@ -2,6 +2,7 @@
 
 import type { FC } from 'react'
 import type { LocalUserChoices, PreJoinProps as PrejoinPropsBase } from '@livekit/components-react'
+import type { RoomMetadata } from '@/feat/rooms/dto'
 import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
@@ -45,6 +46,7 @@ export interface LocalUserChoicesPassword extends LocalUserChoices {
 }
 
 export interface PreJoinProps extends Omit<PrejoinPropsBase, 'onSubmit' | 'onValidate'> {
+  metadata: RoomMetadata
   autoCheck?: boolean
   camOffLabel?: string
   roomTitle?: string
@@ -63,7 +65,7 @@ export interface PreJoinProps extends Omit<PrejoinPropsBase, 'onSubmit' | 'onVal
   onValidate?: (values: LocalUserChoicesPassword) => boolean
 }
 
-export const PreJoin: FC<PreJoinProps> = (props) => {
+export const PreJoin: FC<PreJoinProps> = ({ metadata, ...props }) => {
   const router = useRouter()
   const [showPassword, setShowPassword] = useState(false)
   const {
@@ -103,6 +105,7 @@ export const PreJoin: FC<PreJoinProps> = (props) => {
     username,
     isValid,
     password,
+    isMicDisabledTemporary,
     setAudioDeviceId,
     setVideoDeviceId,
     setUsername,
@@ -111,7 +114,7 @@ export const PreJoin: FC<PreJoinProps> = (props) => {
     handleToggleAudio,
     handleToggleVideo,
     handleSubmit,
-  } = usePreJoin({ micLabel, camLabel, ...props })
+  } = usePreJoin({ micLabel, camLabel, metadata, ...props })
 
   // Handle redirect invalid tabs
   useTabEffect()
@@ -169,6 +172,8 @@ export const PreJoin: FC<PreJoinProps> = (props) => {
                   isActive={audioEnabled}
                   onClick={handleToggleAudio}
                   wrapperProps={{ className: cn('p-1') }}
+                  disabled={isMicDisabledTemporary}
+                  className='disabled:opacity-40'
                 >
                   {audioEnabled ? <MicIcon /> : <MicDisabledIcon />}
                 </ToggleTrack>
@@ -183,6 +188,11 @@ export const PreJoin: FC<PreJoinProps> = (props) => {
               </div>
             </div>
           </div>
+          {isMicDisabledTemporary && (
+            <p className='-mt-3 text-center text-[80%] opacity-60'>
+              Mikrofon dapat diaktifkan didalam ruang rapat.
+            </p>
+          )}
           <div className='grid grid-cols-1 gap-4 md:grid-cols-2'>
             <div className='flex flex-col gap-2'>
               <p>Mikrofon</p>

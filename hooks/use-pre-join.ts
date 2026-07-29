@@ -1,6 +1,7 @@
 import type { MouseEvent } from 'react'
 import type { LocalUserChoicesPassword, PreJoinProps } from '@/feat/Room/Prejoin'
 import { useState, useEffect, useRef, useMemo } from 'react'
+import { useSession } from 'next-auth/react'
 import { useMaybeRoomContext } from '@livekit/components-react'
 import { log } from '@livekit/components-core'
 import { useMediaControls } from '@/hooks'
@@ -11,6 +12,7 @@ export function usePreJoin(config?: PreJoinProps) {
     onValidate,
     onSubmit,
     onError,
+    metadata,
     isGuest,
     withPassword,
     persistUserChoices,
@@ -22,6 +24,7 @@ export function usePreJoin(config?: PreJoinProps) {
 
   // useMaybeRoomContext is undefined in PreJoin (before joining).
   // useMediaControls checks for room before publishing, so this is safe.
+  const { data: session } = useSession()
   const room = useMaybeRoomContext()
   const mediaControls = useMediaControls({
     defaults,
@@ -36,8 +39,14 @@ export function usePreJoin(config?: PreJoinProps) {
 
   // initialUserChoices is already fetched inside useMediaControls — reuse it
   // here to seed username so we don't call usePersistentUserChoices twice.
-  const { initialUserChoices, audioEnabled, videoEnabled, audioDeviceId, videoDeviceId } =
-    mediaControls
+  const {
+    initialUserChoices,
+    audioEnabled,
+    videoEnabled,
+    audioDeviceId,
+    videoDeviceId,
+    handleManualToggleAudio,
+  } = mediaControls
 
   // Form-only state
   const [userChoices, setUserChoices] = useState(initialUserChoices)
@@ -53,6 +62,9 @@ export function usePreJoin(config?: PreJoinProps) {
         ? !!values.password
         : !!values.username.trim()
   )
+
+  const handleOffMicrophoneRef = useRef(handleManualToggleAudio)
+  const isMicDisabledTemporary = metadata?.is_mute_on_start && session?.profile.role.name === 'user'
 
   const handleSubmit = (event: MouseEvent<HTMLButtonElement>) => {
     event.preventDefault()
@@ -77,6 +89,12 @@ export function usePreJoin(config?: PreJoinProps) {
     setIsValid(handleValidation.current({ ...newUserChoices, password }))
   }, [username, password, videoEnabled, audioEnabled, audioDeviceId, videoDeviceId])
 
+  useEffect(() => {
+    if (isMicDisabledTemporary) {
+      handleOffMicrophoneRef.current(false)
+    }
+  }, [isMicDisabledTemporary])
+
   return {
     // Spread all media controls — PreJoin gets the identical flat API it had before
     ...mediaControls,
@@ -86,6 +104,7 @@ export function usePreJoin(config?: PreJoinProps) {
     username,
     password,
     isValid,
+    isMicDisabledTemporary,
 
     // Form setters
     setUserChoices,

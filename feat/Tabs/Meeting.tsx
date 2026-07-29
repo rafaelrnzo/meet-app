@@ -21,12 +21,14 @@ import {
   TabsListItemContentRecord,
 } from '@/feat/Tabs/List'
 import { TabsMeetingIcon } from '@/feat/Tabs/Icon'
+import { RecordStatus, useRoomState } from '@/feat/Room'
 import { ScreenCode } from '@/feat/enum'
 import { Modal } from '@/components/ui/modal'
 
 export const TabsMeeting: FC = () => {
   const { activeScreen, isHostScreen, isHostRecord, items } = useTabsMeeting()
   const [confirmRecord, setConfirmRecord] = useState(false)
+  const { recordStatus } = useRoomState()
 
   return (
     <TabsListGroups>
@@ -72,7 +74,11 @@ export const TabsMeeting: FC = () => {
                         asChild: true,
                         children: (
                           <TabsListItemActionRecord
-                            disabled={!isHostRecord ? onRecord : void 0}
+                            disabled={
+                              !isHostRecord
+                                ? onRecord || recordStatus === RecordStatus.Starting
+                                : recordStatus === RecordStatus.Starting
+                            }
                             onClick={(event) => {
                               if (onRecord) handle(event) // untuk stop record karena modal tidak terbuka
                             }}
