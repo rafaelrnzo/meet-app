@@ -5,7 +5,7 @@ import type { SwitchBackgroundProcessorOptions } from '@livekit/track-processors
 import { useRef, useState } from 'react'
 import { Track } from 'livekit-client'
 import { EmptyIcon } from '@phosphor-icons/react'
-import { BackgroundProcessor, supportsBackgroundProcessors } from '@livekit/track-processors'
+import { BackgroundProcessor } from '@livekit/track-processors'
 import { useLocalParticipant } from '@livekit/components-react'
 import { Loading03FreeIcons } from '@hugeicons/core-free-icons'
 import { cn } from '@/lib/utils'
@@ -18,14 +18,14 @@ import { Button } from '@/components/Button'
 
 const BLUR_RADIUS = 15
 
-interface VirtualBackgroundButton {
+interface VirtualBackgroundItem {
   title?: string
   icon?: React.ReactNode
   className?: string
   backgroundOptions: SwitchBackgroundProcessorOptions
 }
 
-const backgroundItems = [
+const backgroundItems: VirtualBackgroundItem[] = [
   {
     title: 'Tidak ada',
     icon: <EmptyIcon size={20} className='text-neutral-400' />,
@@ -34,7 +34,7 @@ const backgroundItems = [
   },
   {
     title: 'Blur',
-    icon: <div className='size-5 bg-gray-300 blur'></div>,
+    icon: <div className='size-5 bg-gray-300 blur' />,
     backgroundOptions: { mode: 'background-blur', blurRadius: BLUR_RADIUS },
   },
   {
@@ -79,52 +79,60 @@ const backgroundItems = [
       imagePath: '/img/virtual-background-image6.jpg',
     },
   },
-] satisfies VirtualBackgroundButton[]
+]
 
 export const TabsPersonalize: FC = () => {
   const { localParticipant } = useLocalParticipant()
   const { videoEnabled, handleToggleVideo } = useControls()
-  const state = useRef({
-    isBackgroundProcessorEnabled: false,
-    backgroundProcessor: BackgroundProcessor({ mode: 'disabled' }),
-  })
-  const [activeBackground, setActiveBackground] = useState(0)
-  const [currentBackground, setCurrentBackground] = useState(0)
-  const [loading, setLoading] = useState(false)
 
-  const virtualBackgroundHandler = async (
-    options: SwitchBackgroundProcessorOptions,
-    id: number
-  ) => {
-    setLoading(true)
+  // Single source of truth: what's confirmed active vs. what's pending
+  const [activeBackground, setActiveBackground] = useState(0)
+  const [pendingBackground, setPendingBackground] = useState(-1)
+
+  // Stable ref — never triggers re-renders, safe for async mutation
+  const processorRef = useRef({
+    instance: BackgroundProcessor({ mode: 'disabled' }),
+    isAttached: false,
+  })
+
+  const isLoading = pendingBackground > -1
+
+  const applyBackground = async (options: SwitchBackgroundProcessorOptions, index: number) => {
+    if (isLoading || index === activeBackground) return
+
+    setPendingBackground(index)
     try {
       const localVideoTrack = localParticipant.getTrackPublication(Track.Source.Camera)?.track
 
-      if (!localVideoTrack) return
-
-      if (state.current.isBackgroundProcessorEnabled) {
-        await localVideoTrack.stopProcessor()
-        state.current.isBackgroundProcessorEnabled = false
+      if (!localVideoTrack) {
+        toast.error('Kamera tidak ditemukan', {
+          description: 'Pastikan kamera sudah aktif sebelum mengganti latar belakang.',
+        })
+        return
       }
 
-      await state.current.backgroundProcessor.switchTo(options)
-      state.current.isBackgroundProcessorEnabled = true
-      await localVideoTrack.setProcessor(state.current.backgroundProcessor)
-      setActiveBackground(id)
-      toast.success('Latar belakang berhasil diganti', {
-        description: 'Berhasil mengubah latar belakang',
-      })
+      // Detach previous processor before switching
+      if (processorRef.current.isAttached) {
+        await localVideoTrack.stopProcessor()
+        processorRef.current.isAttached = false
+      }
+
+      await processorRef.current.instance.switchTo(options)
+      await localVideoTrack.setProcessor(processorRef.current.instance)
+      processorRef.current.isAttached = true
+
+      setActiveBackground(index)
+      toast.success('Latar belakang berhasil diganti')
     } catch (error) {
-      setCurrentBackground(activeBackground)
       toast.error('Gagal mengubah latar belakang', {
         description: error instanceof Error ? error.message : defaultErrorMessage,
       })
     } finally {
-      setLoading(false)
+      setPendingBackground(-1)
     }
   }
 
-  if (!supportsBackgroundProcessors() || !videoEnabled) {
+  if (!videoEnabled) {
     return (
       <div className='flex h-full items-center text-center text-sm'>
         <NoData
@@ -137,7 +145,7 @@ export const TabsPersonalize: FC = () => {
           {...(!videoEnabled && {
             insertButton: {
               children: 'Aktifkan Kamera',
-              onClick: () => handleToggleVideo(),
+              onClick: handleToggleVideo,
             },
           })}
           className='[&>div]:min-w-[unset]'
@@ -149,7 +157,9 @@ export const TabsPersonalize: FC = () => {
   return (
     <div className='grid grid-cols-2 gap-4'>
       {backgroundItems.map(({ title, icon, className, backgroundOptions }, index) => {
-        const isCurrent = index === currentBackground
+        const isActive = index === activeBackground
+        const isPending = index === pendingBackground
+
         return (
           <Button
             key={`virtualBackground${index}`}
@@ -157,15 +167,12 @@ export const TabsPersonalize: FC = () => {
               'relative flex h-36.25 flex-col items-center justify-center rounded-md border border-neutral-400 text-sm not-disabled:cursor-pointer hover:shadow disabled:cursor-not-allowed',
               className
             )}
-            onClick={() => {
-              if (loading) return
-              setCurrentBackground(index)
-              virtualBackgroundHandler(backgroundOptions, index)
-            }}
-            disabled={isCurrent || loading}
+            onClick={() => applyBackground(backgroundOptions, index)}
+            disabled={isActive || isLoading}
           >
-            {icon} {title}
-            {isCurrent && loading && (
+            {icon}
+            {title}
+            {isPending && (
               <span className='absolute animate-spin'>
                 <HugeIcon icon={Loading03FreeIcons} />
               </span>

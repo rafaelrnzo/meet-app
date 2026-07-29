@@ -1,4 +1,4 @@
-/* eslint-disable no-undef, @typescript-eslint/no-redundant-type-constituents */
+/* eslint-disable no-undef */
 import { useEffect, useRef, useEffectEvent } from 'react'
 import { RoomEvent } from 'livekit-client'
 import { useRoomContext } from '@livekit/components-react'
@@ -22,6 +22,9 @@ interface YoutubeMessage {
     isPlaying: boolean
     timestamp: number
     quality: YT.SuggestedVideoQuality
+    isMuted: boolean
+    volume: number
+    playbackRate: number
   }
 }
 
@@ -63,6 +66,9 @@ export function useYoutubeSync(onReady?: () => void) {
               isPlaying: playerRef.current.getPlayerState() === window.YT.PlayerState.PLAYING,
               timestamp: Date.now(), // Wall clock at time of broadcast
               quality: playerRef.current.getPlaybackQuality(),
+              isMuted: playerRef.current?.isMuted() ?? false,
+              volume: playerRef.current.getVolume() ?? 100,
+              playbackRate: playerRef.current?.getPlaybackRate(),
             },
           }
           current.localParticipant.publishData(encoder.encode(JSON.stringify(message)), {
@@ -104,7 +110,28 @@ export function useYoutubeSync(onReady?: () => void) {
       }
 
       const player = playerRef.current
-      const { videoId, currentTime, isPlaying, timestamp, quality } = message.payload
+      const { videoId, currentTime, isPlaying, timestamp, quality, isMuted, volume, playbackRate } =
+        message.payload
+
+      const isLocalMuted = player.isMuted()
+
+      if (isMuted && !isLocalMuted) {
+        player.mute()
+      } else if (!isMuted && isLocalMuted) {
+        player.unMute()
+      }
+
+      //forced participant to sync with host up and down volume
+      const currentLocalVolume = player.getVolume()
+      if (volume !== currentLocalVolume) {
+        player.setVolume(volume)
+      }
+
+      //forced participant to sync with host speed of video
+      const currentRate = player.getPlaybackRate()
+      if (playbackRate && playbackRate !== currentRate) {
+        player.setPlaybackRate(playbackRate)
+      }
 
       // --- LATENCY COMPENSATION ---
       // Estimate how long the data was in transit
@@ -168,6 +195,8 @@ export function useYoutubeSync(onReady?: () => void) {
         fs: 0,
         iv_load_policy: 3,
         showinfo: 0,
+        cc_load_policy: 1,
+        cc_lang_pref: 'en',
       },
       events: {
         onReady: () => {
@@ -220,6 +249,9 @@ export function useYoutubeSync(onReady?: () => void) {
               isPlaying: event.data === window.YT.PlayerState.PLAYING,
               timestamp: now,
               quality: playerRef.current?.getPlaybackQuality() ?? playbackQualityRef.current, // Fresh value,
+              isMuted: playerRef.current?.isMuted() ?? false,
+              volume: playerRef.current?.getVolume() ?? 100,
+              playbackRate: playerRef.current?.getPlaybackRate() ?? 0,
             },
           }
 

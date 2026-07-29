@@ -172,7 +172,7 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
         <div className='flex h-full flex-col gap-3'>
           <RoomBoard>
             <div
-              className='relative flex items-center justify-center rounded-md border shadow'
+              className='relative flex items-center justify-center overflow-hidden rounded-md border shadow'
               data-lk-theme='default'
               style={{ '--lk-control-bar-height': '0px' } as CSSProperties}
             >
