@@ -1,7 +1,6 @@
 import type { MouseEvent } from 'react'
 import type { Transaction } from 'prosemirror-state'
 import type { MarkType } from 'prosemirror-model'
-import type { AwarenessState } from '@/lib/livekit-yjs-provider'
 import { useCallback, useEffect, useEffectEvent, useRef, useState } from 'react'
 import * as Y from 'yjs'
 import { ySyncPlugin, yUndoPlugin, yCursorPlugin, prosemirrorToYXmlFragment } from 'y-prosemirror'
@@ -38,8 +37,7 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
 
   const cursorBuilder = useEffectEvent((user: { name: string; color: string }) => {
     const id = user.name.toLowerCase().replace('user: ', '')
-    const participant = providerRef.current?.awareness.states.get(+id) as
-      Omit<AwarenessState, 'cursor'> | undefined
+    const participant = providerRef.current?.awareness.states.get(+id)
 
     const cursor = document.createElement('span')
     cursor.classList.add('ProseMirror-yjs-cursor')
@@ -55,8 +53,7 @@ export const useNotes = ({ onReady }: { onReady?: () => void }) => {
 
   const selectionBuilder = useEffectEvent((user: { name: string; color: string }) => {
     const id = user.name.toLowerCase().replace('user: ', '')
-    const participant = providerRef.current?.awareness.states.get(+id) as
-      Omit<AwarenessState, 'cursor'> | undefined
+    const participant = providerRef.current?.awareness.states.get(+id)
 
     return {
       class: 'ProseMirror-yjs-selection',

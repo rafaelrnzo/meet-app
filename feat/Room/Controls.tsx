@@ -4,6 +4,7 @@ import type { FC, ReactNode } from 'react'
 import { CheckIcon, PhoneSlashIcon, MonitorPlayIcon } from '@phosphor-icons/react'
 import { CameraIcon, CameraDisabledIcon, MicDisabledIcon, MicIcon } from '@livekit/components-react'
 import { cn } from '@/lib/utils'
+import { leaveRoom } from '@/lib/api/admin-api'
 import { useControls } from '@/hooks'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { ToggleTrack } from '@/components/ToggleTrack'
@@ -14,6 +15,7 @@ import { ButtonIcon } from '@/components/Button'
 
 export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
   const {
+    roomName,
     isConnecting,
     audioEnabled,
     videoEnabled,
@@ -124,7 +126,10 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
       />
       <HandRaisedIcon />
       {children}
-      <ButtonIcon onClick={() => disconnect()} className='text-error bg-red-200 hover:bg-red-200!'>
+      <ButtonIcon
+        className='text-error bg-red-200 hover:bg-red-200!'
+        onClick={() => leaveRoom(roomName).finally(() => disconnect())}
+      >
         <PhoneSlashIcon weight='fill' size={20} />
       </ButtonIcon>
     </div>

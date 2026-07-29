@@ -12,6 +12,7 @@ import type { ConnectionDetails } from '@/feat/types'
 import { useEffect, useMemo, useRef } from 'react'
 import { ConnectionState, Room, RoomEvent, VideoPresets } from 'livekit-client'
 import { RoomContext } from '@livekit/components-react'
+import { leaveRoom } from '@/lib/api/admin-api'
 import { useParamsState } from '@/hooks'
 import { RoomState, RoomLayout } from '@/feat/Room'
 import { SearchParamsKey } from '@/feat/enum'
@@ -108,6 +109,7 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
         room.state === ConnectionState.Connecting ||
         room.state === ConnectionState.Reconnecting
       ) {
+        leaveRoom(room.name)
         room.disconnect()
       }
     }
