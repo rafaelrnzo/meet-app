@@ -13,9 +13,9 @@ export interface RaisedHandUser {
 export function useHandRaises() {
   const { localParticipant } = useLocalParticipant()
   const remoteParticipants = useParticipants()
-  const isRaised = localParticipant.attributes?.[ParticipantAttribute.HandRaised] === 'true'
+  const isRaised = localParticipant.attributes?.[ParticipantAttribute.HandRaised]
 
-  const setHandStatus = async (shouldRaise: boolean, name?: string) => {
+  const setHandStatus = async (shouldRaise: string, name?: string) => {
     try {
       await localParticipant.setAttributes({
         [ParticipantAttribute.HandRaised]: String(shouldRaise),
@@ -30,16 +30,16 @@ export function useHandRaises() {
     LiveKitAction.HandRaisedLower,
     ({ participant }) => {
       if (participant) {
-        setHandStatus(false, participant.name)
+        setHandStatus('', participant.name)
       }
     }
   )
 
   const raisedHands = () => {
     const listMap = new Map<string, RaisedHandUser>()
-    const uniqueParticipants = Array.from(new Set([localParticipant, ...remoteParticipants]))
+    const uniqueParticipants = Array.from(new Set([...remoteParticipants]))
     uniqueParticipants.forEach(({ attributes, identity, name = '' }) => {
-      if (attributes?.[ParticipantAttribute.HandRaised] === 'true') {
+      if (!isNaN(+attributes?.[ParticipantAttribute.HandRaised])) {
         listMap.set(identity, {
           identity,
           name,
@@ -52,8 +52,8 @@ export function useHandRaises() {
     return listMap
   }
 
-  const toggleHand = () => setHandStatus(!isRaised)
-  const lowerHandLocal = () => setHandStatus(false)
+  const toggleHand = () => setHandStatus(isRaised ? '' : Date.now() + '')
+  const lowerHandLocal = () => setHandStatus('')
   const lowerHand = ({ identity, name }: { identity: string; name: string }) => {
     if (localParticipant) {
       sendLower({ identity, name }, { reliable: false, destinationIdentities: [identity] })
