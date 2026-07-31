@@ -8,6 +8,7 @@ import {
   useRoomContext,
   useRoomInfo,
 } from '@livekit/components-react'
+import { djs } from '@/lib/utils'
 import { getRoleLabel } from '@/lib/helpers'
 import { useDataChannel } from '@/hooks'
 import { LiveKitAction, ParticipantAttribute, Role } from '@/feat/enum'
@@ -108,13 +109,17 @@ export function useTabsParticipant() {
         ...remoteParticipants
           .filter((participant) => !bannedIds.some((b) => b.identity === participant.identity))
           .sort((a, b) => {
-            const isRaised = (v: unknown) => v === true || v === 'true' || v === '1'
+            const isRaised = (v: unknown) => typeof v === 'string' && !isNaN(+v)
             const aRaised = isRaised(a.attributes?.[ParticipantAttribute.HandRaised])
             const bRaised = isRaised(b.attributes?.[ParticipantAttribute.HandRaised])
             const aIsLocal = a.isLocal
             const bIsLocal = b.isLocal
 
             if (aIsLocal !== bIsLocal) return Number(bIsLocal) - Number(aIsLocal)
+            if (aRaised && bRaised)
+              return djs(a.attributes?.[ParticipantAttribute.HandRaised]).diff(
+                b.attributes?.[ParticipantAttribute.HandRaised]
+              )
             if (aRaised !== bRaised) return Number(bRaised) - Number(aRaised)
 
             return (a.name ?? '').localeCompare(b.name ?? '')
@@ -131,7 +136,7 @@ export function useTabsParticipant() {
               id: participant.identity,
               name: participant.name ?? '',
               attributes: participant.attributes as any,
-              isRaised: participant.attributes?.[ParticipantAttribute.HandRaised] === 'true',
+              isRaised: !isNaN(+participant.attributes?.[ParticipantAttribute.HandRaised]),
               isModerator,
               roleName: getRoleLabel(roleName),
               isLocal: participant.isLocal,

@@ -192,7 +192,7 @@ export const getParticipantStatus = (
       attributes.SCREEN_ACTIVE === ScreenCode.Presentation.toString() && 'Sedang presentasi',
       attributes.SCREEN_ACTIVE === ScreenCode.WatchYoutube.toString() && 'Sedang menonton YouTube',
 
-      String(attributes.HAND_RAISED) === 'true' && 'Sedang mengangkat tangan',
+      String(!isNaN(+attributes.HAND_RAISED)) && 'Sedang mengangkat tangan',
     ].filter(Boolean) as string[]
   } else {
     return {
@@ -201,7 +201,7 @@ export const getParticipantStatus = (
       isWhiteboard: attributes.SCREEN_ACTIVE === ScreenCode.Whiteboard.toString(),
       isPresentation: attributes.SCREEN_ACTIVE === ScreenCode.Presentation.toString(),
       isWatchYoutube: attributes.SCREEN_ACTIVE === ScreenCode.WatchYoutube.toString(),
-      isHandRaised: String(attributes.HAND_RAISED) === 'true',
+      isHandRaised: !isNaN(+attributes.HAND_RAISED),
     } satisfies ParticipantStatus
   }
 }
