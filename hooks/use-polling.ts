@@ -173,6 +173,7 @@ export function usePollingQuestion(config?: { optionLength?: number }) {
 
   const uniqueValues = new Set()
   const disabled =
+    !!screen ||
     !question.trim() ||
     options.filter((option) => !!option.value.trim()).length < 2 ||
     options
