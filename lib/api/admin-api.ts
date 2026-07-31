@@ -515,6 +515,7 @@ export type LiveKitEgressStatus =
   | 'EGRESS_FAILED'
   | 'EGRESS_ABORTED'
   | 'EGRESS_LIMIT_REACHED'
+export type EgressLayout = 'grid' | 'speaker' | 'single-speaker'
 
 export interface DefaultRecordingResponse {
   message: string
@@ -536,15 +537,15 @@ export interface StopRecordingResponse extends DefaultRecordingResponse {
   record?: Recording
 }
 
-export async function startRecording(payload: { room_name: string }) {
+export async function startRecording(payload: { room_name: string; layout?: EgressLayout }) {
   return apiRequest<StartRecordingResponse>('/admin/livekit/recordings/start', {
     method: 'POST',
     cache: 'no-store',
-    body: JSON.stringify(payload),
+    body: JSON.stringify({ ...payload, layout: payload.layout ?? 'speaker' }),
   })
 }
 
-export async function stopRecording(payload: { room_name: string; egress_id: string }) {
+export async function stopRecording(payload: { room_name: string; egress_id?: string }) {
   return apiRequest<StopRecordingResponse>('/admin/livekit/recordings/stop', {
     method: 'POST',
     cache: 'no-store',

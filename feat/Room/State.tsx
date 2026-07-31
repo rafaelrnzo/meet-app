@@ -98,18 +98,13 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
   }
 
   const stopRecording = useCallback(async () => {
-    if (
-      !room?.localParticipant ||
-      !recordData?.egressId ||
-      room.localParticipant.identity !== record
-    ) {
+    if (room?.localParticipant?.identity !== record) {
       return
     }
 
     try {
       await apiStopRecording({
         room_name: room.name,
-        egress_id: recordData.egressId,
       })
 
       if (room.state === ConnectionState.Connected) {
@@ -125,7 +120,7 @@ export const RoomState: FC<{ children?: ReactNode }> = ({ children }) => {
         description: e instanceof Error ? e.message : defaultErrorMessage,
       })
     }
-  }, [record, recordData?.egressId, room?.localParticipant, room?.name, room?.state])
+  }, [record, room?.localParticipant, room?.name, room?.state])
 
   const startActiveScreen = async (
     code: ScreenID,
