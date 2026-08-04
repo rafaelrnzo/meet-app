@@ -193,7 +193,11 @@ export const TabsSettings: FC = () => {
               input={
                 <div className='flex gap-2'>
                   <InputGroup>
-                    <InputGroupInput defaultValue={draftRoom?.password ?? ''} readOnly />
+                    <InputGroupInput
+                      defaultValue={draftRoom?.password ?? ''}
+                      readOnly
+                      placeholder='Buat kata sandi baru'
+                    />
                     {draftRoom?.password && (
                       <InputGroupAddon align='inline-end'>
                         <Button
