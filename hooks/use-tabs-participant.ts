@@ -26,6 +26,7 @@ export interface ParticipantList {
   id: string
   name: string
   roleName: string
+  roleLabel: string
   isMuted?: boolean
   isLocal?: boolean
   isRaised?: boolean
@@ -138,7 +139,8 @@ export function useTabsParticipant() {
               attributes: participant.attributes as any,
               isRaised: !isNaN(+participant.attributes?.[ParticipantAttribute.HandRaised]),
               isModerator,
-              roleName: getRoleLabel(roleName),
+              roleLabel: getRoleLabel(roleName),
+              roleName: roleName,
               isLocal: participant.isLocal,
               isMuted,
               hide: false,
@@ -152,6 +154,7 @@ export function useTabsParticipant() {
           name: name,
           attributes: {} as any,
           isRaised: false,
+          roleLabel: getRoleLabel(role),
           roleName: role,
           isModerator: false,
           isLocal: false,

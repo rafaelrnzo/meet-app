@@ -67,7 +67,7 @@ export default function UsersPage() {
         search={{
           placeholder: 'Cari peserta ...',
           onSearch: (search) => setQueryParams((prev) => ({ ...prev, page: 1, search })),
-          'aria-invalid': !users.data.length,
+          'aria-invalid': !users.data.length && !isLoading,
         }}
         filter={{
           placeholder: 'Status',
@@ -99,7 +99,12 @@ export default function UsersPage() {
           },
         }}
       />
-      <TableView data={filteredUsers} columns={columns} loading={isLoading || authLoading} />
+      <TableView
+        data={filteredUsers}
+        columns={columns}
+        loading={isLoading || authLoading}
+        autoResetPageIndex={false}
+      />
     </PageContainer>
   )
 }

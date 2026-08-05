@@ -1,7 +1,7 @@
 'use client'
 
 import { useTabsParticipant } from '@/hooks/use-tabs-participant'
-import { useParticipantWaitingList } from '@/hooks/use-participant-waiting-list'
+import { useParticipantWaiting } from '@/feat/Room/ParticipantWaitingProvider'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { ListParticipant, ListParticipantPending } from '@/components/ListParticipant'
 
@@ -13,7 +13,7 @@ export interface HostMessage {
 
 export const TabsParticipant = () => {
   const { isModerator } = useTabsParticipant()
-  const { participantPending, setParticipantPending } = useParticipantWaitingList()
+  const { participantPending, setParticipantPending } = useParticipantWaiting()
 
   return (
     <div className='mx-auto w-full max-w-2xl bg-white p-4'>

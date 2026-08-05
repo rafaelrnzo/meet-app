@@ -220,6 +220,7 @@ export function ListParticipant() {
                   id: identity,
                   name,
                   roleName,
+                  roleLabel,
                   isMuted,
                   isLocal,
                   isModerator,
@@ -229,8 +230,13 @@ export function ListParticipant() {
                   const currentUser = lists.find((p) => p.isLocal)
                   const amIModerator = currentUser?.isModerator ?? false
                   const showDropdown = amIModerator && !isLocal && !isBanned
-                  const canClickHand = isRaised && (isLocal || amIModerator) && !isBanned
-                  const canClickMic = !isMuted && (isLocal || amIModerator) && !isBanned
+                  const amIStaff =
+                    currentUser?.roleName === Role.Admin ||
+                    currentUser?.roleName === Role.Moderator ||
+                    currentUser?.roleName === Role.WI
+                  const isUser = roleName === Role.User
+                  const canClickHand = isRaised && !isBanned && (isLocal || (amIStaff && isUser))
+                  const canClickMic = !isMuted && !isBanned && (isLocal || (amIStaff && isUser))
 
                   return (
                     <TabsListItem
@@ -259,7 +265,7 @@ export function ListParticipant() {
                               className='max-w-50 truncate text-xs text-neutral-500 capitalize'
                               title='Moderator'
                             >
-                              {roleName}
+                              {roleLabel}
                             </TabsListItemText>
                           )
                         )}
