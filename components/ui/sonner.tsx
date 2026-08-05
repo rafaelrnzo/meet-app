@@ -51,16 +51,16 @@ const Toaster = ({ ...props }: ToasterProps) => {
 }
 
 const CustomToast = ({
-  id,
   severity,
   title,
   description,
-}: {
-  id: number | string
+  ...props
+}: ToastProps & {
   severity: Severity
   title?: string
   description: React.ReactNode
 }) => {
+  const { id, closeButton = true } = props
   const config_template = {
     base: {
       bg: 'bg-rose-50 border border-neutral-300',
@@ -119,6 +119,10 @@ const CustomToast = ({
         <div className='flex min-w-0 items-center gap-2'>
           <p className={cn('truncate', config.text)}>{title}</p>
         </div>
+
+        <button onClick={() => toastDefault.dismiss(id)} hidden={!closeButton}>
+          <X className='h-5 w-5' />
+        </button>
       </div>
     )
   }
@@ -135,6 +139,10 @@ const CustomToast = ({
           {config.icon && <div className='shrink-0'>{config.icon}</div>}
           <p className={cn('truncate', config.text)}>{title}</p>
         </div>
+
+        <button onClick={() => toastDefault.dismiss(id)} hidden={!closeButton}>
+          <X className='h-5 w-5' />
+        </button>
       </div>
     )
   }
@@ -214,12 +222,12 @@ const CustomToast = ({
 
 const createToast = (severity: Severity) => (title: string, props?: ToastProps) =>
   toastDefault.custom(
-    (id) => (
+    () => (
       <CustomToast
-        id={id}
         severity={severity}
         title={title}
         description={props?.description ?? ''}
+        {...props}
       />
     ),
     {

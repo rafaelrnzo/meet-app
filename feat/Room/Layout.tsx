@@ -3,6 +3,7 @@
 import type { ComponentProps, CSSProperties, FC } from 'react'
 import type { LayoutContextType } from '@livekit/components-react'
 import { useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { ConnectionState, RoomEvent } from 'livekit-client'
 import {
   useCreateLayoutContext,
@@ -17,7 +18,6 @@ import {
   useRoomContext,
 } from '@livekit/components-react'
 import { cn, decoder } from '@/lib/utils'
-import { useParticipantWaitingList } from '@/hooks/use-participant-waiting-list'
 import { useParamsState, useConferenceRoom, useDataChannel } from '@/hooks'
 import { RoomToast, RoomPanel, RoomControl, RoomCanvas, useRoomState } from '@/feat/Room'
 import { LiveKitAction } from '@/feat/enum'
@@ -90,15 +90,13 @@ export const RoomBoard: FC<ComponentProps<'div'>> = ({ className, ...props }) =>
 }
 
 export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ...props }) => {
+  const router = useRouter()
   const { tabsCode } = useParamsState()
   const room = useRoomContext()
   const layoutContext = useCreateLayoutContext()
   const currentTab = RoomTabs.find(({ id }) => tabsCode === id)
   const RoomPanelContent = currentTab?.content?.() ?? (() => null)
   const toastIdRef = useRef<string | number>(0)
-
-  // Toast effect
-  useParticipantWaitingList(true)
 
   useDataChannel<{ enabled: boolean }>(LiveKitAction.AllMicrophoneUpdate, ({ payload }) => {
     if (payload?.enabled) return null
@@ -114,14 +112,18 @@ export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ..
 
   useDataChannel<{ disconnect: boolean }>(LiveKitAction.DisconnectRoom, async ({ payload }) => {
     if (!payload?.disconnect) return
-    room.localParticipant.setMicrophoneEnabled(false)
-    room.localParticipant.setCameraEnabled(false)
-    room.disconnect()
+
+    await room.localParticipant.setMicrophoneEnabled(false)
+    await room.localParticipant.setCameraEnabled(false)
+    await room.disconnect()
+
     alert('Host telah mengeluarkan Anda dari ruangan ini.')
   })
 
   useDataChannel<{ ban: boolean }>(LiveKitAction.ModerateRoom, async ({ payload }) => {
     if (!payload?.ban) return
+    await room.disconnect()
+
     alert('Host telah memblokir Anda dari ruangan ini.')
   })
 
