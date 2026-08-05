@@ -15,6 +15,7 @@ import { ConnectionState, Room, RoomEvent, VideoPresets } from 'livekit-client'
 import { RoomContext } from '@livekit/components-react'
 import { leaveRoom } from '@/lib/api/admin-api'
 import { useParamsState } from '@/hooks'
+import { ParticipantWaitingProvider } from '@/feat/Room/ParticipantWaitingProvider'
 import { RoomState, RoomLayout } from '@/feat/Room'
 import { SearchParamsKey } from '@/feat/enum'
 
@@ -71,9 +72,9 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
 
   useEffect(() => {
     const { serverUrl, participantToken } = propsRef.current.connectionDetails
-    const { error } = roomEvent.current
+    const { error, leave } = roomEvent.current
 
-    // room.on(RoomEvent.Disconnected, leave)
+    room.on(RoomEvent.Disconnected, leave)
     room.on(RoomEvent.MediaDevicesError, error)
 
     let mounted = true
@@ -103,7 +104,7 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
     return () => {
       mounted = false
 
-      // room.off(RoomEvent.Disconnected, leave)
+      room.off(RoomEvent.Disconnected, leave)
       room.off(RoomEvent.MediaDevicesError, error)
 
       if (
@@ -118,9 +119,11 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
 
   return (
     <RoomContext.Provider value={room}>
-      <RoomState>
-        <RoomLayout>{children}</RoomLayout>
-      </RoomState>
+      <ParticipantWaitingProvider>
+        <RoomState>
+          <RoomLayout>{children}</RoomLayout>
+        </RoomState>
+      </ParticipantWaitingProvider>
     </RoomContext.Provider>
   )
 }
