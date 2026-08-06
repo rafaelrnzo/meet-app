@@ -46,7 +46,7 @@ export default async function HomePage(props: ResponseNext) {
       {isEmpty ? (
         <NoData
           title='Tidak Ada Ruangan yang Tersedia'
-          desc='Ruangan yang sedang berlangsung akan muncul disini.'
+          desc='Silakan buat ruangan baru.'
           className='mt-[min(20vh,200px)]'
         />
       ) : (

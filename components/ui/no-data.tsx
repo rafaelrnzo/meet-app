@@ -32,8 +32,8 @@ export default function NoData({
     <div className={cn(className, 'flex items-center justify-center text-center')}>
       <div className='max-w-[384px] md:min-w-[384px]'>
         <div className='mb-2 flex justify-center'>
-          <div className='flex size-12 items-center justify-center rounded-md border border-neutral-400 p-3'>
-            <Icon type='close' className={cn(classNameIcon, 'size-6 text-red-800')} />
+          <div className='flex size-12 items-center justify-center rounded-md border-none border-neutral-400 bg-red-200 p-3'>
+            <Icon type='close' className={cn(classNameIcon, 'size-6 text-red-500')} />
           </div>
         </div>
         <div className='mb-2'>
