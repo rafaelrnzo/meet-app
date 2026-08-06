@@ -206,7 +206,11 @@ export async function generateCode(
     )
     return { code: res.code }
   } catch (e) {
-    return { code: null, message: e instanceof Error ? e.message : '' }
+    const regex = /^please wait (\d+m\d+s) before generating another room code$/i
+    const errMessage = e instanceof Error ? e.message : ''
+    const waitMessage = 'Harap tunggu $1 sebelum membuat kode ruangan baru.'
+    const translated = errMessage.replace(regex, waitMessage).replace(/s(?= sebelum)/, 'd')
+    return { code: null, message: translated || errMessage }
   }
 }
 
