@@ -99,8 +99,8 @@ export function useTabsSettings() {
     !draftRoom?.max_upload_size ||
     draftRoom.max_upload_size > 20 ||
     draftRoom.max_upload_size === savedRoom?.max_upload_size ||
-    participants.some((user) =>
-      ['user', 'moderator'].includes(user.attributes[ParticipantAttribute.RoleName.toLowerCase()])
+    participants.some(
+      (user) => user.attributes[ParticipantAttribute.RoleName.toLowerCase()] === 'user'
     )
 
   /** Get room data based on room code from room context */
