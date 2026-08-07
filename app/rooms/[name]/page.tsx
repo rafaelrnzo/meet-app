@@ -1,8 +1,7 @@
-import { notFound, redirect } from 'next/navigation'
+import { notFound } from 'next/navigation'
 import { auth } from '@/lib/auth'
 import { fetchRoomByCode } from '@/lib/api/admin-api'
 import { isVideoCodec } from '@/feat/helpers'
-import { fetcher } from '@/feat/Auth/helpers'
 import { RoomsDetail } from '@/app/rooms/[name]/client'
 
 interface RoomsDetailPageProps {
@@ -22,16 +21,7 @@ export default async function RoomsDetailPage(props: RoomsDetailPageProps) {
   const isAdmin = session?.profile.role.name === 'admin'
   let room
 
-  if (!session) {
-    const { data } = await fetcher<{ callbackUrl: string }>(
-      process.env.KEYCLOAK_REDIRECT_URI + '/api/verify' + '?room=' + params.name,
-      {
-        method: 'POST',
-      }
-    )
-
-    return redirect(data.callbackUrl)
-  }
+  if (!session) return
 
   try {
     // Validate room
@@ -50,6 +40,7 @@ export default async function RoomsDetailPage(props: RoomsDetailPageProps) {
       singlePeerConnection={searchParams.singlePC !== 'false'}
       isTesting={!!process.env.LIVEKIT_API_INTERCEPTOR}
       withPassword={!!room.password && !isAdmin}
+      roomTitle={room.name}
     />
   )
 }

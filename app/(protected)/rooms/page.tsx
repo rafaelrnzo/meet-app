@@ -1,4 +1,6 @@
+import type { DbRoom } from '@/lib/api/admin-api'
 import type { ResponseNext } from '@/feat/types'
+import { notFound } from 'next/navigation'
 import { djs } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 import { fetchGroups, fetchUserDbRooms } from '@/lib/api/admin-api'
@@ -7,11 +9,15 @@ import { RoomListClient } from '@/app/(protected)/rooms/client'
 
 async function getRoomListConfig(searchParams: object) {
   const session = await auth()
-  const initialRooms = await fetchUserDbRooms(searchParams)
+  let initialRooms: DbRoom[] = []
   const isAdmin = session?.roles.name === 'admin'
 
   const hasPermission = (key: string) => {
     return !!session?.roles?.permissions?.some((perm) => perm.key.endsWith(key))
+  }
+
+  if (session && hasPermission('module:rooms:access')) {
+    initialRooms = await fetchUserDbRooms(searchParams)
   }
 
   // Only show if room end date is AFTER today's milisecond
@@ -31,6 +37,8 @@ export default async function HomePage(props: ResponseNext) {
   const { isAdmin, isEmpty, isInvalid, rooms, hasPermission } = await getRoomListConfig(
     await props.searchParams
   )
+
+  if (!hasPermission('module:rooms:access')) return notFound()
 
   const groups = isAdmin ? await fetchGroups() : []
 

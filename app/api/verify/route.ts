@@ -1,11 +1,9 @@
 import { signIn } from '@/lib/auth'
 
-export const POST = async () => {
-  try {
-    const redirectUrl = (await signIn('keycloak', { redirect: false })) as string
+export async function GET(req: Request) {
+  const { searchParams } = new URL(req.url)
 
-    return Response.json({ callbackUrl: redirectUrl })
-  } catch (error) {
-    return Response.json({ callbackUrl: null, error }, { status: 500 })
-  }
+  return signIn('keycloak', {
+    redirectTo: searchParams.get('from') ?? '/',
+  })
 }
