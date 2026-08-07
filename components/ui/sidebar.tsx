@@ -180,7 +180,7 @@ function Sidebar({
           data-slot='sidebar'
           data-mobile='true'
           className={
-            'bg-sidebar text-sidebar-foreground top-12 w-screen max-w-(--sidebar-width)! p-0 max-md:h-[calc(100vh-48px)] [&>button]:hidden'
+            'bg-sidebar text-sidebar-foreground top-12 w-screen max-w-(--sidebar-width)! p-0 max-md:h-[calc(100dvh-48px)] [&>button]:hidden'
           }
           style={
             {

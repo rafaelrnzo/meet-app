@@ -28,6 +28,7 @@ export interface RoomDetailProps {
   isTesting?: boolean
   withPassword?: boolean
   metadata: RoomMetadata
+  roomTitle: string
 }
 
 export const RoomDetail: FC<RoomDetailProps> = (props) => {
@@ -175,6 +176,7 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
       isWrongPassword={isWrongPassword}
       setIsWrongPassword={setIsWrongPassword}
       metadata={props.metadata}
+      roomTitle={props.roomTitle}
     />
   )
 }

@@ -12,7 +12,7 @@ async function mailtoHandler({ subject = '', body }: { subject?: string; body: s
     link.click()
     document.body.removeChild(link)
 
-    await copyHandler(mailtoUrl)
+    await copyHandler(body)
     return { success: true }
   } catch {
     return { success: false }

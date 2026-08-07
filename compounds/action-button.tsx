@@ -2,7 +2,7 @@ import type { VariantProps } from 'class-variance-authority'
 import type { ModalDialogProps } from '@/components/ui/modal'
 import type { buttonVariants } from '@/components/ui/button'
 import { Ellipsis } from 'lucide-react'
-import { omit } from '@/lib/utils'
+import { cn, omit } from '@/lib/utils'
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ModalDelete } from '@/components/ui/modal'
 import { Icon } from '@/components/ui/icon'
@@ -97,23 +97,22 @@ export default function ActionButton({ buttonComp, deleteComp }: ActionButtonPro
         <CategoryActionButton {...{ buttonComp, deleteComp }} />
       </div>
       {/* MOBILE */}
-      <div className='flex md:hidden'>
-        {buttonComp
-          ?.filter(({ hide }) => !hide)
-          .map((_, index) => {
-            return (
-              <Popover key={index}>
-                <PopoverTrigger asChild>
-                  <Button size='icon-xs' variant='primary-outline' className='rounded-full p-2'>
-                    <Ellipsis />
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className='p-3'>
-                  <CategoryActionButton {...{ buttonComp, deleteComp }} />
-                </PopoverContent>
-              </Popover>
-            )
-          })}
+      <div
+        className={cn(
+          'flex md:hidden',
+          !buttonComp?.filter((button) => !button.hide).length && !deleteComp && 'hidden'
+        )}
+      >
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button size='icon-xs' variant='primary-outline' className='rounded-full p-2'>
+              <Ellipsis />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent className='p-3'>
+            <CategoryActionButton {...{ buttonComp, deleteComp }} />
+          </PopoverContent>
+        </Popover>
       </div>
     </div>
   )

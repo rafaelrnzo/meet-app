@@ -351,7 +351,7 @@ export const PreJoin: FC<PreJoinProps> = ({ metadata, ...props }) => {
             <button
               type='button'
               className='hover:not-disabled:bg-secondary inline-flex h-11 items-center justify-center rounded-md border px-4 font-semibold shadow'
-              onClick={() => router.back()}
+              onClick={() => router.push('/')}
             >
               {cancelLabel}
             </button>

@@ -135,10 +135,10 @@ export const useRecording = () => {
     }
   }
 
-  const handleMailto = async ({ room_name, link, name, created_at }: Recording) => {
+  const handleMailto = async ({ room_name, name, created_at, id, room_id }: Recording) => {
     const { success } = await mailtoHandler({
       subject: `Meeting Recording_${room_name}_${djs(created_at).format('DD/MM/YYYY')}_${djs(created_at).format('HH:mm:ss')}`,
-      body: link,
+      body: new URL(`/recordings/${room_id}/${id}/download`, window.location.origin).toString(),
     })
 
     if (!success) {
