@@ -69,10 +69,6 @@ export function useTabsParticipant() {
   const remoteParticipants = useParticipants()
   const { localParticipant } = useLocalParticipant()
 
-  const roleName =
-    (localParticipant?.attributes?.[ParticipantAttribute.RoleName.toLowerCase()] as Role) ?? ''
-  const isModerator = [Role.Moderator, Role.Admin, Role.WI].includes(roleName)
-
   const [modalConfirm, setModalConfirm] = useState<{
     id: 'mute-all' | 'dismiss-participant' | 'banned-participant' | 'reject-all'
     open: boolean
@@ -81,10 +77,17 @@ export function useTabsParticipant() {
     identity?: string
   }>({ id: 'mute-all', open: false, title: '', description: '', identity: '' })
 
-  const shouldMuteAll = remoteParticipants.some((p) => {
-    if (p.identity === localParticipant?.identity) return false
-    return p.isMicrophoneEnabled
+  const roleName = localParticipant?.attributes?.[
+    ParticipantAttribute.RoleName.toLowerCase()
+  ] as Role
+  const isModerator = [Role.Moderator, Role.Admin, Role.WI].includes(roleName)
+
+  const userParticipants = remoteParticipants.filter((participant) => {
+    const role = participant.attributes?.[ParticipantAttribute.RoleName.toLowerCase()] as Role
+
+    return role === Role.User
   })
+  const shouldMuteAll = userParticipants.some((participant) => participant.isMicrophoneEnabled)
 
   const bannedUserIdentity = (): MetadataInfo => {
     const defaultMetadata = { banned_users: [], banned_users_name: [], room_id: '' }
@@ -192,8 +195,23 @@ export function useTabsParticipant() {
   // HANDLER ACTION
   const handleBroadcastMuteAll = async () => {
     const nextState = !shouldMuteAll
+    const generalUser = remoteParticipants
+      .filter((participant) => {
+        const participantRole =
+          (participant.attributes[ParticipantAttribute.RoleName.toLowerCase()] as Role) ?? Role.User
+
+        return ![Role.Moderator, Role.Admin, Role.WI].includes(participantRole)
+      })
+      .map((p) => p.identity)
+
     try {
-      sendbroadcastMicrophoneMuteAll({ enabled: nextState })
+      sendbroadcastMicrophoneMuteAll(
+        { enabled: nextState },
+        {
+          destinationIdentities: generalUser,
+          reliable: true,
+        }
+      )
     } catch (error) {
       console.error('Gagal mengirim perintah mic masal:', error)
     } finally {

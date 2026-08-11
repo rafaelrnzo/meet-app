@@ -55,8 +55,11 @@ const AuthOptions: NextAuthConfig = {
         token.refresh_token = account.refresh_token ?? ''
       }
 
+      const needsProfileFetch = !token.profile
+      const needPermissionRefresh = shouldRefreshPermissions(token)
+
       // Fetch profile on first request
-      if (!token.profile) {
+      if (needsProfileFetch || needPermissionRefresh) {
         const { data: profile } = await fetcher<AuthProfileDTO>(
           `${APP_API_VIDEO_CONFERENCE}/api/me`,
           {
@@ -67,10 +70,6 @@ const AuthOptions: NextAuthConfig = {
           }
         )
         token.profile = profile
-      }
-
-      if (shouldRefreshPermissions(token)) {
-        // Refresh permissions
       }
 
       // Return token it its still valid and got no error

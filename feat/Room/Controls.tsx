@@ -4,6 +4,7 @@ import type { FC, ReactNode } from 'react'
 import { CheckIcon, PhoneSlashIcon, MonitorPlayIcon } from '@phosphor-icons/react'
 import { CameraIcon, CameraDisabledIcon, MicDisabledIcon, MicIcon } from '@livekit/components-react'
 import { cn } from '@/lib/utils'
+import { useAuth } from '@/hooks/use-auth'
 import { useControls, useParamsState } from '@/hooks'
 import { SearchParamsKey } from '@/feat/enum'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -31,6 +32,8 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
     handleToggleVideo,
     setActiveState,
   } = useControls()
+  const { hasPermission } = useAuth()
+  const cannotShareScreen = !hasPermission('ui:manage_screen')
 
   if (isConnecting) {
     return null
@@ -116,7 +119,11 @@ export const RoomControl: FC<{ children?: ReactNode }> = ({ children }) => {
           </div>
         </div>
       </div>
-      <ButtonIcon isActive={!shareScreenEnabled} onClick={handleToggleShareScreen}>
+      <ButtonIcon
+        isActive={!shareScreenEnabled}
+        onClick={handleToggleShareScreen}
+        disabled={cannotShareScreen}
+      >
         <MonitorPlayIcon weight='fill' size={22} />
       </ButtonIcon>
       <ReactionIcon

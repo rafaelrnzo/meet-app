@@ -7,6 +7,7 @@ import { fetchRoles, fetchPermissions, addRolePermission } from '@/lib/api/admin
 import { TableView } from '@/compounds/table-view'
 import { default as PageContainer } from '@/compounds/page-container'
 import { toast } from '@/components/ui/sonner'
+import { default as NoData } from '@/components/ui/no-data'
 import { rolesColumn } from '@/column/roles'
 import { default as EditRoles } from '@/app/(protected)/roles/_partials/edit'
 import { useAuth } from '../../../hooks/use-auth'
@@ -111,35 +112,38 @@ export default function RolesPage() {
   const groupedPermissions = getGroupedPermissions()
 
   return (
-    <>
-      <PageContainer
-        icon='roles'
-        title='Roles & Permissions'
-        subTitle='Kelola peran & izin dari setiap peserta badiklat'
-      >
-        {roles.length && (
-          <>
-            <TableView loading={loading} data={roles} columns={rolesColumn({ openManage })} />
-            <EditRoles
-              {...{
-                handleAddPermissions,
-                selectedRole,
-                isManageOpen,
-                setIsManageOpen,
-                groupedPermissions: {
-                  room: groupedPermissions['Room Management'],
-                  groups: groupedPermissions['Group Management'],
-                  users: groupedPermissions['User Management'],
-                  roles: groupedPermissions['Role Management'],
-                  recordings: groupedPermissions['Recording Management'],
-                  meet_screen: groupedPermissions['Meet Screen Management'],
-                  other: groupedPermissions.Other,
-                },
-              }}
-            />
-          </>
-        )}
-      </PageContainer>
-    </>
+    <div>
+      {!loading && roles.length === 0 ? (
+        <NoData
+          title='Tidak Ada Roles & Permissions yang Tersedia'
+          className='min-h-[calc(100vh-208px)]'
+        />
+      ) : (
+        <PageContainer
+          icon='roles'
+          title='Roles & Permissions'
+          subTitle='Kelola peran & izin dari setiap peserta badiklat'
+        >
+          <TableView loading={loading} data={roles} columns={rolesColumn({ openManage })} />
+          <EditRoles
+            {...{
+              handleAddPermissions,
+              selectedRole,
+              isManageOpen,
+              setIsManageOpen,
+              groupedPermissions: {
+                room: groupedPermissions['Room Management'],
+                groups: groupedPermissions['Group Management'],
+                users: groupedPermissions['User Management'],
+                roles: groupedPermissions['Role Management'],
+                recordings: groupedPermissions['Recording Management'],
+                meet_screen: groupedPermissions['Meet Screen Management'],
+                other: groupedPermissions.Other,
+              },
+            }}
+          />
+        </PageContainer>
+      )}
+    </div>
   )
 }
