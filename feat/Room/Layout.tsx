@@ -3,7 +3,6 @@
 import type { ComponentProps, CSSProperties, FC } from 'react'
 import type { LayoutContextType } from '@livekit/components-react'
 import { useEffect, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { ConnectionState, RoomEvent } from 'livekit-client'
 import {
   useCreateLayoutContext,
@@ -90,7 +89,6 @@ export const RoomBoard: FC<ComponentProps<'div'>> = ({ className, ...props }) =>
 }
 
 export const RoomLayout: FC<ComponentProps<'main'>> = ({ className, children, ...props }) => {
-  const router = useRouter()
   const { tabsCode } = useParamsState()
   const room = useRoomContext()
   const layoutContext = useCreateLayoutContext()

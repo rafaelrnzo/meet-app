@@ -7,10 +7,14 @@ import type { ConnectionDetails } from '@/feat/types'
 import type { RoomMetadata } from '@/feat/rooms/dto'
 import type { LocalUserChoicesPassword } from '@/feat/Room'
 import { useEffect, useRef, useState } from 'react'
+import { useParams } from 'next/navigation'
 import { useSession } from 'next-auth/react'
 import { qstring } from '@/lib/utils'
+import { useEventSource } from '@/hooks/use-event-source'
+import { useAuth } from '@/hooks/use-auth'
+import { useParamsState } from '@/hooks'
 import { RoomContent, RoomConference, InterceptorRoom, PreJoin } from '@/feat/Room'
-import { ConnectionInterceptor } from '@/feat/enum'
+import { ConnectionInterceptor, SearchParamsKey } from '@/feat/enum'
 import { prejoinVerify } from '@/feat/api'
 
 const LIVEKIT_CSS_ENABLE = true
@@ -32,6 +36,8 @@ export interface RoomDetailProps {
 }
 
 export const RoomDetail: FC<RoomDetailProps> = (props) => {
+  const { publicUrl, token } = useAuth()
+  const params: { name: string } = useParams()
   const [interceptor, setInterceptor] = useState<ConnectionInterceptor | null>(null)
   const [isCSSLoaded, setIsCSSLoaded] = useState(!LIVEKIT_CSS_ENABLE)
   const [loading, setLoading] = useState(false)
@@ -41,6 +47,8 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
   const username = session?.profile.username ?? 'Unknown'
   const roleName = session?.roles.name ?? 'user'
   const [isWrongPassword, setIsWrongPassword] = useState(false)
+  const isNotfoundRef = useRef(false)
+  const { router, searchParams } = useParamsState<{ name: string }>()
 
   // Reference
   const preJoinDefaults = useRef({ username: '', audioEnabled: false, videoEnabled: false })
@@ -60,7 +68,6 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
         password,
         region: props.region,
       })
-
       if (connectionDetailsData) {
         setConnectionDetails(connectionDetailsData)
       } else {
@@ -75,9 +82,18 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
     }
   })
 
+  const triggerNotFoundInterceptor = () => {
+    isNotfoundRef.current = true
+    setInterceptor(ConnectionInterceptor.NotFound)
+  }
+
   const handleBackToPrejoin = useRef(() => {
-    setInterceptor(null)
-    setPreJoinChoices(undefined)
+    if (isNotfoundRef.current) {
+      router.replace(`/${searchParams.get(SearchParamsKey.FromCode) ?? ''}`)
+    } else {
+      setInterceptor(null)
+      setPreJoinChoices(undefined)
+    }
   })
 
   useEffect(() => {
@@ -132,6 +148,10 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
           handleBackToPrejoin.current()
           es.close()
         }
+        if (status === 'expired') {
+          handleBackToPrejoin.current()
+          es.close()
+        }
       }
 
       es.onerror = (e) => {
@@ -147,12 +167,23 @@ export const RoomDetail: FC<RoomDetailProps> = (props) => {
     }
   }, [interceptor, props.roomName, session?.access_token])
 
+  useEventSource<{ type: string }>({
+    eventUrl: `${publicUrl}/api/events/rooms?room_code=${params.name}&token=${token}`,
+    onMessage: (event) => {
+      const statusRoomEnded = ['room_ended', 'room_deleted', 'room_code_regenerated']
+      if (statusRoomEnded.includes(event.type)) {
+        triggerNotFoundInterceptor()
+      }
+    },
+  })
+
   if (interceptor && interceptor !== ConnectionInterceptor.WrongPassword) {
     return <InterceptorRoom interceptor={interceptor} onClick={handleBackToPrejoin.current} />
   }
 
   return isReady && isCSSLoaded ? (
     <RoomConference
+      isNotfoundRef={isNotfoundRef}
       metadata={props.metadata}
       connectionDetails={connectionDetails}
       userChoices={preJoinChoices}

@@ -151,6 +151,7 @@ function ParticipantsContent({
           ) : (
             <div>
               {allParticipants.admin.map((user, idx) => {
+                const roleName = user.role.name === 'admin' ? 'super admin' : user.role.name
                 return (
                   <div
                     key={idx}
@@ -163,7 +164,7 @@ function ParticipantsContent({
                       <span className='text-sm font-medium text-red-800'>{user.username}</span>
                     </div>
                     <div className='rounded-md border border-red-800 bg-red-50 px-2 py-1 text-red-800'>
-                      {user.role.name.charAt(0).toUpperCase() + user.role.name.slice(1)}
+                      {roleName.charAt(0).toUpperCase() + roleName.slice(1)}
                     </div>
                   </div>
                 )
