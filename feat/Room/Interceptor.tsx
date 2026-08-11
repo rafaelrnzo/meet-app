@@ -44,6 +44,11 @@ export const InterceptorRoom: FC<InterceptorRoomProps> = ({
       description: 'Harap hubungi admin untuk konfirmasi ruang rapat',
       back: 'Kembali',
     },
+    [ConnectionInterceptor.NotFound]: {
+      title: 'Ruangan sudah berakhir',
+      description: 'Harap hubungi admin untuk konfirmasi ruang rapat',
+      back: 'Ok',
+    },
   }
 
   const { title, description, back } =

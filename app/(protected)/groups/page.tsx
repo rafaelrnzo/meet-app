@@ -39,7 +39,14 @@ export default function GroupsPage() {
   const loadData = async () => {
     try {
       setLoading(true)
-      const [g, u] = await Promise.all([fetchGroups(), fetchUsers()])
+      const [g, u] = await Promise.all([
+        fetchGroups(),
+        fetchUsers({
+          params: {
+            limit: 99999,
+          },
+        }),
+      ])
       setGroups(
         g.map((items) => ({
           id: items.id,

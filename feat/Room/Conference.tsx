@@ -1,6 +1,6 @@
 'use client'
 
-import type { FC, ReactNode } from 'react'
+import type { FC, ReactNode, RefObject } from 'react'
 import type {
   RoomOptions,
   TrackPublishDefaults,
@@ -29,6 +29,7 @@ export interface RoomConferenceProps {
     codec: VideoCodec
     singlePeerConnection: boolean
   }
+  isNotfoundRef: RefObject<boolean>
 }
 
 export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) => {
@@ -63,8 +64,15 @@ export const RoomConference: FC<RoomConferenceProps> = ({ children, ...props }) 
 
   const { router, searchParams } = useParamsState<{ name: string }>()
   const room = useMemo(() => new Room(roomOptions.current()), []) // Maybe changed
+
   const roomEvent = useRef({
-    leave: () => router.replace(`/${searchParams.get(SearchParamsKey.FromCode) ?? ''}`),
+    leave: () => {
+      if (propsRef.current.isNotfoundRef.current) {
+        return
+      } else {
+        router.replace(`/${searchParams.get(SearchParamsKey.FromCode) ?? ''}`)
+      }
+    },
     error: () => {
       //
     },

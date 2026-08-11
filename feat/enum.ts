@@ -52,6 +52,7 @@ export enum ConnectionInterceptor {
   Unauthorized = 'unauthorized',
   WrongPassword = 'wrong_password',
   Locked = 'locked',
+  NotFound = 'not_found',
 }
 
 export enum SearchParamsKey {
