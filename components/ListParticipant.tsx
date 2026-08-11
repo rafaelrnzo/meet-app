@@ -169,7 +169,6 @@ export function ListParticipant() {
   const {
     participantGroups,
     shouldMuteAll,
-    isModerator,
     modalConfirm,
     bannedParticipantLength,
     handleBroadcastMuteAll,
@@ -228,13 +227,14 @@ export function ListParticipant() {
                   isBanned,
                 }) => {
                   const currentUser = lists.find((p) => p.isLocal)
-                  const amIModerator = currentUser?.isModerator ?? false
-                  const showDropdown = amIModerator && !isLocal && !isBanned
+                  const isUser = roleName === Role.User
                   const amIStaff =
                     currentUser?.roleName === Role.Admin ||
                     currentUser?.roleName === Role.Moderator ||
                     currentUser?.roleName === Role.WI
-                  const isUser = roleName === Role.User
+                  const amIModerator = currentUser?.isModerator ?? false
+                  const showDropdown =
+                    amIModerator && roleName === Role.User && !isLocal && !isBanned
                   const canClickHand = isRaised && !isBanned && (isLocal || (amIStaff && isUser))
                   const canClickMic = !isMuted && !isBanned && (isLocal || (amIStaff && isUser))
 
@@ -304,7 +304,6 @@ export function ListParticipant() {
                                 <HugeIcon icon={DoNotTouch01Icon} size={20} color='#A3A3A3' />
                               )}
                             </Button>
-
                             <Button
                               onClick={async () =>
                                 handleParticipantMute({
@@ -331,57 +330,53 @@ export function ListParticipant() {
 
                             {showDropdown && (
                               <DropdownMenu>
-                                {showDropdown && (
-                                  <DropdownMenu>
-                                    <DropdownMenuTrigger asChild>
-                                      <button className='cursor-pointer rounded-full p-2 hover:bg-neutral-100'>
-                                        <HugeIcon icon={EllipsisVertical} size={20} />
-                                      </button>
-                                    </DropdownMenuTrigger>
+                                <DropdownMenuTrigger asChild>
+                                  <button className='cursor-pointer rounded-full p-2 hover:bg-neutral-100'>
+                                    <HugeIcon icon={EllipsisVertical} size={20} />
+                                  </button>
+                                </DropdownMenuTrigger>
 
-                                    <DropdownMenuContent
-                                      align='end'
-                                      className='w-56 rounded-xl border border-neutral-200 bg-white p-1 px-2 text-sm shadow-lg'
+                                <DropdownMenuContent
+                                  align='end'
+                                  className='w-56 rounded-xl border border-neutral-200 bg-white p-1 px-2 text-sm shadow-lg'
+                                >
+                                  {[
+                                    {
+                                      label: 'Keluarkan peserta',
+                                      icon: 'user-out',
+                                      onClick: () =>
+                                        setModalConfirm({
+                                          open: true,
+                                          id: 'dismiss-participant',
+                                          identity: identity,
+                                        }),
+                                    },
+                                    {
+                                      label: 'Blokir peserta',
+                                      icon: 'block',
+                                      onClick: () =>
+                                        setModalConfirm({
+                                          open: true,
+                                          id: 'banned-participant',
+                                          identity: identity,
+                                        }),
+                                    },
+                                  ].map((item, index) => (
+                                    <DropdownMenuItem
+                                      key={index}
+                                      onClick={item.onClick}
+                                      className={cn(
+                                        'text-md text-error hover:text-error! my-1 flex cursor-pointer items-center gap-2 rounded-lg bg-red-200 p-3 transition-colors hover:bg-red-200/80!'
+                                      )}
                                     >
-                                      {[
-                                        {
-                                          label: 'Keluarkan peserta',
-                                          icon: 'user-out',
-                                          onClick: () =>
-                                            setModalConfirm({
-                                              open: true,
-                                              id: 'dismiss-participant',
-                                              identity: identity,
-                                            }),
-                                        },
-                                        {
-                                          label: 'Blokir peserta',
-                                          icon: 'block',
-                                          onClick: () =>
-                                            setModalConfirm({
-                                              open: true,
-                                              id: 'banned-participant',
-                                              identity: identity,
-                                            }),
-                                        },
-                                      ].map((item, index) => (
-                                        <DropdownMenuItem
-                                          key={index}
-                                          onClick={item.onClick}
-                                          className={cn(
-                                            'text-md text-error hover:text-error! my-1 flex cursor-pointer items-center gap-2 rounded-lg bg-red-200 p-3 transition-colors hover:bg-red-200/80!'
-                                          )}
-                                        >
-                                          <Icon
-                                            type={item.icon as (typeof ICON_NAMES)[number]}
-                                            className='text-error size-4 stroke-[1.2]'
-                                          />
-                                          <span>{item.label}</span>
-                                        </DropdownMenuItem>
-                                      ))}
-                                    </DropdownMenuContent>
-                                  </DropdownMenu>
-                                )}
+                                      <Icon
+                                        type={item.icon as (typeof ICON_NAMES)[number]}
+                                        className='text-error size-4 stroke-[1.2]'
+                                      />
+                                      <span>{item.label}</span>
+                                    </DropdownMenuItem>
+                                  ))}
+                                </DropdownMenuContent>
                               </DropdownMenu>
                             )}
                           </>
@@ -394,7 +389,7 @@ export function ListParticipant() {
             </TabsListGroup>
           ))}
         </div>
-        {shouldMuteAll && isModerator && (
+        {shouldMuteAll && (
           <div className='mt-auto bg-white pt-4'>
             <Button
               onClick={() =>
