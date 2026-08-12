@@ -4,6 +4,7 @@ import { default as React } from 'react'
 import { usePathname } from 'next/navigation'
 import { cn } from '@/lib/utils'
 import { sidebarItems } from '@/lib/menu-items'
+import { getRoleLabel } from '@/lib/helpers'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useAuth } from '@/hooks/use-auth'
 import { SidebarList } from '@/compounds/sidebar/sidebar-list'
@@ -21,6 +22,7 @@ export function ProtectedContent({ children }: { children: React.ReactNode }) {
 
   const username = user?.username ?? 'Unknown'
   const roleName = role?.name ?? ''
+  const roleLabel = getRoleLabel(roleName)
   const menuItems = sidebarItems({ isAdmin, hasPermission })
 
   return (
@@ -45,7 +47,7 @@ export function ProtectedContent({ children }: { children: React.ReactNode }) {
 
             <div className='flex items-center gap-2'>
               <span className='rounded-md border border-red-400 px-2 py-[3.5px] text-xs leading-4.25 font-medium text-red-800 first-letter:uppercase'>
-                {isMobile ? roleName.charAt(0) : roleName}
+                {isMobile ? roleLabel.charAt(0) : roleLabel}
               </span>
               <div className='ring-background flex size-8 items-center justify-center rounded-full bg-red-800 text-sm font-semibold text-neutral-50 ring-2 max-md:hidden'>
                 {username.charAt(0).toUpperCase()}
