@@ -11,10 +11,10 @@ import {
   FocusLayout,
   FocusLayoutContainer,
   GridLayout,
-  ParticipantTile,
   RoomAudioRenderer,
   useConnectionState,
   useRoomContext,
+  ParticipantTile,
 } from '@livekit/components-react'
 import { cn, decoder } from '@/lib/utils'
 import { useParamsState, useConferenceRoom, useDataChannel } from '@/hooks'
@@ -44,7 +44,7 @@ export const RoomGrid: FC<{ context: LayoutContextType }> = ({ context: layoutCo
   }, [record])
 
   return (
-    <div className='absolute inset-0 *:h-full *:w-full'>
+    <div className='absolute inset-0 *:h-full *:w-full [&_.lk-connection-quality]:hidden!'>
       {!focusTrack ? (
         <div className='lk-grid-layout-wrapper'>
           <GridLayout tracks={tracks}>

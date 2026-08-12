@@ -259,15 +259,12 @@ export function ListParticipant() {
                         {isBanned ? (
                           <span className='text-error text-xs'>Diblokir</span>
                         ) : (
-                          isModerator &&
-                          roleName !== Role.User && (
-                            <TabsListItemText
-                              className='max-w-50 truncate text-xs text-neutral-500 capitalize'
-                              title='Moderator'
-                            >
-                              {roleLabel}
-                            </TabsListItemText>
-                          )
+                          <TabsListItemText
+                            className='max-w-50 truncate text-xs text-neutral-500 capitalize'
+                            title='Moderator'
+                          >
+                            {roleLabel}
+                          </TabsListItemText>
                         )}
                       </TabsListItemContent>
 
