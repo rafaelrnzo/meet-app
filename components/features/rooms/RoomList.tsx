@@ -5,7 +5,7 @@ import type { DbRoom } from '@/lib/api/admin-api'
 import { useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 import { cn, djs, copyHandler } from '@/lib/utils'
 import { generateCode } from '@/lib/api/admin-api'
-import { useJoinRoom, useSourceEventRooms } from '@/hooks'
+import { useJoinRoom } from '@/hooks'
 import { shareLinkHandler } from '@/feat/rooms/helper'
 import { defaultErrorMessage } from '@/config'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
@@ -160,11 +160,6 @@ const RoomList: FC<RoomListProps> = ({
       joinRoom(roomCode)
     }
   }
-
-  useSourceEventRooms(
-    () => router.refresh(),
-    ['room_updated', 'user_updated', 'participant_joined', 'participant_left']
-  )
 
   if (isLoading) {
     return (

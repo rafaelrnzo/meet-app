@@ -2,12 +2,13 @@
 
 import type { FC } from 'react'
 import type { DbRoom, Group } from '@/lib/api/admin-api'
-import { useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { toast } from 'sonner'
 import { cn, displayedError, omit, qstring } from '@/lib/utils'
-import { deleteDbRoom } from '@/lib/api/admin-api'
+import { deleteDbRoom, fetchUserDbRooms } from '@/lib/api/admin-api'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useSourceEventRooms } from '@/hooks'
 import { default as NoData } from '@/components/ui/no-data'
 import { Icon } from '@/components/ui/icon'
 import { Button } from '@/components/ui/button'
@@ -26,6 +27,8 @@ export interface RoomListClientProps {
   canShareLink: boolean
 }
 
+const ROOM_COUNT_EVENTS = ['room_updated']
+
 export const RoomListClient: FC<RoomListClientProps> = ({
   rooms,
   groups,
@@ -41,23 +44,49 @@ export const RoomListClient: FC<RoomListClientProps> = ({
   const isMobile = useIsMobile()
 
   // State
+  const [roomState, setRoomState] = useState(rooms)
   const [openState, setOpenState] = useState<'form' | 'panel' | ''>('')
-  const selectedRoomRef = useRef<DbRoom | null>(null)
+  const [selectedRoom, setSelectedRoom] = useState<DbRoom | null>(null)
   const openForm = openState === 'form'
   const openPanel = openState === 'panel'
+
+  useEffect(() => {
+    setRoomState(rooms)
+  }, [rooms])
+
+  async function refreshRooms() {
+    const nextRooms = await fetchUserDbRooms(searchParams)
+    setRoomState(nextRooms)
+  }
+
+  useSourceEventRooms((event) => {
+    if (event.type !== 'room_updated') return
+
+    void refreshRooms()
+    setRoomState((prev) =>
+      prev.map((room) => {
+        const sameRoom =
+          room.id === event.data?.id ||
+          room.room_code === event.data?.room_code ||
+          room.room_code === event.data?.room_id
+
+        return sameRoom ? { ...room, participants: event.data?.participants ?? 0 } : room
+      })
+    )
+  }, ROOM_COUNT_EVENTS, '/admin/rooms/events')
 
   function handleDelete(deletedId: number) {
     deleteDbRoom(deletedId)
       .then(() => {
         toast.success('Ruang rapat berhasil dihapus', {
-          description: `Ruang rapat "${selectedRoomRef.current?.name}" berhasil dihapus`,
+          description: `Ruang rapat "${selectedRoom?.name}" berhasil dihapus`,
         })
       })
       .catch((e) => displayedError(e, 'Gagal menghapus ruang rapat'))
   }
 
   function handleDetail(room: DbRoom) {
-    selectedRoomRef.current = room
+    setSelectedRoom(room)
     setOpenState('panel')
   }
 
@@ -75,7 +104,7 @@ export const RoomListClient: FC<RoomListClientProps> = ({
               </>
             ),
             onClick: () => {
-              selectedRoomRef.current = null
+              setSelectedRoom(null)
               setOpenState('form')
             },
           }}
@@ -90,17 +119,16 @@ export const RoomListClient: FC<RoomListClientProps> = ({
               <RoomForm
                 open={openForm}
                 onOpenChange={(val) => setOpenState(!val ? '' : 'form')}
-                initialData={selectedRoomRef.current}
+                initialData={selectedRoom}
                 groups={groups}
                 activeParticipant={
-                  rooms.find((room) => room.room_code === selectedRoomRef.current?.room_code)
-                    ?.participants
+                  roomState.find((room) => room.room_code === selectedRoom?.room_code)?.participants
                 }
               >
                 <Button
                   variant='primary'
                   className='w-full'
-                  onClick={() => (selectedRoomRef.current = null)}
+                  onClick={() => setSelectedRoom(null)}
                 >
                   <Icon type='plus' /> Tambah Ruangan
                 </Button>
@@ -148,7 +176,7 @@ export const RoomListClient: FC<RoomListClientProps> = ({
       </div>
 
       <RoomList
-        rooms={rooms}
+        rooms={roomState}
         isAdmin={isAdmin}
         canShareLink={canShareLink}
         handleDetail={handleDetail}
@@ -161,7 +189,9 @@ export const RoomListClient: FC<RoomListClientProps> = ({
       <RoomDetailSheet
         isOpen={isMobile ? false : openPanel}
         onClose={() => setOpenState('')}
-        room={selectedRoomRef.current}
+        room={
+          roomState.find((room) => room.room_code === selectedRoom?.room_code) ?? selectedRoom
+        }
         canDelete={isAdmin}
         onDelete={handleDelete}
         handleEdit={(room) => setOpenState(room ? 'form' : '')}

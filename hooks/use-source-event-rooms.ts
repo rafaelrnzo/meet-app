@@ -4,7 +4,9 @@ import { useSession } from 'next-auth/react'
 type SourceEventParams = {
   type: string
   data?: {
+    id?: number
     room_id?: string
+    room_code?: string
     num_publishers?: number
     participants?: number
     is_live?: boolean
@@ -19,10 +21,12 @@ type SourceEventParams = {
 
 export function useSourceEventRooms(
   callbackFn: (event: SourceEventParams) => void,
-  eventDeps: string[]
+  eventDeps: string[],
+  eventPath = '/api/rooms/events'
 ) {
   const callbackEvent = useEffectEvent(callbackFn)
   const { data: session } = useSession()
+  const eventKey = eventDeps.join('|')
 
   const parseCallbackFn = useEffectEvent((event: MessageEvent<string>) => {
     try {
@@ -44,7 +48,11 @@ export function useSourceEventRooms(
       return
     }
 
-    const es = new EventSource(`${publicUrl}/api/rooms/events?token=${token}`)
+    if (!publicUrl || !token) {
+      return
+    }
+
+    const es = new EventSource(`${publicUrl}${eventPath}?token=${token}`)
     es.onmessage = parseCallbackFn
 
     eventDeps.forEach((sourceEvent) => {
@@ -62,5 +70,5 @@ export function useSourceEventRooms(
         es.removeEventListener(sourceEvent, parseCallbackFn)
       })
     }
-  }, [session?.access_token, session?.publicUrl, eventDeps])
+  }, [session?.access_token, session?.publicUrl, eventKey, eventPath])
 }

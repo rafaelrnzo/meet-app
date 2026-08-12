@@ -4,10 +4,8 @@ import { djs } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 import { fetchUserDbRooms } from '@/lib/api/admin-api'
 import { default as PageContainer } from '@/compounds/page-container'
-import { default as NoData } from '@/components/ui/no-data'
 import { JoinRoom } from '@/components/JoinRoom'
-import { RoomListHeader } from '@/components/features/rooms/RoomListHeader'
-import { RoomList } from '@/components/features/rooms/RoomList'
+import { HomeClient } from '@/app/(protected)/home-client'
 
 async function getRoomListConfig(searchParams: object) {
   const session = await auth()
@@ -48,16 +46,13 @@ export default async function HomePage(props: ResponseNext) {
       backToTopButton
       insertAfterTitle={<JoinRoom rooms={rooms} />}
     >
-      {isEmpty ? (
-        <NoData
-          title='Tidak Ada Ruangan yang Tersedia'
-          desc='Silakan buat ruangan baru.'
-          className='mt-[min(20vh,200px)]'
-        />
-      ) : (
-        <RoomListHeader isInvalid={isInvalid} headerAddon={`${rooms.length} Daftar Ruangan`} />
-      )}
-      <RoomList rooms={rooms} isAdmin={isAdmin} canShareLink={hasPermission('room:share')} />
+      <HomeClient
+        rooms={rooms}
+        isAdmin={isAdmin}
+        isEmpty={isEmpty}
+        isInvalid={isInvalid}
+        canShareLink={hasPermission('room:share')}
+      />
     </PageContainer>
   )
 }
